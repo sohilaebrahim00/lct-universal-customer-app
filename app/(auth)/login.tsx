@@ -18,7 +18,10 @@ export default function LoginScreen() {
   const configured = Boolean(supabase);
 
   async function handleLogin() {
-    if (!supabase) return;
+    if (!supabase) {
+      setError('This preview build has no backend connected — sign-in is a UI-only demo here.');
+      return;
+    }
     if (!email.trim() || !password) {
       setError('Enter your email and password.');
       return;
@@ -40,10 +43,16 @@ export default function LoginScreen() {
         subtitle="Sign in to book, track, and manage your rides."
       />
 
+      {/*
+        Non-blocking: informational only. Inputs and the button below stay
+        fully interactive either way — signing in for real just isn't
+        possible until Supabase is configured, which handleLogin's own
+        guard reports clearly instead of silently doing nothing.
+      */}
       {!configured ? (
         <AppText variant="bodyMuted" center style={{ marginBottom: spacing.md }}>
-          Sign-in isn&apos;t configured on this build yet — EXPO_PUBLIC_SUPABASE_URL and
-          EXPO_PUBLIC_SUPABASE_ANON_KEY are missing. See .env.example.
+          Preview mode: EXPO_PUBLIC_SUPABASE_URL / EXPO_PUBLIC_SUPABASE_ANON_KEY aren&apos;t set on this build, so
+          sign-in can&apos;t reach a real backend yet — you can still explore the UI below.
         </AppText>
       ) : null}
 
@@ -54,7 +63,6 @@ export default function LoginScreen() {
         autoCapitalize="none"
         keyboardType="email-address"
         autoComplete="email"
-        editable={configured}
       />
       <TextField
         label="Password"
@@ -62,7 +70,6 @@ export default function LoginScreen() {
         onChangeText={setPassword}
         secureTextEntry
         autoComplete="password"
-        editable={configured}
       />
 
       {error ? (
@@ -71,7 +78,7 @@ export default function LoginScreen() {
         </AppText>
       ) : null}
 
-      <Button label="Sign In" onPress={handleLogin} loading={loading} disabled={!configured} />
+      <Button label="Sign In" onPress={handleLogin} loading={loading} />
 
       <View style={{ marginTop: spacing.md, alignItems: 'center' }}>
         <Link href="/(auth)/forgot-password">

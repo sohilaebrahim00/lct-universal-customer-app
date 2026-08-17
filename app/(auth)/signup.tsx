@@ -23,7 +23,10 @@ export default function SignupScreen() {
   const configured = Boolean(supabase);
 
   async function handleSignup() {
-    if (!supabase) return;
+    if (!supabase) {
+      setError('This preview build has no backend connected — sign-up is a UI-only demo here.');
+      return;
+    }
     if (!fullName.trim() || !email.trim() || !password) {
       setError('Full name, email, and password are required.');
       return;
@@ -80,14 +83,15 @@ export default function SignupScreen() {
         subtitle="Book premium chauffeured transportation in minutes."
       />
 
+      {/* Non-blocking: informational only — every field and the button below stay fully interactive either way. */}
       {!configured ? (
         <AppText variant="bodyMuted" center style={{ marginBottom: spacing.md }}>
-          Sign-up isn&apos;t configured on this build yet — EXPO_PUBLIC_SUPABASE_URL and
-          EXPO_PUBLIC_SUPABASE_ANON_KEY are missing. See .env.example.
+          Preview mode: EXPO_PUBLIC_SUPABASE_URL / EXPO_PUBLIC_SUPABASE_ANON_KEY aren&apos;t set on this build, so
+          sign-up can&apos;t reach a real backend yet — you can still explore the UI below.
         </AppText>
       ) : null}
 
-      <TextField label="Full Name" value={fullName} onChangeText={setFullName} autoComplete="name" editable={configured} />
+      <TextField label="Full Name" value={fullName} onChangeText={setFullName} autoComplete="name" />
       <TextField
         label="Email"
         value={email}
@@ -95,17 +99,10 @@ export default function SignupScreen() {
         autoCapitalize="none"
         keyboardType="email-address"
         autoComplete="email"
-        editable={configured}
       />
-      <TextField label="Phone (optional)" value={phone} onChangeText={setPhone} keyboardType="phone-pad" editable={configured} />
-      <TextField label="Password" value={password} onChangeText={setPassword} secureTextEntry editable={configured} />
-      <TextField
-        label="Confirm Password"
-        value={confirmPassword}
-        onChangeText={setConfirmPassword}
-        secureTextEntry
-        editable={configured}
-      />
+      <TextField label="Phone (optional)" value={phone} onChangeText={setPhone} keyboardType="phone-pad" />
+      <TextField label="Password" value={password} onChangeText={setPassword} secureTextEntry />
+      <TextField label="Confirm Password" value={confirmPassword} onChangeText={setConfirmPassword} secureTextEntry />
 
       {error ? (
         <AppText variant="caption" color={colors.destructive} style={{ marginBottom: spacing.md }}>
@@ -113,7 +110,7 @@ export default function SignupScreen() {
         </AppText>
       ) : null}
 
-      <Button label="Create Account" onPress={handleSignup} loading={loading} disabled={!configured} />
+      <Button label="Create Account" onPress={handleSignup} loading={loading} />
 
       <View style={{ marginTop: spacing.xl, alignItems: 'center' }}>
         <AppText variant="bodyMuted">

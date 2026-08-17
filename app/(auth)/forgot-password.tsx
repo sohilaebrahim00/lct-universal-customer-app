@@ -18,7 +18,11 @@ export default function ForgotPasswordScreen() {
   const configured = Boolean(supabase);
 
   async function handleReset() {
-    if (!supabase || !email.trim()) {
+    if (!supabase) {
+      setError('This preview build has no backend connected — password reset is a UI-only demo here.');
+      return;
+    }
+    if (!email.trim()) {
       setError('Enter the email you signed up with.');
       return;
     }
@@ -42,11 +46,15 @@ export default function ForgotPasswordScreen() {
         subtitle="We'll email you a link to set a new password."
       />
 
+      {/* Non-blocking: informational only — the field and button below stay fully interactive either way. */}
       {!configured ? (
         <AppText variant="bodyMuted" center style={{ marginBottom: spacing.md }}>
-          Password reset isn&apos;t configured on this build yet — see .env.example.
+          Preview mode: EXPO_PUBLIC_SUPABASE_URL / EXPO_PUBLIC_SUPABASE_ANON_KEY aren&apos;t set on this build, so
+          this can&apos;t reach a real backend yet — you can still explore the UI below.
         </AppText>
-      ) : sent ? (
+      ) : null}
+
+      {sent ? (
         <AppText variant="body" center style={{ marginBottom: spacing.md }}>
           If an account exists for {email.trim()}, a reset link is on its way.
         </AppText>
