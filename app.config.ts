@@ -8,6 +8,7 @@ import type { ExpoConfig } from 'expo/config';
 const config: ExpoConfig = {
   name: 'LCT Universal',
   slug: 'lct-universal-customer-app',
+  owner: 'sohila00',
   version: '1.0.0',
   orientation: 'portrait',
   scheme: 'lctuniversal',
@@ -21,6 +22,17 @@ const config: ExpoConfig = {
       // Restrict this key to the bundle identifier above in the Google
       // Cloud Console before shipping — see .env.example.
       googleMapsApiKey: process.env.GOOGLE_MAPS_API_KEY_IOS ?? undefined,
+    },
+    infoPlist: {
+      // Declares this app's encryption use for Apple's export-compliance
+      // question. `false` = "exempt" — correct for the encryption actually
+      // in this app (AES for on-device secure-token storage only, via
+      // standard algorithms, never for transmitting data to third
+      // parties), which is the common qualifying case. Re-verify this
+      // against Apple's current export-compliance rules before an actual
+      // App Store (not just internal/dev-client) submission — this is a
+      // legal declaration, not just a build flag.
+      ITSAppUsesNonExemptEncryption: false,
     },
   },
   android: {
@@ -76,7 +88,17 @@ const config: ExpoConfig = {
   ],
   extra: {
     eas: {
-      projectId: process.env.EAS_PROJECT_ID,
+      // EAS project IDs aren't secrets (unlike the API keys elsewhere in
+      // this file) — they're meant to be committed, the same way a static
+      // app.json would have this written in after `eas init`. EAS can't
+      // auto-write into a dynamic app.config.ts the way it can a static
+      // app.json, so this has to be set explicitly. Still overridable via
+      // EAS_PROJECT_ID for anyone building against a different EAS
+      // project (e.g. their own account while developing locally).
+      // `||`, not `??` — .env.example (and a freshly copied .env) defines
+      // EAS_PROJECT_ID as an empty string rather than leaving it unset, and
+      // an empty string is just as invalid as undefined here.
+      projectId: process.env.EAS_PROJECT_ID || '03d4efcf-a430-4fd7-9240-5af90cb90f42',
     },
   },
 };
