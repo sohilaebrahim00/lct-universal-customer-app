@@ -25,6 +25,13 @@ Notifications.setNotificationHandler({
  * README.
  */
 export async function registerForPushNotifications(): Promise<{ registered: boolean; reason?: string }> {
+  // Web preview build — no real push transport (no APNs/FCM device token
+  // to register), so this is a clear demo/no-op state rather than an
+  // attempt that could behave unpredictably across browsers.
+  if (Platform.OS === 'web') {
+    return { registered: false, reason: 'Push notifications are a demo state in this web preview — available on iOS and Android.' };
+  }
+
   if (!Device.isDevice) {
     return { registered: false, reason: 'Push notifications require a physical device (not a simulator).' };
   }

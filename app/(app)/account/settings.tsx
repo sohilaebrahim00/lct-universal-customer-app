@@ -46,7 +46,7 @@ export default function SettingsScreen() {
           />
         </View>
         {pushError ? (
-          <AppText variant="caption" color={colors.destructive} style={{ marginTop: spacing.sm }}>
+          <AppText variant="caption" color={colors.mutedForeground} style={{ marginTop: spacing.sm }}>
             {pushError}
           </AppText>
         ) : null}

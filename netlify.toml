@@ -1,0 +1,11 @@
+[build]
+  command = "npm run export:web"
+  publish = "dist"
+
+# expo-router is client-side routed (a single-page app) — every path needs
+# to fall through to index.html so deep links (e.g. /trips/abc) and page
+# refreshes don't 404 on Netlify's static file server.
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

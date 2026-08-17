@@ -59,6 +59,25 @@ tests/                          Jest unit tests for pure logic only
 - **Settings screen** (push-notification toggle, account email, app version) and a **Trip History** shortcut added to the Account tab.
 - **Push notification deep-linking** (`src/lib/useNotificationRouter.ts`): tapping a trip-related push (driver assigned, driver arriving, etc.) now opens that trip's live-tracking screen directly, using the `bookingId` the backend already includes in every notification's data payload.
 
+## Web preview mode
+
+`npx expo export --platform web` (or `npm run export:web`) now produces a real, deployable web build of this app — for **UI/UX preview only**, not a third mobile platform. The mobile architecture is unchanged: every native-only module still ships exactly as before on iOS/Android; web gets its own explicit fallback at each of the few places a native-only view would otherwise crash the bundle or fail to render:
+
+| Native feature | iOS/Android | Web preview |
+|---|---|---|
+| Stripe (`CardField`, PaymentSheet) | Full native SDK (`StripeAppProvider`/`StripePayment`/`useStripeCheckout` — no `.web.` suffix) | `.web.tsx`/`.web.ts` counterparts: a "preview mode" card instead of `CardField`, `payWithStripe()` returns a clear "not available in this web preview" result instead of opening a sheet |
+| `react-native-maps` (pickup/destination pickers, route preview, live trip map) | Real interactive map | The same manual-address-entry fallback already used when Maps isn't configured or when running in Expo Go, now also triggered by `Platform.OS === 'web'` |
+| `@react-native-community/datetimepicker` | Real native date/time picker | Plain date/time text fields (`YYYY-MM-DD` / `HH:MM`) parsed into the same `scheduledAt` the rest of the booking flow already expects |
+| Push notifications | Real APNs/FCM registration | `registerForPushNotifications()` returns a clear demo-state result; the Settings toggle shows it as an informational note, not an error |
+| Secure token storage, location, image picker | Native APIs | Unchanged — these already have real web implementations upstream (browser Geolocation, File input, localStorage-backed SecureStore), so no fallback was needed |
+
+Every fallback reuses UI that already existed for the "not configured" / "Expo Go" cases (see `src/lib/expoEnvironment.ts` and each fallback's own comments) — nothing net-new was invented just for web, and nothing was removed from the native paths. Navigation, all screens, the booking flow, vehicle selection with real fleet photography, account screens, trip screens, and the full dark/gold design system all render as-is on web.
+
+**Deploying the preview to Netlify:**
+- `netlify.toml` is already configured: build command `npm run export:web`, publish directory `dist`, with a catch-all redirect to `index.html` (required for expo-router's client-side routing — without it, refreshing any non-root URL 404s).
+- Connect the GitHub repo in the Netlify dashboard and it will build automatically on every push using that config — no manual steps beyond the initial "New site from Git" connection.
+- Or deploy the `dist/` folder directly: `npx expo export --platform web && npx netlify deploy --prod --dir=dist` (requires `netlify-cli` and being logged into a Netlify account — this session doesn't have Netlify credentials, so the actual deploy has to happen from your machine/account).
+
 ## Backend integration
 
 Every screen calls `lct-universal-backend`'s REST API (`src/api/*.ts`) or its WebSocket layer (`src/lib/useTripSocket.ts`, `wss://<host>/ws/trips/:bookingId`) — no mock data anywhere in `app/` or `src/`. **Types are duplicated, not shared** (`src/types/api.ts`, documented there as intentional — separate repos, separate deploy pipelines; promote to a shared `@lct-universal/api-types` package if that ever changes).
@@ -77,7 +96,8 @@ Every screen calls `lct-universal-backend`'s REST API (`src/api/*.ts`) or its We
 - `npm run typecheck` (`tsc --noEmit`) — clean, zero errors.
 - `npx eslint app src` — clean, zero errors/warnings.
 - `npx jest` — 16/16 unit tests passing (pure logic only — `pricingPreview.ts`, `tripStatus.ts`, `format.ts`; see the `ts-jest` note below for why RN component tests aren't in this suite).
-- `npx expo export --platform ios` — Metro resolved and bundled all 2,348 modules (the entire app plus Stripe, react-native-maps, Reanimated/worklets, expo-location, expo-image-picker, expo-secure-store, every font/icon) into a real 6MB Hermes bundle with zero errors, including the new onboarding/vehicle image assets. This is strong evidence the app is structurally sound for its real target platform — not the same claim as "runs correctly on a device," since `expo export` only bundles JS/assets and doesn't invoke Xcode or a simulator.
+- `npx expo export --platform ios` — Metro resolved and bundled all 2,352 modules (the entire app plus Stripe, react-native-maps, Reanimated/worklets, expo-location, expo-image-picker, expo-secure-store, every font/icon) into a real 6MB Hermes bundle with zero errors, including the new onboarding/vehicle image assets. This is strong evidence the app is structurally sound for its real target platform — not the same claim as "runs correctly on a device," since `expo export` only bundles JS/assets and doesn't invoke Xcode or a simulator.
+- `npx expo export --platform web` — 1,987 modules bundled into a real 3.9MB web bundle with zero errors, producing a genuine `dist/` static site (`index.html`, `_expo/`, `assets/`) ready for Netlify. This is a real, working build — but see [Web preview mode](#web-preview-mode) for exactly which native features are mocked there and why; it's explicitly a UI/UX preview, not a claim that Stripe/Maps/push work in a browser.
 - Manual code-level checks (no device available, so this substitutes for a click-through smoke test): every route referenced by a `router.push`/`router.replace` call resolves to an actual file under `app/`; no leftover references to the screens removed/renamed in this pass (`pickup-dropoff`, `datetime`, `review`); the booking draft store's field set matches what every screen in the new flow reads and writes.
 
 **Not verified — and specifically why:**
@@ -102,7 +122,8 @@ Copy `.env.example` to `.env`. Only `EXPO_PUBLIC_API_URL` is required to boot �
 | `npm run typecheck` | `tsc --noEmit` |
 | `npm run lint` | ESLint over `app` and `src` |
 | `npm test` | Jest unit tests (pure logic) |
-| `npm run export:web` | Production web bundle export (note: fails on `@stripe/stripe-react-native`, which has no web support at all — use `expo export --platform ios` or `--platform android` for a real bundle check instead) |
+| `npm run export:web` | Web preview build (see [Web preview mode](#web-preview-mode)) — outputs to `dist/`, Netlify-ready |
+| `npm run export:ios` | Production iOS JS bundle export — the meaningful build check for the real target platform |
 
 ## What this is not
 

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type RefObject } from 'react';
 import { useRouter } from 'expo-router';
-import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Platform, Pressable, StyleSheet, View } from 'react-native';
 import type { Region } from 'react-native-maps';
 import { Ionicons } from '@expo/vector-icons';
 import { Button } from '../ui/Button';
@@ -40,11 +40,14 @@ interface MapHandle {
   animateToRegion: (region: Region, duration?: number) => void;
 }
 
-// The real map view is only ever rendered when Google Maps is configured
-// AND we're not running in Expo Go (see the early return in
-// LocationPickerScreen below) — `react-native-maps` is required lazily
-// here, inside this component's own render, rather than as a static
-// top-level import, so its native binding is never touched in Expo Go.
+// The real map view is only ever rendered when Google Maps is configured,
+// we're not running in Expo Go, AND we're not on web (see the early return
+// in LocationPickerScreen below) — react-native-maps wraps a native
+// UIKit/Google Maps view with no real web renderer, so it's never even
+// attempted there, matching the web-preview build's mock-map requirement.
+// `react-native-maps` is required lazily here, inside this component's own
+// render, rather than as a static top-level import, so its native binding
+// is only ever touched on a platform where it's actually going to render.
 // Same reasoning and pattern as StripeAppProvider.tsx.
 function NativeLocationMap({
   mapRef,
@@ -80,7 +83,7 @@ export function LocationPickerScreen({ title, subtitle, onConfirm, bias }: Props
   const { loading: locating, getCurrentLocation } = useCurrentLocation();
   const regionDebounce = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const mapAvailable = isMapsConfigured && !isExpoGo;
+  const mapAvailable = isMapsConfigured && !isExpoGo && Platform.OS !== 'web';
 
   const resolveAddress = useCallback((lat: number, lng: number) => {
     setResolving(true);
@@ -142,9 +145,11 @@ export function LocationPickerScreen({ title, subtitle, onConfirm, bias }: Props
           {title}
         </AppText>
         <AppText variant="bodyMuted" style={{ marginBottom: spacing.lg }}>
-          {isExpoGo
-            ? "Map search doesn't run inside Expo Go — enter the address manually. Open this build with the LCT Universal development client for the full map picker."
-            : "Map search isn't configured on this build yet (EXPO_PUBLIC_GOOGLE_MAPS_API_KEY is missing) — enter the address manually."}
+          {Platform.OS === 'web'
+            ? 'This web preview shows a placeholder here — the interactive map picker is available in the iOS/Android app. Enter the address manually below.'
+            : isExpoGo
+              ? "Map search doesn't run inside Expo Go — enter the address manually. Open this build with the LCT Universal development client for the full map picker."
+              : "Map search isn't configured on this build yet (EXPO_PUBLIC_GOOGLE_MAPS_API_KEY is missing) — enter the address manually."}
         </AppText>
         <TextField label="Address" value={manualAddress} onChangeText={setManualAddress} placeholder={subtitle} />
         <Button label="Confirm Location" onPress={handleConfirm} disabled={!manualAddress.trim()} />

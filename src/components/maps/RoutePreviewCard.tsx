@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Platform, StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Card } from '../ui/Card';
 import { AppText } from '../ui/Typography';
@@ -53,11 +53,11 @@ export function RoutePreviewCard({ pickup, dropoff, distanceMiles, durationMinut
 
   return (
     <Card style={{ padding: 0, overflow: 'hidden', marginBottom: spacing.md }}>
-      {isExpoGo ? (
+      {isExpoGo || Platform.OS === 'web' ? (
         <View style={styles.expoGoPreview}>
           <Ionicons name="map-outline" size={22} color={colors.gold} />
           <AppText variant="caption" center style={{ marginTop: spacing.xs }}>
-            Route map preview isn&apos;t available in Expo Go
+            {Platform.OS === 'web' ? 'Route map preview — full map available in the iOS/Android app' : "Route map preview isn't available in Expo Go"}
           </AppText>
         </View>
       ) : (

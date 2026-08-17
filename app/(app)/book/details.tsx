@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { useRouter } from 'expo-router';
 import { Platform, Pressable, StyleSheet, View } from 'react-native';
-import DateTimePicker from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
 import { StepHeader } from '../../../src/components/booking/StepHeader';
 import { Button } from '../../../src/components/ui/Button';
@@ -14,6 +13,23 @@ import { useBookingFormStore } from '../../../src/store/bookingFormStore';
 import { formatDateTime } from '../../../src/lib/format';
 
 const MIN_LEAD_TIME_MS = 60 * 60 * 1000;
+
+// `@react-native-community/datetimepicker` has no web implementation at
+// all (no .web.js entry point) — it bundles fine for web (Metro doesn't
+// error), but it's not meaningful to render there. Required lazily, only
+// ever rendered on ios/android (see the Platform.OS branch in DetailsStep
+// below, which uses plain text fields for date/time entry on web instead).
+// Same reasoning/pattern as the lazy react-native-maps requires elsewhere.
+function NativeDateTimePicker(props: {
+  value: Date;
+  mode: 'date' | 'time';
+  minimumDate: Date;
+  onChange: (event: unknown, date?: Date) => void;
+}) {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports -- intentional lazy load, see comment above.
+  const DateTimePicker = require('@react-native-community/datetimepicker').default as typeof import('@react-native-community/datetimepicker').default;
+  return <DateTimePicker {...props} themeVariant="dark" />;
+}
 
 function Stepper({ label, value, onChange, min, max }: { label: string; value: number; onChange: (v: number) => void; min: number; max: number }) {
   return (
@@ -44,6 +60,9 @@ export default function DetailsStep() {
   // render, which would otherwise silently push the minimum bookable time
   // later while the user is still on this screen.
   const [minimumDate] = useState(() => new Date(Date.now() + MIN_LEAD_TIME_MS));
+  // Web-only manual entry — see NativeDateTimePicker above for why.
+  const [webDateText, setWebDateText] = useState('');
+  const [webTimeText, setWebTimeText] = useState('');
 
   const selected = draft.scheduledAt ?? minimumDate;
   const isHourly = draft.serviceType === 'hourly';
@@ -59,6 +78,15 @@ export default function DetailsStep() {
     if (date) update({ scheduledAt: date });
   }
 
+  function handleWebDateTimeChange(dateText: string, timeText: string) {
+    setWebDateText(dateText);
+    setWebTimeText(timeText);
+    const parsed = new Date(`${dateText}T${timeText || '00:00'}:00`);
+    if (dateText && timeText && !Number.isNaN(parsed.getTime())) {
+      update({ scheduledAt: parsed });
+    }
+  }
+
   const canContinue = Boolean(draft.scheduledAt) && (!isHourly || duration > 0);
 
   return (
@@ -68,26 +96,45 @@ export default function DetailsStep() {
       <AppText variant="subheading" style={{ marginBottom: spacing.sm }}>
         Date & Time
       </AppText>
-      <Card style={{ marginBottom: spacing.md }}>
-        <View style={styles.row}>
-          <Pressable style={styles.field} onPress={() => openPicker('date')}>
-            <Ionicons name="calendar-outline" size={18} color={colors.gold} />
-            <AppText variant="body">
-              {draft.scheduledAt ? formatDateTime(draft.scheduledAt.toISOString()).split(' at ')[0] : 'Select date'}
-            </AppText>
-          </Pressable>
-          <Pressable style={styles.field} onPress={() => openPicker('time')}>
-            <Ionicons name="time-outline" size={18} color={colors.gold} />
-            <AppText variant="body">
-              {draft.scheduledAt ? formatDateTime(draft.scheduledAt.toISOString()).split(' at ')[1] : 'Select time'}
-            </AppText>
-          </Pressable>
-        </View>
-      </Card>
 
-      {showPicker ? (
-        <DateTimePicker value={selected} mode={pickerMode} minimumDate={minimumDate} onChange={handleChange} themeVariant="dark" />
-      ) : null}
+      {Platform.OS === 'web' ? (
+        <Card style={{ marginBottom: spacing.md }}>
+          <View style={styles.row}>
+            <View style={{ flex: 1 }}>
+              <TextField label="Date" value={webDateText} onChangeText={(text) => handleWebDateTimeChange(text, webTimeText)} placeholder="YYYY-MM-DD" style={{ marginBottom: 0 }} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <TextField label="Time" value={webTimeText} onChangeText={(text) => handleWebDateTimeChange(webDateText, text)} placeholder="HH:MM" style={{ marginBottom: 0 }} />
+            </View>
+          </View>
+          <AppText variant="caption" style={{ marginTop: spacing.sm }}>
+            Web preview — use a native date/time picker in the iOS/Android app.
+          </AppText>
+        </Card>
+      ) : (
+        <>
+          <Card style={{ marginBottom: spacing.md }}>
+            <View style={styles.row}>
+              <Pressable style={styles.field} onPress={() => openPicker('date')}>
+                <Ionicons name="calendar-outline" size={18} color={colors.gold} />
+                <AppText variant="body">
+                  {draft.scheduledAt ? formatDateTime(draft.scheduledAt.toISOString()).split(' at ')[0] : 'Select date'}
+                </AppText>
+              </Pressable>
+              <Pressable style={styles.field} onPress={() => openPicker('time')}>
+                <Ionicons name="time-outline" size={18} color={colors.gold} />
+                <AppText variant="body">
+                  {draft.scheduledAt ? formatDateTime(draft.scheduledAt.toISOString()).split(' at ')[1] : 'Select time'}
+                </AppText>
+              </Pressable>
+            </View>
+          </Card>
+
+          {showPicker ? (
+            <NativeDateTimePicker value={selected} mode={pickerMode} minimumDate={minimumDate} onChange={handleChange} />
+          ) : null}
+        </>
+      )}
 
       {isHourly ? (
         <Card style={{ marginBottom: spacing.md }}>

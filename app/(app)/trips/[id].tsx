@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useFocusEffect, useLocalSearchParams } from 'expo-router';
-import { Image, StyleSheet, View } from 'react-native';
+import { Image, Platform, StyleSheet, View } from 'react-native';
 import { Button } from '../../../src/components/ui/Button';
 import { Card } from '../../../src/components/ui/Card';
 import { ScreenContainer } from '../../../src/components/ui/ScreenContainer';
@@ -158,9 +158,19 @@ export default function TripDetailScreen() {
 
       {driver && !isTerminalStatus(status) ? <DriverCard driver={driver} vehicle={vehicle} etaMinutes={etaMinutes} /> : null}
 
-      {isMapsConfigured && !isExpoGo && driverLat != null && driverLng != null ? (
+      {driverLat != null && driverLng != null ? (
         <Card style={{ marginBottom: spacing.md, padding: 0, overflow: 'hidden' }}>
-          <NativeDriverMap lat={driverLat} lng={driverLng} />
+          {isMapsConfigured && !isExpoGo && Platform.OS !== 'web' ? (
+            <NativeDriverMap lat={driverLat} lng={driverLng} />
+          ) : (
+            <View style={styles.mapPlaceholder}>
+              <AppText variant="caption" center>
+                {Platform.OS === 'web'
+                  ? 'Live map preview — full tracking map available in the iOS/Android app'
+                  : 'Live map unavailable on this build'}
+              </AppText>
+            </View>
+          )}
         </Card>
       ) : null}
 
@@ -205,4 +215,5 @@ const styles = StyleSheet.create({
   avatar: { width: 56, height: 56, borderRadius: radius.full },
   avatarPlaceholder: { backgroundColor: colors.charcoal, alignItems: 'center', justifyContent: 'center' },
   map: { width: '100%', height: 200 },
+  mapPlaceholder: { width: '100%', height: 200, alignItems: 'center', justifyContent: 'center', paddingHorizontal: spacing.lg },
 });
