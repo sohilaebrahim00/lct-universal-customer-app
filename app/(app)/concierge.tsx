@@ -82,7 +82,7 @@ export default function ConciergeScreen() {
       dropoffAddress: readyToBook.dropoffAddress ?? '',
       passengerCount: readyToBook.passengerCount ?? 1,
     });
-    router.push('/(app)/book/datetime');
+    router.push('/(app)/book/vehicle');
   }
 
   return (
@@ -103,7 +103,7 @@ export default function ConciergeScreen() {
 
       {readyToBook ? (
         <View style={{ paddingHorizontal: spacing.lg, marginBottom: spacing.sm }}>
-          <Button label="Continue to Date & Time" onPress={startBookingFromIntent} />
+          <Button label="Continue to Vehicle Selection" onPress={startBookingFromIntent} />
         </View>
       ) : null}
 

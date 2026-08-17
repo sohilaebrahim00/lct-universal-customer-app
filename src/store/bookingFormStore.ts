@@ -14,6 +14,8 @@ export interface BookingDraft {
   scheduledAt: Date | null;
   hourlyDurationHours: number | null;
   distanceMiles: number | null;
+  durationMinutes: number | null;
+  routePolyline: string | null;
   passengerCount: number;
   luggageCount: number;
   primaryPassengerName: string;
@@ -30,6 +32,8 @@ const initialDraft: BookingDraft = {
   scheduledAt: null,
   hourlyDurationHours: null,
   distanceMiles: null,
+  durationMinutes: null,
+  routePolyline: null,
   passengerCount: 1,
   luggageCount: 0,
   primaryPassengerName: '',
@@ -46,7 +50,8 @@ interface BookingFormState {
   update: (patch: Partial<BookingDraft>) => void;
   reset: () => void;
   isReadyForVehicleSelection: () => boolean;
-  isReadyForReview: () => boolean;
+  isReadyForDetails: () => boolean;
+  isReadyForPayment: () => boolean;
   submit: () => Promise<{ bookingId: string; tripId: string } | null>;
 }
 
@@ -60,12 +65,19 @@ export const useBookingFormStore = create<BookingFormState>((set, get) => ({
 
   isReadyForVehicleSelection: () => {
     const { draft } = get();
-    if (!draft.serviceType || !draft.pickupAddress || !draft.scheduledAt) return false;
-    if (draft.serviceType === 'hourly') return Boolean(draft.hourlyDurationHours && draft.hourlyDurationHours > 0);
+    if (!draft.serviceType || !draft.pickupAddress) return false;
+    if (draft.serviceType === 'hourly') return true;
     return Boolean(draft.dropoffAddress);
   },
 
-  isReadyForReview: () => Boolean(get().draft.vehicle),
+  isReadyForDetails: () => Boolean(get().draft.vehicle),
+
+  isReadyForPayment: () => {
+    const { draft } = get();
+    if (!draft.vehicle || !draft.scheduledAt) return false;
+    if (draft.serviceType === 'hourly') return Boolean(draft.hourlyDurationHours && draft.hourlyDurationHours > 0);
+    return true;
+  },
 
   submit: async () => {
     const { draft } = get();

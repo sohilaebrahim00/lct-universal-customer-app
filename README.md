@@ -1,33 +1,37 @@
 # LCT Universal Customer App
 
-The customer-facing mobile app for LCT Universal Executive Transports — React Native (Expo, TypeScript), talking to the [lct-universal-backend](../lct-universal-backend) API. Authentication, the multi-step booking flow, live Uber-style trip tracking, payments, corporate accounts, and an AI concierge, in the same dark + champagne-gold design language as the LCT Universal website.
+The customer-facing mobile app for LCT Universal Executive Transports — React Native (Expo, TypeScript), talking to the [lct-universal-backend](../lct-universal-backend) API. Real authentication, a map-driven 6-screen booking flow, live Uber-style trip tracking, Stripe payments, corporate accounts, and an AI concierge, in the same dark + champagne-gold design language as the LCT Universal website.
 
 ## Stack
 
-**Expo SDK 57** (React Native 0.86.2, React 19.2.3) with **Expo Router** (file-based navigation), **TypeScript** (strict), **Supabase Auth** (`@supabase/supabase-js`), **Zustand** for client state, **Stripe** (`@stripe/stripe-react-native`), **react-native-maps** for live tracking, **expo-notifications** for push, and Jest (`ts-jest`) for pure-logic unit tests.
+**Expo SDK 57** (React Native 0.86.2, React 19.2.3) with **Expo Router**, **TypeScript** (strict), **Supabase Auth** (encrypted session storage — see below), **Zustand**, **Stripe** (`@stripe/stripe-react-native`), **Google Maps / Places / Directions** (`react-native-maps` + a direct REST integration, no third-party autocomplete wrapper), **react-native-reanimated** for motion, **expo-notifications** for push, **expo-image-picker** + **Supabase Storage** for profile photos, and Jest (`ts-jest`) for pure-logic unit tests.
 
 Expo — not the bare React Native CLI — is a deliberate choice, not just a default: this environment has no Xcode (impossible on Windows regardless) and no Android SDK/emulator, so a bare RN project would be unbuildable here. Expo's managed workflow lets every screen be written, type-checked, linted, unit-tested, and bundled (`expo export`) without either toolchain; actual native compilation happens later via `eas build` in the cloud (see [What hasn't been verified](#what-hasnt-been-verified)).
 
 ## Project structure
 
 ```
-app/                          Expo Router routes (file-based)
-  _layout.tsx                  Root: fonts, Stripe provider, auth bootstrap
-  index.tsx                    Redirects to (auth) or (app) based on session
+app/
+  _layout.tsx                  Root: fonts, Stripe provider, auth bootstrap, branded loading screen
+  index.tsx                    Routes to onboarding (first launch) / (auth) / (app) based on state
+  onboarding.tsx                3-slide luxury intro carousel, shown once
   (auth)/                       login, signup, forgot-password
   (app)/                        Tab navigator: Book, Trips, Concierge, Account
     index.tsx                    Home / service picker
-    book/                        6-step booking wizard (service → pickup/dropoff →
-                                  date/time → details → vehicle → review → confirmed)
-    trips/                       Upcoming/past list + live trip tracking detail
+    book/                        6-screen booking flow:
+                                  pickup (map) → destination (map) → vehicle (images + live
+                                  route/fare) → details (date/time/passengers/notes) →
+                                  payment (fare breakdown + Stripe PaymentSheet) → confirmed
+    trips/                       Upcoming/past list + live trip tracking (map + status timeline)
     concierge.tsx                 AI concierge chat
-    account/                      Profile, saved passengers/locations, payment
-                                  methods, notifications, corporate account
+    account/                      Profile (+ photo upload), saved passengers/locations, payment
+                                  methods, notifications, corporate account, settings
 src/
   theme/tokens.ts               Brand colors/fonts/spacing — see below
-  components/ui/                Button, TextField, Card, StatusPill, Typography, ...
-  lib/                          env, supabase client, API client, WebSocket hook,
-                                 pricing preview, trip-status helpers, push notifications
+  components/ui/                Button, TextField, Card, StatusPill, FadeSlideIn, Typography, ...
+  components/maps/               PlacesAutocomplete, LocationPickerScreen, RoutePreviewCard
+  lib/                          env, secureStorage, supabase client, googlePlaces, API client,
+                                 WebSocket hook, pricing preview, push notifications, avatar upload
   api/                          One typed module per backend resource
   store/                        Zustand: auth session, booking-draft form state
   types/api.ts                  Types mirrored from the backend (see note below)
@@ -36,57 +40,58 @@ tests/                          Jest unit tests for pure logic only
 
 ## Design system — ported from the website, not reinvented
 
-The color palette and typography are exact conversions of the LCT Universal website's own tokens (`LCT-Universal-Vite-Ready-v2/src/styles.css` `:root`), not an approximation:
+- Colors and typography are exact conversions of the website's own OKLCH tokens (`LCT-Universal-Vite-Ready-v2/src/styles.css` `:root`) — `src/theme/tokens.ts` documents the sRGB math, not an eyeballed approximation.
+- **Cormorant Garamond** (display) + **Manrope** (sans), matching the site's pairing exactly.
+- Vehicle cards use **real LCT Universal fleet photography** (`assets/vehicles/*.jpg`), copied from the website's own asset library — not stock images. Onboarding slides use the same source (`assets/onboarding/*.jpg`).
+- The site's deliberately small, sharp 0.2rem border radius is mirrored in the `radius` token scale.
 
-- The website defines colors in OKLCH (e.g. `--gold: oklch(0.78 0.11 84)`), which React Native's style engine can't parse. `src/theme/tokens.ts` documents the exact sRGB conversion of every token used (computed directly from the site's L/C/H numbers via the standard OKLab→sRGB matrices, not eyeballed) — `#d9b160` gold, `#020201` near-black background, `#dac288` champagne, etc.
-- Typography matches the site's pairing: **Cormorant Garamond** (display/serif headings) + **Manrope** (sans body), loaded via `@expo-google-fonts/*`.
-- The site's deliberately small 0.2rem "architectural" border radius is mirrored in `theme/tokens.ts`'s `radius` scale.
-- The app's logo asset (`assets/brand/lct-logo.png`) is copied directly from the website's `public/assets/favicon.png` — same brand mark, not a redraw.
+**Known gap, called out rather than hidden:** the app icon and Android adaptive-icon layers are still Expo's default template placeholders — the logo asset isn't square, and producing a proper padded 1024×1024 icon needs image-editing tooling this environment doesn't have. Commission a real icon before store submission.
 
-**Known gap, called out rather than hidden:** the app icon and Android adaptive-icon layers are still Expo's default template placeholders. The copied logo (477×320, not square) works fine as a splash image but isn't suitable as a 1024×1024 app icon without proper padding/cropping, which requires actual image-editing tooling this environment doesn't have. Commission or produce a proper square icon before any store submission.
+## What's new in this pass (Phase 3)
+
+- **Encrypted session storage** (`src/lib/secureStorage.ts`): Supabase's session is AES-encrypted before it touches disk, with the encryption key held in `expo-secure-store`'s hardware-backed Keychain/Keystore — not plain AsyncStorage. This is Supabase's own documented pattern for Expo, needed because a full session payload routinely exceeds SecureStore's ~2KB size cap on Android.
+- **Real Google Maps/Places integration** (`src/lib/googlePlaces.ts`, `src/components/maps/*`): pickup and destination are now full-screen map pickers with live Places Autocomplete, a "use current location" button (`expo-location`), reverse geocoding of the map center, and a driving-route lookup (distance, ETA, and a decoded polyline drawn on a route-preview map on the vehicle screen) — all via direct REST calls to Google's Places/Directions/Geocoding APIs, not a third-party wrapper. Every one of these gracefully falls back to manual text entry when `EXPO_PUBLIC_GOOGLE_MAPS_API_KEY` isn't set, exactly like the backend's own Maps integration.
+- **Restructured booking flow** to the 6 screens: pickup → destination → vehicle (with real photos and a live route preview) → trip details (date/time/passengers/notes) → payment (final fare + Stripe PaymentSheet) → confirmation. Payment now happens *before* confirmation, not after.
+- **Two small backend additions** (already committed to `lct-universal-backend`): `GET /bookings/:id/trip` (resolve a trip from a booking ID) and driver/vehicle display fields joined onto trip responses — the mobile app genuinely needed both and they didn't exist yet.
+- **Luxury onboarding** (`app/onboarding.tsx`) — a 3-slide swipeable intro shown once on first launch, and a branded animated loading screen (logo fade + breathing scale via Reanimated) replacing the blank screen that used to show while fonts/session were resolving.
+- **Motion**: buttons now use a spring press animation (Reanimated `withSpring`) instead of a static opacity change; service tiles and vehicle cards stagger in with `FadeSlideIn` on mount.
+- **Profile photo upload** (`src/lib/avatarUpload.ts`): `expo-image-picker` + direct upload to Supabase Storage, with the resulting public URL saved via the existing `PATCH /profiles/me`. **Requires a public `avatars` bucket to exist in the Supabase project** — a one-time dashboard/SQL setup step this code can't perform itself without a live project; see below.
+- **Settings screen** (push-notification toggle, account email, app version) and a **Trip History** shortcut added to the Account tab.
+- **Push notification deep-linking** (`src/lib/useNotificationRouter.ts`): tapping a trip-related push (driver assigned, driver arriving, etc.) now opens that trip's live-tracking screen directly, using the `bookingId` the backend already includes in every notification's data payload.
 
 ## Backend integration
 
-Every screen that touches data calls `lct-universal-backend`'s REST API (`src/api/*.ts`, one typed module per backend resource, paths matching the backend's actual routes exactly) or its WebSocket layer (`src/lib/useTripSocket.ts`, subscribing to `wss://<host>/ws/trips/:bookingId`). Two small additions were made to the backend alongside this app, because the mobile client genuinely needed them and didn't exist yet:
-
-- `GET /bookings/:id/trip` — resolves a trip from a booking ID (the booking list/detail screens only ever have the booking ID, not the trip ID).
-- `GET /trips/:id` and the route above now also return `driver` (name, avatar, rating) and `vehicle` (name, type) by joining `drivers`/`profiles`/`vehicles` — the bare `trips` row only had `driver_id`, not anything to actually display for "driver name/photo" as the spec asked for.
-
-Both are typechecked, linted, and covered by the backend's existing test/build pipeline (re-run and passing after these changes).
-
-**Types are duplicated, not shared**, in `src/types/api.ts` — documented there as intentional: the backend and this app are separate repositories with separate deploy pipelines per the project's own scope decisions, so there's no shared package to import from. If that changes, this file is what should become `@lct-universal/api-types`.
+Every screen calls `lct-universal-backend`'s REST API (`src/api/*.ts`) or its WebSocket layer (`src/lib/useTripSocket.ts`, `wss://<host>/ws/trips/:bookingId`) — no mock data anywhere in `app/` or `src/`. **Types are duplicated, not shared** (`src/types/api.ts`, documented there as intentional — separate repos, separate deploy pipelines; promote to a shared `@lct-universal/api-types` package if that ever changes).
 
 ## Honest functionality notes (not hidden, not silently skipped)
 
-- **Distance-based pricing has no real geocoding wired up.** There's no Google Places Autocomplete or Directions API integration in this pass (that requires a live Google Maps key this environment doesn't have, and a further native dependency). Pickup/drop-off are plain text address fields, and the booking flow asks for a manually-entered "estimated distance in miles" so distance-based fares aren't silently `$0` — clearly labeled in the UI as an estimate. Wiring real autocomplete + distance lookup (the backend's `src/lib/maps.ts` already has the Distance Matrix/Geocoding calls, just not exposed as a public route yet) is the natural next step once a Maps key exists.
-- **The fare shown during the booking flow is a client-side preview** (`src/lib/pricingPreview.ts`), a deliberate line-for-line port of the backend's `pricing.ts`. The backend recomputes the same calculation server-side on `POST /bookings` and that result is authoritative — the preview exists only so the vehicle-selection screen doesn't need a network round-trip per keystroke.
-- **AI concierge date parsing is not silently faked.** The concierge extracts a service type, addresses, and passenger count directly into the booking draft, but a natural-language phrase like "tomorrow at 8am" is *not* auto-converted into an exact `Date` (that needs a real NLP date parser this pass doesn't include) — the user is instead taken straight to the date/time picker with the concierge's understanding shown in chat, so they just confirm the exact time rather than trusting a silent, possibly-wrong parse.
+- **Places/Directions/Maps need a real `EXPO_PUBLIC_GOOGLE_MAPS_API_KEY` to do anything.** Without one, `isMapsConfigured` is `false` and the pickup/destination screens fall back to a plain manual-address text field (still fully functional for creating a booking — just without autocomplete, current-location detection, or a route preview). None of this has been exercised against a real Google Cloud project or billing account in this environment.
+- **The fare shown during the booking flow is a client-side preview** (`src/lib/pricingPreview.ts`, a line-for-line port of the backend's `pricing.ts`). The vehicle-selection screen's estimate uses a placeholder "now" timestamp for the late-night-surcharge check (the real date isn't collected until the next screen) — the Payment screen recomputes the exact figure once the real date/time is known, and the backend recomputes it again, authoritatively, on `POST /bookings`.
+- **Saved-card selection inside the booking's Stripe PaymentSheet isn't wired up.** The Account tab's Payment Methods screen can save a card to the customer's Stripe record today, but `PaymentSheet` only shows a customer's saved cards automatically when initialized with a customer ID + ephemeral key, which requires a small backend endpoint that doesn't exist yet. Documented here as a follow-up, not silently attempted.
+- **Avatar upload needs a Supabase Storage bucket that hasn't been created.** The code (`src/lib/avatarUpload.ts`) uploads to a bucket named `avatars` and expects it to be public (or covered by an appropriate RLS policy) — that bucket has to be created once in the Supabase dashboard/SQL editor before photo upload will actually succeed; there's no live Supabase project in this environment to create it in.
+- **AI concierge date parsing is still not silently faked.** A phrase like "tomorrow at 8am" is shown in chat, not auto-converted into an exact `Date` — the user confirms the exact date/time on the Details screen instead of trusting a silent parse.
 
 ## What has and hasn't been verified
 
-Being specific about this, the same way the backend's README is, so nothing here is taken on faith.
-
 **Actually run and passing in this session:**
-- `npx tsc --noEmit` — clean, zero errors, across `app/`, `src/`, `tests/`, and `app.config.ts`.
-- `npx eslint app src` — clean, zero errors/warnings (using `eslint-config-expo`).
-- `npx jest` — 16/16 unit tests passing, covering the three pure-logic modules with zero React Native dependencies: `pricingPreview.ts`, `tripStatus.ts`, `format.ts`. (React Native component tests aren't included in this pass — see below.)
-- `npx expo export --platform ios` — a real, meaningful build check: Metro resolved and bundled all 2,310 modules across every screen, the full dependency graph (Stripe, react-native-maps, notifications, gesture-handler + reanimated + worklets, all fonts/icons), and produced an actual 5.6MB Hermes bytecode bundle (`_expo/static/js/ios/entry-*.hbc`) with zero errors. This is strong evidence the app is structurally sound for its real target platform — it's just not the same claim as "runs correctly on an iOS device," since `expo export` only bundles JS/assets and doesn't invoke Xcode or a simulator.
-  - `npx expo export --platform web` was tried first and fails, for a legitimate reason unrelated to any bug: `@stripe/stripe-react-native`'s `CardField` component statically imports React Native-only internals (`codegenNativeCommands`) that don't exist under `react-native-web` — that SDK simply doesn't support the web platform at all. Once the export was pointed at `ios` (the app's actual target platform) instead, it succeeded outright. The web attempt also surfaced one real, useful fix along the way: `react-native-worklets` (a `react-native-reanimated` 4.x dependency) was missing from `node_modules` and had to be installed explicitly — a genuine gap, not a false alarm, and it's fixed now.
+- `npm run typecheck` (`tsc --noEmit`) — clean, zero errors.
+- `npx eslint app src` — clean, zero errors/warnings.
+- `npx jest` — 16/16 unit tests passing (pure logic only — `pricingPreview.ts`, `tripStatus.ts`, `format.ts`; see the `ts-jest` note below for why RN component tests aren't in this suite).
+- `npx expo export --platform ios` — Metro resolved and bundled all 2,348 modules (the entire app plus Stripe, react-native-maps, Reanimated/worklets, expo-location, expo-image-picker, expo-secure-store, every font/icon) into a real 6MB Hermes bundle with zero errors, including the new onboarding/vehicle image assets. This is strong evidence the app is structurally sound for its real target platform — not the same claim as "runs correctly on a device," since `expo export` only bundles JS/assets and doesn't invoke Xcode or a simulator.
+- Manual code-level checks (no device available, so this substitutes for a click-through smoke test): every route referenced by a `router.push`/`router.replace` call resolves to an actual file under `app/`; no leftover references to the screens removed/renamed in this pass (`pickup-dropoff`, `datetime`, `review`); the booking draft store's field set matches what every screen in the new flow reads and writes.
 
 **Not verified — and specifically why:**
-- **No iOS build.** Xcode only runs on macOS; this is a Windows environment, so an iOS build is categorically impossible here regardless of tooling. It has to happen on a Mac or via `eas build --platform ios` (cloud build, needs an Apple Developer account).
-- **No Android build.** No Android SDK, no `adb`, no `ANDROID_HOME` configured in this environment (checked directly, not assumed) — so no local Android build or emulator run either. Same path forward: `eas build --platform android`, or install Android Studio locally.
-- **No physical-device testing at all**, therefore: push notification delivery (`src/lib/pushNotifications.ts`), the Stripe `PaymentSheet` card-entry flow, `react-native-maps` rendering, and Supabase auth's actual sign-in/sign-up round trip have not been exercised against real devices, a real Supabase project, or a real Stripe account. All of it is structurally correct against each SDK's documented API and degrades gracefully (clear "not configured" states, never a crash) when credentials are missing — matching the backend's own integration pattern — but "compiles and matches the documented API" is not the same claim as "confirmed working on a device."
-- **No React Native component rendering tests.** The Jest suite in this pass covers pure TypeScript logic only (deliberately scoped — see the `jest-expo` note below); no screen has been rendered with React Testing Library and asserted against. Manual device/simulator testing would be the way to actually see the dark+gold theme, the multi-step flow, and the live tracking timeline render correctly.
-- **The Expo web export is real but partial evidence.** `react-native-web` renders through a different renderer than iOS/Android — useful confirmation that the code bundles and the component tree is structurally sound, not proof that native rendering (especially `react-native-maps` and `@stripe/stripe-react-native`, which don't run on web at all) looks or behaves correctly on a device.
+- **No iOS or Android build.** No Xcode (impossible on Windows), no Android SDK/emulator in this environment (checked directly). Real builds happen via `eas build` or on a Mac/with Android Studio installed.
+- **No physical-device testing.** Push notification delivery and tap-to-deep-link, the Stripe PaymentSheet's actual card entry, `react-native-maps`/Places/Directions against a real Google Maps key, Supabase auth's real sign-in/sign-up round trip, and the Supabase Storage avatar upload have not been exercised against real devices or live accounts. All of it is structurally correct against each SDK's documented API and degrades gracefully when unconfigured — not the same claim as "confirmed working."
+- **No React Native component rendering tests** — see the `ts-jest` note below.
 
 ### A version-mismatch note worth keeping (Expo SDK 57 is very new)
 
-`jest-expo`'s bundled RN Jest preset (`@react-native/jest-preset`) turned out to be incompatible with the exact `react-native@0.86.2` this SDK 57 scaffold installs — it expects a `react-native/src/setup-env.js` file that doesn't exist in this RN version, even after installing the SDK-matched preset version via `expo install`. Rather than fight an upstream tooling gap, this pass uses a minimal, scoped `ts-jest` config (see `package.json`'s `"jest"` block) for the pure-logic tests instead of the full `jest-expo` RN test environment. That means the current suite can't render RN components (no `@testing-library/react-native` here) — only pure TypeScript logic is covered. If `jest-expo` is fixed upstream (or a future SDK bump resolves it), switching back would unlock proper component-level testing.
+`jest-expo`'s bundled RN Jest preset (`@react-native/jest-preset`) is incompatible with the exact `react-native@0.86.2` this SDK 57 scaffold installs — it expects a `react-native/src/setup-env.js` file that doesn't exist in this RN version. This pass uses a minimal, scoped `ts-jest` config instead (see `package.json`'s `"jest"` block), which covers pure TypeScript logic only — no `@testing-library/react-native` component tests. If `jest-expo` is fixed upstream, switching back would unlock proper component-level testing.
 
 ## Environment configuration
 
-Copy `.env.example` to `.env`. Only `EXPO_PUBLIC_API_URL` is required for the app to boot — Supabase, Stripe, and Maps each degrade to a clear "not configured" UI state (never a crash) when their keys are absent, mirroring the backend's own graceful-degradation contract. See `.env.example` for the full list and which are build-time-only (read by `app.config.ts`, baked into the native manifest) versus runtime (`EXPO_PUBLIC_*`, inlined into the JS bundle — see the security note at the top of that file).
+Copy `.env.example` to `.env`. Only `EXPO_PUBLIC_API_URL` is required to boot — Supabase, Stripe, and Maps each degrade to a clear "not configured" state (never a crash) when their keys are absent. See `.env.example` for the full list, including which variables are build-time-only (read by `app.config.ts`, baked into the native manifest — e.g. the platform-specific Google Maps keys) versus runtime (`EXPO_PUBLIC_*`, inlined into the JS bundle).
 
 ## Scripts
 
@@ -97,8 +102,8 @@ Copy `.env.example` to `.env`. Only `EXPO_PUBLIC_API_URL` is required for the ap
 | `npm run typecheck` | `tsc --noEmit` |
 | `npm run lint` | ESLint over `app` and `src` |
 | `npm test` | Jest unit tests (pure logic) |
-| `npm run export:web` | Production web bundle export |
+| `npm run export:web` | Production web bundle export (note: fails on `@stripe/stripe-react-native`, which has no web support at all — use `expo export --platform ios` or `--platform android` for a real bundle check instead) |
 
 ## What this is not
 
-This is the **customer app only** — the driver app and the admin web dashboard are separate, unstarted phases (matching the project's own phased scope: backend first, then customer app, with driver app and admin dashboard still ahead). Corporate account management here is customer-facing (viewing the account, approving/rejecting rides as a manager); a dedicated admin dashboard for managing customers/drivers/vehicles/reservations/payments/reports across the whole platform doesn't exist yet.
+This is the **customer app only** — the driver app and the admin web dashboard are separate, unstarted phases, per the project's own phased scope. Corporate account management here is customer-facing (viewing the account, approving/rejecting rides as a manager); a full admin dashboard doesn't exist yet.

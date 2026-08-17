@@ -2,7 +2,10 @@ import { StyleSheet, View } from 'react-native';
 import { colors, radius, spacing } from '../../theme/tokens';
 import { AppText } from '../ui/Typography';
 
-const TOTAL_STEPS = 6;
+// Pickup and destination are full-screen map pickers (no room for a step
+// tracker) but still count as steps 1-2 in the sequence; StepHeader is only
+// rendered starting at vehicle selection (step 3).
+const TOTAL_STEPS = 5;
 
 export function StepHeader({ step, title, subtitle }: { step: number; title: string; subtitle?: string }) {
   return (

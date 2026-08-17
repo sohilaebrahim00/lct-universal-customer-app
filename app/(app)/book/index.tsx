@@ -1,7 +1,6 @@
 import { useRouter } from 'expo-router';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { StepHeader } from '../../../src/components/booking/StepHeader';
 import { Button } from '../../../src/components/ui/Button';
 import { ScreenContainer } from '../../../src/components/ui/ScreenContainer';
 import { AppText } from '../../../src/components/ui/Typography';
@@ -16,7 +15,13 @@ export default function ServiceStep() {
 
   return (
     <ScreenContainer>
-      <StepHeader step={1} title="Choose a Service" subtitle="What kind of trip are you planning?" />
+      <AppText variant="eyebrow">New Booking</AppText>
+      <AppText variant="title" style={{ marginBottom: spacing.xs }}>
+        Choose a Service
+      </AppText>
+      <AppText variant="bodyMuted" style={{ marginBottom: spacing.lg }}>
+        What kind of trip are you planning?
+      </AppText>
 
       <View style={{ gap: spacing.sm }}>
         {SERVICES.map((service) => {
@@ -42,7 +47,7 @@ export default function ServiceStep() {
 
       <Button
         label="Continue"
-        onPress={() => router.push('/(app)/book/pickup-dropoff')}
+        onPress={() => router.push('/(app)/book/pickup')}
         disabled={!draft.serviceType}
         style={{ marginTop: spacing.xl }}
       />

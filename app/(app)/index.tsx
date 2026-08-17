@@ -13,6 +13,7 @@ import { bookingsApi } from '../../src/api/bookings';
 import type { Booking, ServiceType } from '../../src/types/api';
 import { formatDateTime, formatServiceType } from '../../src/lib/format';
 import { SERVICES } from '../../src/lib/services';
+import { FadeSlideIn } from '../../src/components/ui/FadeSlideIn';
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -59,15 +60,17 @@ export default function HomeScreen() {
         Where to?
       </AppText>
       <View style={styles.grid}>
-        {SERVICES.map((service) => (
-          <Pressable key={service.type} style={styles.tile} onPress={() => startBooking(service.type)}>
-            <View style={styles.iconWrap}>
-              <Ionicons name={service.icon} size={26} color={colors.gold} />
-            </View>
-            <AppText variant="subheading" center>
-              {service.label}
-            </AppText>
-          </Pressable>
+        {SERVICES.map((service, i) => (
+          <FadeSlideIn key={service.type} delay={i * 60} style={styles.tileWrap}>
+            <Pressable style={styles.tile} onPress={() => startBooking(service.type)}>
+              <View style={styles.iconWrap}>
+                <Ionicons name={service.icon} size={26} color={colors.gold} />
+              </View>
+              <AppText variant="subheading" center>
+                {service.label}
+              </AppText>
+            </Pressable>
+          </FadeSlideIn>
         ))}
       </View>
     </ScreenContainer>
@@ -76,8 +79,8 @@ export default function HomeScreen() {
 
 const styles = StyleSheet.create({
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md },
+  tileWrap: { width: '47%' },
   tile: {
-    width: '47%',
     aspectRatio: 1.15,
     backgroundColor: colors.onyx,
     borderRadius: radius.md,

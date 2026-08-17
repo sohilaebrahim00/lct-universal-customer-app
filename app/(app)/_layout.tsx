@@ -4,6 +4,7 @@ import { Redirect, Tabs } from 'expo-router';
 import { colors, fonts, fontSizes } from '../../src/theme/tokens';
 import { useAuthStore } from '../../src/store/authStore';
 import { registerForPushNotifications } from '../../src/lib/pushNotifications';
+import { useNotificationRouter } from '../../src/lib/useNotificationRouter';
 
 export default function AppTabsLayout() {
   const status = useAuthStore((s) => s.status);
@@ -11,6 +12,8 @@ export default function AppTabsLayout() {
   useEffect(() => {
     if (status === 'signed-in') void registerForPushNotifications();
   }, [status]);
+
+  useNotificationRouter();
 
   if (status === 'signed-out' || status === 'not-configured') return <Redirect href="/(auth)/login" />;
 

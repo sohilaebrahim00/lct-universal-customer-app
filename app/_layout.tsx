@@ -10,6 +10,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { colors } from '../src/theme/tokens';
 import { env } from '../src/lib/env';
 import { useAuthStore } from '../src/store/authStore';
+import { AppLoadingScreen } from '../src/components/AppLoadingScreen';
 
 void SplashScreen.preventAutoHideAsync();
 
@@ -52,18 +53,22 @@ export default function RootLayout() {
     if (fontsLoaded || fontsError) void SplashScreen.hideAsync();
   }, [fontsLoaded, fontsError]);
 
-  if (!fontsLoaded && !fontsError) return null;
-  if (!authReady) return null;
+  const ready = (fontsLoaded || fontsError) && authReady;
 
   return (
     <GestureHandlerRootView style={{ flex: 1, backgroundColor: colors.surfaceBlack }}>
       <SafeAreaProvider>
         <AppShell>
           <StatusBar style="light" />
-          <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.surfaceBlack } }}>
-            <Stack.Screen name="(auth)" />
-            <Stack.Screen name="(app)" />
-          </Stack>
+          {ready ? (
+            <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.surfaceBlack } }}>
+              <Stack.Screen name="onboarding" />
+              <Stack.Screen name="(auth)" />
+              <Stack.Screen name="(app)" />
+            </Stack>
+          ) : (
+            <AppLoadingScreen />
+          )}
         </AppShell>
       </SafeAreaProvider>
     </GestureHandlerRootView>

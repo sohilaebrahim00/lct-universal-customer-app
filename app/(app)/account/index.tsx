@@ -1,5 +1,5 @@
 import { useRouter } from 'expo-router';
-import { Pressable, View } from 'react-native';
+import { Image, Pressable, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Card } from '../../../src/components/ui/Card';
 import { ScreenContainer } from '../../../src/components/ui/ScreenContainer';
@@ -30,10 +30,19 @@ export default function AccountScreen() {
         Account
       </AppText>
 
-      <Card style={{ marginBottom: spacing.lg }}>
-        <AppText variant="subheading">{profile?.full_name ?? '—'}</AppText>
-        <AppText variant="bodyMuted">{profile?.email ?? '—'}</AppText>
-        {profile?.phone ? <AppText variant="bodyMuted">{profile.phone}</AppText> : null}
+      <Card style={{ marginBottom: spacing.lg, flexDirection: 'row', alignItems: 'center' }}>
+        {profile?.avatar_url ? (
+          <Image source={{ uri: profile.avatar_url }} style={styles.avatar} />
+        ) : (
+          <View style={[styles.avatar, styles.avatarPlaceholder]}>
+            <Ionicons name="person" size={22} color={colors.gold} />
+          </View>
+        )}
+        <View style={{ marginLeft: spacing.md, flex: 1 }}>
+          <AppText variant="subheading">{profile?.full_name ?? '—'}</AppText>
+          <AppText variant="bodyMuted">{profile?.email ?? '—'}</AppText>
+          {profile?.phone ? <AppText variant="bodyMuted">{profile.phone}</AppText> : null}
+        </View>
       </Card>
 
       <View style={{ gap: spacing.sm, marginBottom: spacing.lg }}>
@@ -41,10 +50,12 @@ export default function AccountScreen() {
         <NavRow icon="people-outline" label="Saved Passengers" onPress={() => router.push('/(app)/account/saved-passengers')} />
         <NavRow icon="location-outline" label="Saved Locations" onPress={() => router.push('/(app)/account/saved-locations')} />
         <NavRow icon="card-outline" label="Payment Methods" onPress={() => router.push('/(app)/account/payment-methods')} />
+        <NavRow icon="time-outline" label="Trip History" onPress={() => router.push('/(app)/trips')} />
         <NavRow icon="notifications-outline" label="Notifications" onPress={() => router.push('/(app)/account/notifications')} />
         {profile?.corporate_account_id ? (
           <NavRow icon="business-outline" label="Corporate Account" onPress={() => router.push('/(app)/account/corporate')} />
         ) : null}
+        <NavRow icon="settings-outline" label="Settings" onPress={() => router.push('/(app)/account/settings')} />
       </View>
 
       <Pressable onPress={() => void signOut()} style={styles.row}>
@@ -67,4 +78,6 @@ const styles = {
     borderColor: colors.border,
     backgroundColor: colors.onyx,
   },
+  avatar: { width: 52, height: 52, borderRadius: radius.full },
+  avatarPlaceholder: { backgroundColor: colors.charcoal, alignItems: 'center' as const, justifyContent: 'center' as const },
 };
