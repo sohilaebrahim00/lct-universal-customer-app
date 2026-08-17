@@ -8,13 +8,12 @@ import { AppText } from './ui/Typography';
 import { colors, radius, shadows, spacing } from '../theme/tokens';
 import { conciergeApi, type ConciergeMessage } from '../api/concierge';
 import { useBookingFormStore } from '../store/bookingFormStore';
+import { CONCIERGE_QUICK_ACTIONS } from '../lib/conciergeQuickActions';
 
 const GREETING: ConciergeMessage = {
   role: 'assistant',
-  content: "Hi, I'm the LCT Universal Concierge. How can I help with your trip today?",
+  content: "Hi, I'm the LCT Universal Concierge — your personal transportation assistant. How can I help with your trip today?",
 };
-
-const QUICK_PROMPTS = ['Book airport transfer', 'Show available vehicles', 'Help me choose a vehicle'];
 
 function Bubble({ message }: { message: ConciergeMessage }) {
   const isUser = message.role === 'user';
@@ -123,9 +122,9 @@ export function ConciergeFab() {
               </View>
             ) : messages.length <= 1 ? (
               <View style={styles.promptRow}>
-                {QUICK_PROMPTS.map((prompt) => (
-                  <Pressable key={prompt} style={styles.promptChip} onPress={() => sendMessage(prompt)}>
-                    <AppText variant="caption">{prompt}</AppText>
+                {CONCIERGE_QUICK_ACTIONS.map((action) => (
+                  <Pressable key={action.label} style={styles.promptChip} onPress={() => sendMessage(action.prompt)}>
+                    <AppText variant="caption">{action.label}</AppText>
                   </Pressable>
                 ))}
               </View>

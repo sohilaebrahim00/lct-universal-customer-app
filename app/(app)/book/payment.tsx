@@ -92,6 +92,11 @@ export default function PaymentStep() {
         {draft.serviceType !== 'hourly' ? <Row label="Drop-off" value={draft.dropoffAddress || '—'} /> : null}
         <Row label="Date & Time" value={draft.scheduledAt ? formatDateTime(draft.scheduledAt.toISOString()) : '—'} />
         <Row label="Vehicle" value={draft.vehicle?.name ?? '—'} />
+        {draft.serviceType === 'hourly' && draft.hourlyDurationHours ? (
+          <Row label="Duration" value={`${draft.hourlyDurationHours} hour${draft.hourlyDurationHours === 1 ? '' : 's'}`} />
+        ) : draft.durationMinutes ? (
+          <Row label="Est. Duration" value={`${draft.durationMinutes} min`} />
+        ) : null}
       </Card>
 
       {fare ? (
@@ -126,8 +131,9 @@ export default function PaymentStep() {
       ) : null}
 
       <AuthGate
-        title="Create an account to complete your booking"
+        title="Create your account to complete your reservation"
         message="You're one step away — sign in or create a free account to confirm and pay. Your trip details are saved."
+        onContinueLater={() => router.push('/(app)')}
       >
         <Button
           label={isStripeConfigured ? 'Pay & Confirm Booking' : 'Confirm Booking'}

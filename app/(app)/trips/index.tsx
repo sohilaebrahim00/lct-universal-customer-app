@@ -13,6 +13,7 @@ import type { Booking } from '../../../src/types/api';
 import { formatCurrency, formatDateTime, formatServiceType } from '../../../src/lib/format';
 import { isUpcomingBookingStatus } from '../../../src/lib/tripStatus';
 import { AuthGate } from '../../../src/components/AuthGate';
+import { EmptyState } from '../../../src/components/ui/EmptyState';
 import { useAuthStore } from '../../../src/store/authStore';
 
 function TripCard({ booking, onPress }: { booking: Booking; onPress: () => void }) {
@@ -77,9 +78,12 @@ export default function TripsScreen() {
             Upcoming
           </AppText>
           {upcoming.length === 0 ? (
-            <AppText variant="bodyMuted" style={{ marginBottom: spacing.lg }}>
-              No upcoming trips yet.
-            </AppText>
+            <EmptyState
+              icon="calendar-outline"
+              title="No upcoming trips"
+              message="When you book a ride, it will show up here."
+              action={<Button label="Book a Ride" onPress={() => router.push('/(app)/book')} />}
+            />
           ) : (
             upcoming.map((booking) => (
               <TripCard key={booking.id} booking={booking} onPress={() => router.push(`/(app)/trips/${booking.id}`)} />
@@ -90,7 +94,7 @@ export default function TripsScreen() {
             Past
           </AppText>
           {past.length === 0 ? (
-            <AppText variant="bodyMuted">No past trips.</AppText>
+            <EmptyState icon="time-outline" title="No past trips" message="Your completed trips will appear here." />
           ) : (
             past.map((booking) => (
               <TripCard key={booking.id} booking={booking} onPress={() => router.push(`/(app)/trips/${booking.id}`)} />

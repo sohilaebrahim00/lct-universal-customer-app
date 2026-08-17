@@ -15,10 +15,11 @@ import { formatCurrency } from '../../src/lib/format';
 import { VEHICLE_DISPLAY_NAME } from '../../src/lib/vehicleImages';
 
 const FEATURES = [
-  { icon: 'business-outline' as const, title: 'Corporate Account', desc: 'A dedicated account for your company with centralized billing and reporting.' },
-  { icon: 'people-outline' as const, title: 'Employee Transportation', desc: 'Give your team a simple way to book rides, with optional manager approval.' },
-  { icon: 'document-text-outline' as const, title: 'Monthly Invoices', desc: 'One consolidated invoice per month instead of per-trip receipts.' },
-  { icon: 'calendar-outline' as const, title: 'Multiple Bookings', desc: 'Schedule recurring trips or several rides at once for events and travel.' },
+  { icon: 'business-outline' as const, title: 'Corporate Transportation', desc: 'A dedicated account for your company, with centralized billing and reporting.' },
+  { icon: 'people-outline' as const, title: 'Employee Rides', desc: 'Give your team a simple way to book rides, with optional manager approval.' },
+  { icon: 'briefcase-outline' as const, title: 'Executive Travel', desc: 'Priority chauffeurs and vehicles for leadership and client-facing travel.' },
+  { icon: 'document-text-outline' as const, title: 'Monthly Billing', desc: 'One consolidated invoice per month instead of per-trip receipts.' },
+  { icon: 'headset-outline' as const, title: 'Dedicated Support', desc: 'A direct line to our corporate team for scheduling and account questions.' },
 ];
 
 const CONTACT_EMAIL = 'reservations@lctuniversal.com';
@@ -101,7 +102,7 @@ export default function CorporateInfoScreen() {
             Speak with our corporate team to set up your account, billing preferences, and approval workflow.
           </AppText>
           <Button
-            label="Email Corporate Sales"
+            label="Contact Corporate Team"
             onPress={() => Linking.openURL(`mailto:${CONTACT_EMAIL}?subject=Corporate Account Inquiry`)}
             style={{ marginBottom: spacing.sm }}
           />

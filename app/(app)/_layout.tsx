@@ -60,6 +60,7 @@ export default function AppTabsLayout() {
       <Tabs.Screen name="about" options={{ href: null }} />
       <Tabs.Screen name="corporate-info" options={{ href: null }} />
       <Tabs.Screen name="demo-trip" options={{ href: null }} />
+      <Tabs.Screen name="airport" options={{ href: null }} />
     </Tabs>
     <ConciergeFab />
     </View>

@@ -17,7 +17,10 @@ const STAGE_DURATION_MS = 3200;
 
 const DEMO_DRIVER = {
   name: 'Marcus Bennett',
+  rating: 4.9,
+  experience: '7 years · 2,400+ trips',
   vehicle: 'Mercedes-Benz S-Class',
+  vehicleColor: 'Obsidian Black',
   plate: 'LCT-4471',
 };
 
@@ -71,8 +74,12 @@ export default function DemoTripScreen() {
             </View>
             <View style={{ flex: 1 }}>
               <AppText variant="subheading">{DEMO_DRIVER.name}</AppText>
-              <AppText variant="caption">{DEMO_DRIVER.vehicle}</AppText>
-              <AppText variant="caption">Plate {DEMO_DRIVER.plate}</AppText>
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 2 }}>
+                <Ionicons name="star" size={12} color={colors.gold} />
+                <AppText variant="caption" style={{ marginLeft: 4 }}>
+                  {DEMO_DRIVER.rating.toFixed(1)} · {DEMO_DRIVER.experience}
+                </AppText>
+              </View>
             </View>
             {!isComplete ? (
               <View style={{ alignItems: 'flex-end' }}>
@@ -82,6 +89,12 @@ export default function DemoTripScreen() {
                 </AppText>
               </View>
             ) : null}
+          </View>
+          <View style={styles.vehicleRow}>
+            <Ionicons name="car-sport-outline" size={16} color={colors.mutedForeground} />
+            <AppText variant="caption" style={{ marginLeft: spacing.xs }}>
+              {DEMO_DRIVER.vehicle} · {DEMO_DRIVER.vehicleColor} · Plate {DEMO_DRIVER.plate}
+            </AppText>
           </View>
         </Card>
       </FadeSlideIn>
@@ -138,6 +151,14 @@ const styles = {
     backgroundColor: colors.charcoal,
     alignItems: 'center' as const,
     justifyContent: 'center' as const,
+  },
+  vehicleRow: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    marginTop: spacing.sm,
+    paddingTop: spacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
   },
   stageRow: { flexDirection: 'row' as const, alignItems: 'center' as const, gap: spacing.sm, marginBottom: spacing.sm },
   dot: { width: 10, height: 10, borderRadius: radius.full, backgroundColor: colors.charcoal },

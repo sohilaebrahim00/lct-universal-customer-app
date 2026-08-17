@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { Link } from 'expo-router';
+import { Link, useRouter } from 'expo-router';
 import { View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { AuthBrandHeader } from '../../src/components/AuthBrandHeader';
 import { SocialAuthButtons } from '../../src/components/SocialAuthButtons';
 import { Button } from '../../src/components/ui/Button';
@@ -11,6 +12,7 @@ import { colors, spacing } from '../../src/theme/tokens';
 import { supabase } from '../../src/lib/supabase';
 
 export default function LoginScreen() {
+  const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -80,6 +82,19 @@ export default function LoginScreen() {
       ) : null}
 
       <Button label="Sign In" onPress={handleLogin} loading={loading} />
+
+      <Button
+        label="Try Demo Experience"
+        variant="ghost"
+        onPress={() => router.push('/demo-account')}
+        style={{ marginTop: spacing.sm }}
+      />
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginTop: -spacing.xs }}>
+        <Ionicons name="sparkles-outline" size={12} color={colors.mutedForeground} />
+        <AppText variant="caption" style={{ marginLeft: 4 }}>
+          Preview the app with sample data — no account needed
+        </AppText>
+      </View>
 
       <SocialAuthButtons />
 

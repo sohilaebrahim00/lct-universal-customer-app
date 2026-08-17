@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'expo-router';
-import { ActivityIndicator, FlatList, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, FlatList, Pressable, StyleSheet, View } from 'react-native';
 import { ScreenContainer } from '../../src/components/ui/ScreenContainer';
 import { Button } from '../../src/components/ui/Button';
 import { TextField } from '../../src/components/ui/TextField';
@@ -8,11 +8,12 @@ import { AppText } from '../../src/components/ui/Typography';
 import { colors, radius, spacing } from '../../src/theme/tokens';
 import { conciergeApi, type ConciergeMessage } from '../../src/api/concierge';
 import { useBookingFormStore } from '../../src/store/bookingFormStore';
+import { CONCIERGE_QUICK_ACTIONS } from '../../src/lib/conciergeQuickActions';
 
 const GREETING: ConciergeMessage = {
   role: 'assistant',
   content:
-    "Hi, I'm the LCT Universal Concierge. Tell me what you need — e.g. \"Book airport pickup tomorrow at 8 AM for 2 people\" — and I'll get your booking started.",
+    "Hi, I'm the LCT Universal Concierge — your personal transportation assistant. Tell me what you need — e.g. \"I need transportation from DFW Airport\" — or tap a quick action below.",
 };
 
 function Bubble({ message }: { message: ConciergeMessage }) {
@@ -42,8 +43,8 @@ export default function ConciergeScreen() {
     listRef.current?.scrollToEnd({ animated: true });
   }, [messages]);
 
-  async function handleSend() {
-    const text = input.trim();
+  async function handleSend(overrideText?: string) {
+    const text = (overrideText ?? input).trim();
     if (!text || loading) return;
 
     const next = [...messages, { role: 'user' as const, content: text }];
@@ -105,6 +106,14 @@ export default function ConciergeScreen() {
         <View style={{ paddingHorizontal: spacing.lg, marginBottom: spacing.sm }}>
           <Button label="Continue to Vehicle Selection" onPress={startBookingFromIntent} />
         </View>
+      ) : messages.length <= 1 ? (
+        <View style={styles.quickActionRow}>
+          {CONCIERGE_QUICK_ACTIONS.map((action) => (
+            <Pressable key={action.label} style={styles.quickActionChip} onPress={() => handleSend(action.prompt)}>
+              <AppText variant="caption">{action.label}</AppText>
+            </Pressable>
+          ))}
+        </View>
       ) : null}
 
       <View style={styles.inputRow}>
@@ -114,11 +123,11 @@ export default function ConciergeScreen() {
             value={input}
             onChangeText={setInput}
             placeholder="Type a message..."
-            onSubmitEditing={handleSend}
+            onSubmitEditing={() => handleSend()}
             style={{ marginBottom: 0 }}
           />
         </View>
-        <Button label="Send" onPress={handleSend} disabled={!input.trim() || loading} style={styles.sendButton} />
+        <Button label="Send" onPress={() => handleSend()} disabled={!input.trim() || loading} style={styles.sendButton} />
       </View>
     </ScreenContainer>
   );
@@ -130,6 +139,14 @@ const styles = StyleSheet.create({
   bubble: { maxWidth: '82%', padding: spacing.md, borderRadius: radius.md },
   bubbleAssistant: { backgroundColor: colors.onyx, borderWidth: 1, borderColor: colors.border },
   bubbleUser: { backgroundColor: colors.gold },
+  quickActionRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, paddingHorizontal: spacing.lg, marginBottom: spacing.md },
+  quickActionChip: {
+    borderRadius: radius.full,
+    borderWidth: 1,
+    borderColor: colors.border,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+  },
   inputRow: {
     flexDirection: 'row',
     alignItems: 'flex-end',

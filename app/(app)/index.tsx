@@ -16,6 +16,9 @@ import { bookingsApi } from '../../src/api/bookings';
 import type { Booking, ServiceType } from '../../src/types/api';
 import { formatDateShort, formatDateTime, formatServiceType } from '../../src/lib/format';
 import { SERVICES } from '../../src/lib/services';
+import { PricingPreview } from '../../src/components/PricingPreview';
+import { WhyChooseLct } from '../../src/components/WhyChooseLct';
+import { ReviewsSection } from '../../src/components/ReviewsSection';
 
 const HOME_SERVICE_TYPES: ServiceType[] = ['airport', 'corporate', 'events', 'hourly'];
 const HOME_SERVICES = HOME_SERVICE_TYPES.map((type) => SERVICES.find((s) => s.type === type)).filter(
@@ -66,6 +69,14 @@ export default function HomeScreen() {
     resetDraft();
     updateDraft({ serviceType });
     router.push('/(app)/book');
+  }
+
+  function handleServicePress(serviceType: ServiceType) {
+    if (serviceType === 'airport') {
+      router.push('/(app)/airport');
+      return;
+    }
+    startBooking(serviceType);
   }
 
   function startQuickBooking() {
@@ -158,7 +169,7 @@ export default function HomeScreen() {
           </AppText>
           <View style={styles.grid}>
             {HOME_SERVICES.map((service) => (
-              <Pressable key={service.type} style={styles.tile} onPress={() => startBooking(service.type)}>
+              <Pressable key={service.type} style={styles.tile} onPress={() => handleServicePress(service.type)}>
                 <View style={styles.iconWrap}>
                   <Ionicons name={service.icon} size={26} color={colors.gold} />
                 </View>
@@ -169,7 +180,33 @@ export default function HomeScreen() {
             ))}
           </View>
         </FadeSlideIn>
+
+        <FadeSlideIn delay={180}>
+          <AppText variant="heading" style={{ marginBottom: spacing.md, marginTop: spacing.xl }}>
+            Why LCT Universal?
+          </AppText>
+          <WhyChooseLct />
+        </FadeSlideIn>
+
+        <FadeSlideIn delay={220}>
+          <AppText variant="heading" style={{ marginBottom: spacing.md }}>
+            Pricing Preview
+          </AppText>
+          <PricingPreview />
+        </FadeSlideIn>
+
+        <FadeSlideIn delay={260}>
+          <AppText variant="heading" style={{ marginTop: spacing.xl, marginBottom: spacing.md }}>
+            What Our Clients Say
+          </AppText>
+        </FadeSlideIn>
       </View>
+
+      <FadeSlideIn delay={280}>
+        <View style={{ paddingLeft: spacing.lg, marginBottom: spacing.xl }}>
+          <ReviewsSection />
+        </View>
+      </FadeSlideIn>
     </ScreenContainer>
   );
 }

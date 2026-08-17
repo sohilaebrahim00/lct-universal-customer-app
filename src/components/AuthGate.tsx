@@ -13,6 +13,8 @@ interface Props {
   title: string;
   message?: string;
   children: ReactNode;
+  /** When provided, shows a third "Continue Later" action beneath Sign In / Create Account. */
+  onContinueLater?: () => void;
 }
 
 /**
@@ -24,7 +26,7 @@ interface Props {
  * on-brand prompt with a path to Sign In or Create Account, never a dead
  * end or a raw permissions error.
  */
-export function AuthGate({ title, message, children }: Props) {
+export function AuthGate({ title, message, children, onContinueLater }: Props) {
   const router = useRouter();
   const status = useAuthStore((s) => s.status);
 
@@ -44,7 +46,13 @@ export function AuthGate({ title, message, children }: Props) {
         <View style={{ marginBottom: spacing.lg }} />
       )}
       <Button label="Sign In" onPress={() => router.push('/(auth)/login')} style={{ width: '100%', marginBottom: spacing.sm }} />
-      <Button label="Create Account" variant="secondary" onPress={() => router.push('/(auth)/signup')} style={{ width: '100%' }} />
+      <Button
+        label="Create Account"
+        variant="secondary"
+        onPress={() => router.push('/(auth)/signup')}
+        style={{ width: '100%', marginBottom: onContinueLater ? spacing.sm : 0 }}
+      />
+      {onContinueLater ? <Button label="Continue Later" variant="ghost" onPress={onContinueLater} style={{ width: '100%' }} /> : null}
     </Card>
   );
 }

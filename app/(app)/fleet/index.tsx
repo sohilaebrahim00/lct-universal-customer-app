@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { ScreenContainer } from '../../../src/components/ui/ScreenContainer';
 import { AppText } from '../../../src/components/ui/Typography';
 import { FadeSlideIn } from '../../../src/components/ui/FadeSlideIn';
+import { EmptyState } from '../../../src/components/ui/EmptyState';
 import { colors, radius, spacing } from '../../../src/theme/tokens';
 import { vehiclesApi } from '../../../src/api/vehicles';
 import type { Vehicle } from '../../../src/types/api';
@@ -35,12 +36,10 @@ export default function FleetScreen() {
 
       {!vehicles && !error ? <ActivityIndicator color={colors.gold} style={{ marginTop: spacing.xl }} /> : null}
       {error ? (
-        <AppText variant="body" color={colors.destructive}>
-          {error}
-        </AppText>
+        <EmptyState icon="alert-circle-outline" title="Couldn't load the fleet" message={error} />
       ) : null}
       {vehicles && vehicles.length === 0 ? (
-        <AppText variant="bodyMuted">The fleet listing isn&apos;t available right now — please check back shortly.</AppText>
+        <EmptyState icon="car-sport-outline" title="Fleet unavailable" message="The fleet listing isn't available right now — please check back shortly." />
       ) : null}
 
       <View style={{ gap: spacing.md }}>
