@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { Image, StyleSheet, View } from 'react-native';
-import MapView, { Marker } from 'react-native-maps';
 import { Button } from '../../../src/components/ui/Button';
 import { Card } from '../../../src/components/ui/Card';
 import { ScreenContainer } from '../../../src/components/ui/ScreenContainer';
@@ -15,6 +14,21 @@ import { formatCurrency, formatDateTime, formatServiceType } from '../../../src/
 import { TRIP_STAGE_ORDER, TRIP_STATUS_LABELS, isTerminalStatus, stageIndex, type TripStatus } from '../../../src/lib/tripStatus';
 import { useTripSocket } from '../../../src/lib/useTripSocket';
 import { isMapsConfigured } from '../../../src/lib/env';
+import { isExpoGo } from '../../../src/lib/expoEnvironment';
+
+// Only ever rendered when Maps is configured AND we're not in Expo Go —
+// `react-native-maps` is required lazily here, inside this component's own
+// render, so its native binding is never touched in Expo Go. Same
+// reasoning/pattern as StripeAppProvider.tsx.
+function NativeDriverMap({ lat, lng }: { lat: number; lng: number }) {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports -- intentional lazy load, see comment above.
+  const { default: MapView, Marker } = require('react-native-maps') as typeof import('react-native-maps');
+  return (
+    <MapView style={styles.map} region={{ latitude: lat, longitude: lng, latitudeDelta: 0.02, longitudeDelta: 0.02 }}>
+      <Marker coordinate={{ latitude: lat, longitude: lng }} title="Your chauffeur" pinColor={colors.gold} />
+    </MapView>
+  );
+}
 
 function StageTimeline({ status }: { status: TripStatus }) {
   const currentIndex = stageIndex(status);
@@ -144,14 +158,9 @@ export default function TripDetailScreen() {
 
       {driver && !isTerminalStatus(status) ? <DriverCard driver={driver} vehicle={vehicle} etaMinutes={etaMinutes} /> : null}
 
-      {isMapsConfigured && driverLat != null && driverLng != null ? (
+      {isMapsConfigured && !isExpoGo && driverLat != null && driverLng != null ? (
         <Card style={{ marginBottom: spacing.md, padding: 0, overflow: 'hidden' }}>
-          <MapView
-            style={styles.map}
-            region={{ latitude: driverLat, longitude: driverLng, latitudeDelta: 0.02, longitudeDelta: 0.02 }}
-          >
-            <Marker coordinate={{ latitude: driverLat, longitude: driverLng }} title="Your chauffeur" pinColor={colors.gold} />
-          </MapView>
+          <NativeDriverMap lat={driverLat} lng={driverLng} />
         </Card>
       ) : null}
 

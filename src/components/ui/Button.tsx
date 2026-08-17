@@ -28,10 +28,15 @@ export function Button({ label, onPress, variant = 'primary', disabled, loading,
       testID={testID}
       onPress={onPress}
       disabled={isDisabled}
+      // Reanimated's SharedValue.value is an intentional mutable worklet-owned cell, not React render state — it's
+      // Reanimated's own documented API, handled by its own Babel plugin outside React's normal render model. The
+      // React Compiler lint rule doesn't know that, hence the two disables below.
       onPressIn={() => {
+        // eslint-disable-next-line react-hooks/immutability
         scale.value = withSpring(0.96, { damping: 16, stiffness: 260 });
       }}
       onPressOut={() => {
+        // eslint-disable-next-line react-hooks/immutability
         scale.value = withSpring(1, { damping: 14, stiffness: 220 });
       }}
       style={[

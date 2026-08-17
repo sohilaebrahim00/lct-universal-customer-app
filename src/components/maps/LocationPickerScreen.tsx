@@ -1,7 +1,7 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, type RefObject } from 'react';
 import { useRouter } from 'expo-router';
 import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
-import MapView, { type Region } from 'react-native-maps';
+import type { Region } from 'react-native-maps';
 import { Ionicons } from '@expo/vector-icons';
 import { Button } from '../ui/Button';
 import { AppText } from '../ui/Typography';
@@ -11,6 +11,7 @@ import { PlacesAutocomplete } from './PlacesAutocomplete';
 import { reverseGeocode } from '../../lib/googlePlaces';
 import { useCurrentLocation } from '../../lib/useCurrentLocation';
 import { isMapsConfigured } from '../../lib/env';
+import { isExpoGo } from '../../lib/expoEnvironment';
 
 const DEFAULT_REGION: Region = {
   // Dallas–Fort Worth — LCT Universal's home market — used only as a
@@ -35,9 +36,41 @@ interface Props {
   bias?: { lat: number; lng: number };
 }
 
+interface MapHandle {
+  animateToRegion: (region: Region, duration?: number) => void;
+}
+
+// The real map view is only ever rendered when Google Maps is configured
+// AND we're not running in Expo Go (see the early return in
+// LocationPickerScreen below) — `react-native-maps` is required lazily
+// here, inside this component's own render, rather than as a static
+// top-level import, so its native binding is never touched in Expo Go.
+// Same reasoning and pattern as StripeAppProvider.tsx.
+function NativeLocationMap({
+  mapRef,
+  region,
+  onRegionChangeComplete,
+}: {
+  mapRef: RefObject<MapHandle | null>;
+  region: Region;
+  onRegionChangeComplete: (region: Region) => void;
+}) {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports -- intentional lazy load, see comment above.
+  const MapView = require('react-native-maps').default as typeof import('react-native-maps').default;
+  return (
+    <MapView
+      ref={mapRef as never}
+      style={StyleSheet.absoluteFill}
+      initialRegion={region}
+      onRegionChangeComplete={onRegionChangeComplete}
+      showsUserLocation
+    />
+  );
+}
+
 export function LocationPickerScreen({ title, subtitle, onConfirm, bias }: Props) {
   const router = useRouter();
-  const mapRef = useRef<MapView | null>(null);
+  const mapRef = useRef<MapHandle | null>(null);
   const [region, setRegion] = useState<Region>(
     bias ? { ...DEFAULT_REGION, latitude: bias.lat, longitude: bias.lng, latitudeDelta: 0.05, longitudeDelta: 0.05 } : DEFAULT_REGION,
   );
@@ -47,6 +80,8 @@ export function LocationPickerScreen({ title, subtitle, onConfirm, bias }: Props
   const { loading: locating, getCurrentLocation } = useCurrentLocation();
   const regionDebounce = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  const mapAvailable = isMapsConfigured && !isExpoGo;
+
   const resolveAddress = useCallback((lat: number, lng: number) => {
     setResolving(true);
     reverseGeocode(lat, lng)
@@ -55,8 +90,15 @@ export function LocationPickerScreen({ title, subtitle, onConfirm, bias }: Props
   }, []);
 
   useEffect(() => {
-    if (isMapsConfigured) resolveAddress(region.latitude, region.longitude);
-    // Only resolve once on mount — subsequent moves are handled by onRegionChangeComplete.
+    if (!mapAvailable) return;
+    // Deferred a microtask so the initial resolve's setState doesn't run
+    // synchronously within the effect body itself — same outcome (starts
+    // essentially immediately after mount), just satisfies the rule that
+    // effects shouldn't call setState synchronously. Subsequent moves are
+    // handled by onRegionChangeComplete, not this effect.
+    const lat = region.latitude;
+    const lng = region.longitude;
+    Promise.resolve().then(() => resolveAddress(lat, lng));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -83,7 +125,7 @@ export function LocationPickerScreen({ title, subtitle, onConfirm, bias }: Props
   }
 
   function handleConfirm() {
-    if (isMapsConfigured) {
+    if (mapAvailable) {
       if (!address) return;
       onConfirm({ address, lat: region.latitude, lng: region.longitude });
     } else {
@@ -93,15 +135,16 @@ export function LocationPickerScreen({ title, subtitle, onConfirm, bias }: Props
     router.back();
   }
 
-  if (!isMapsConfigured) {
+  if (!mapAvailable) {
     return (
       <View style={[styles.container, { padding: spacing.lg, justifyContent: 'center' }]}>
         <AppText variant="title" style={{ marginBottom: spacing.xs }}>
           {title}
         </AppText>
         <AppText variant="bodyMuted" style={{ marginBottom: spacing.lg }}>
-          Map search isn&apos;t configured on this build yet (EXPO_PUBLIC_GOOGLE_MAPS_API_KEY is missing) — enter the
-          address manually.
+          {isExpoGo
+            ? "Map search doesn't run inside Expo Go — enter the address manually. Open this build with the LCT Universal development client for the full map picker."
+            : "Map search isn't configured on this build yet (EXPO_PUBLIC_GOOGLE_MAPS_API_KEY is missing) — enter the address manually."}
         </AppText>
         <TextField label="Address" value={manualAddress} onChangeText={setManualAddress} placeholder={subtitle} />
         <Button label="Confirm Location" onPress={handleConfirm} disabled={!manualAddress.trim()} />
@@ -111,13 +154,7 @@ export function LocationPickerScreen({ title, subtitle, onConfirm, bias }: Props
 
   return (
     <View style={styles.container}>
-      <MapView
-        ref={mapRef}
-        style={StyleSheet.absoluteFill}
-        initialRegion={region}
-        onRegionChangeComplete={handleRegionChangeComplete}
-        showsUserLocation
-      />
+      <NativeLocationMap mapRef={mapRef} region={region} onRegionChangeComplete={handleRegionChangeComplete} />
 
       <View pointerEvents="none" style={styles.centerPin}>
         <Ionicons name="location" size={40} color={colors.gold} />

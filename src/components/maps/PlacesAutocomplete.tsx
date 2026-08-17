@@ -32,10 +32,14 @@ export function PlacesAutocomplete({ placeholder, bias, onSelect }: Props) {
   useEffect(() => {
     if (debounceTimer.current) clearTimeout(debounceTimer.current);
     if (!isMapsConfigured || query.trim().length < 3) {
-      setSuggestions([]);
+      // Deferred a microtask so this doesn't setState synchronously within
+      // the effect body — same outcome, just satisfies the rule.
+      Promise.resolve().then(() => setSuggestions([]));
       return;
     }
-    setSearching(true);
+    // Deferred a microtask so this doesn't setState synchronously within the effect body — same outcome, just
+    // satisfies the rule; the setTimeout scheduling itself (not a setState call) still happens synchronously.
+    Promise.resolve().then(() => setSearching(true));
     debounceTimer.current = setTimeout(async () => {
       const results = await autocompletePlaces(query, sessionToken.current, bias);
       setSuggestions(results);

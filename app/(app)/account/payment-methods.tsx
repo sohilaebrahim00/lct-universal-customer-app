@@ -2,22 +2,17 @@ import { useCallback, useState } from 'react';
 import { useFocusEffect } from 'expo-router';
 import { Pressable, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { CardField, useStripe } from '@stripe/stripe-react-native';
-import { Button } from '../../../src/components/ui/Button';
 import { Card } from '../../../src/components/ui/Card';
 import { ScreenContainer } from '../../../src/components/ui/ScreenContainer';
 import { AppText } from '../../../src/components/ui/Typography';
-import { colors, radius, spacing } from '../../../src/theme/tokens';
+import { colors, spacing } from '../../../src/theme/tokens';
 import { profilesApi } from '../../../src/api/profiles';
 import { isStripeConfigured } from '../../../src/lib/env';
 import type { PaymentMethodRecord } from '../../../src/types/api';
+import { StripePayment } from '../../../src/components/payment/StripePayment';
 
 export default function PaymentMethodsScreen() {
-  const stripe = useStripe();
   const [methods, setMethods] = useState<PaymentMethodRecord[]>([]);
-  const [cardComplete, setCardComplete] = useState(false);
-  const [adding, setAdding] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(() => {
     profilesApi.paymentMethods().then(setMethods).catch(() => {});
@@ -25,22 +20,9 @@ export default function PaymentMethodsScreen() {
 
   useFocusEffect(useCallback(() => { load(); }, [load]));
 
-  async function handleAddCard() {
-    setAdding(true);
-    setError(null);
-    try {
-      const { paymentMethod, error: createError } = await stripe.createPaymentMethod({ paymentMethodType: 'Card' });
-      if (createError || !paymentMethod) {
-        setError(createError?.message ?? 'Failed to read card details');
-        return;
-      }
-      await profilesApi.addPaymentMethod({ stripePaymentMethodId: paymentMethod.id });
-      load();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to save card');
-    } finally {
-      setAdding(false);
-    }
+  async function handleAddCard(paymentMethodId: string) {
+    await profilesApi.addPaymentMethod({ stripePaymentMethodId: paymentMethodId });
+    load();
   }
 
   async function handleRemove(id: string) {
@@ -82,25 +64,7 @@ export default function PaymentMethodsScreen() {
           <AppText variant="heading" style={{ marginTop: spacing.lg, marginBottom: spacing.sm }}>
             Add a Card
           </AppText>
-          <CardField
-            postalCodeEnabled
-            style={{ height: 50, marginBottom: spacing.md }}
-            cardStyle={{
-              backgroundColor: colors.onyx,
-              textColor: colors.offWhite,
-              placeholderColor: colors.mutedForeground,
-              borderColor: colors.border,
-              borderWidth: 1,
-              borderRadius: radius.sm,
-            }}
-            onCardChange={(details) => setCardComplete(details.complete)}
-          />
-          {error ? (
-            <AppText variant="caption" color={colors.destructive} style={{ marginBottom: spacing.md }}>
-              {error}
-            </AppText>
-          ) : null}
-          <Button label="Save Card" onPress={handleAddCard} loading={adding} disabled={!cardComplete} />
+          <StripePayment onAddCard={handleAddCard} />
         </>
       )}
     </ScreenContainer>

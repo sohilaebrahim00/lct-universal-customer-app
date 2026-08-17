@@ -1,7 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useRouter } from 'expo-router';
 import { View } from 'react-native';
-import { useStripe } from '@stripe/stripe-react-native';
 import { StepHeader } from '../../../src/components/booking/StepHeader';
 import { Button } from '../../../src/components/ui/Button';
 import { Card } from '../../../src/components/ui/Card';
@@ -13,7 +12,7 @@ import { useBookingFormStore } from '../../../src/store/bookingFormStore';
 import { calculateFarePreview } from '../../../src/lib/pricingPreview';
 import { formatCurrency, formatDateTime, formatServiceType } from '../../../src/lib/format';
 import { isStripeConfigured } from '../../../src/lib/env';
-import { paymentsApi } from '../../../src/api/payments';
+import { useStripeCheckout } from '../../../src/lib/useStripeCheckout';
 
 function Row({ label, value }: { label: string; value: string }) {
   return (
@@ -30,7 +29,7 @@ export default function PaymentStep() {
   const submit = useBookingFormStore((s) => s.submit);
   const submitting = useBookingFormStore((s) => s.submitting);
   const storeError = useBookingFormStore((s) => s.error);
-  const stripe = useStripe();
+  const { payWithStripe } = useStripeCheckout();
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -66,36 +65,17 @@ export default function PaymentStep() {
 
     if (isStripeConfigured) {
       setProcessing(true);
-      try {
-        const { clientSecret } = await paymentsApi.createIntent(result.bookingId);
-        if (clientSecret) {
-          const { error: initError } = await stripe.initPaymentSheet({
-            paymentIntentClientSecret: clientSecret,
-            merchantDisplayName: 'LCT Universal',
-          });
-          if (initError) {
-            setError(initError.message);
-            setProcessing(false);
-            return;
-          }
+      const checkout = await payWithStripe(result.bookingId);
+      setProcessing(false);
 
-          const { error: presentError } = await stripe.presentPaymentSheet();
-          if (presentError && presentError.code !== 'Canceled') {
-            setError(presentError.message);
-            setProcessing(false);
-            return;
-          }
-          if (presentError?.code === 'Canceled') {
-            setProcessing(false);
-            return;
-          }
-        }
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Payment failed');
-        setProcessing(false);
+      if (checkout.status === 'error') {
+        setError(checkout.message ?? 'Payment failed');
         return;
       }
-      setProcessing(false);
+      if (checkout.status === 'cancelled') return;
+      // 'paid' and 'skipped' (including the web fallback) both proceed to
+      // confirmation — a skipped payment leaves the booking payment-pending,
+      // same as when Stripe isn't configured at all.
     }
 
     router.replace(`/(app)/book/confirmed?bookingId=${result.bookingId}&tripId=${result.tripId}`);

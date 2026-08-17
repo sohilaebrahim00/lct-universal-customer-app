@@ -6,14 +6,20 @@ import { z } from 'zod';
  * are readable here — Metro inlines them into the JS bundle at build time;
  * anything not prefixed EXPO_PUBLIC_ is undefined on-device by design.
  *
- * Only EXPO_PUBLIC_API_URL is required. Supabase/Stripe/Maps keys are
- * optional so the app can still boot (and clearly flag what's missing)
- * before every credential is provisioned — matching the backend's
- * graceful-degradation approach rather than crashing on launch.
+ * Every variable is optional at the schema level, including the API URL —
+ * a missing/misconfigured .env must never crash the app at launch. When
+ * EXPO_PUBLIC_API_URL isn't set, it falls back to the local-dev default
+ * documented in .env.example (http://localhost:4000) with a console
+ * warning, so `npx expo start` still boots for a first-time clone before
+ * `.env` has been created — exactly the same graceful-degradation contract
+ * already used for Supabase/Stripe/Maps below, just applied consistently
+ * instead of the API URL being the one exception that hard-crashed.
  */
 
+const DEFAULT_API_URL = 'http://localhost:4000';
+
 const schema = z.object({
-  EXPO_PUBLIC_API_URL: z.string().min(1, 'EXPO_PUBLIC_API_URL is required'),
+  EXPO_PUBLIC_API_URL: z.string().min(1).optional(),
   EXPO_PUBLIC_WS_URL: z.string().optional(),
   EXPO_PUBLIC_SUPABASE_URL: z.string().optional(),
   EXPO_PUBLIC_SUPABASE_ANON_KEY: z.string().optional(),
@@ -32,17 +38,29 @@ function loadEnv() {
   });
 
   if (!parsed.success) {
+    // Reachable only if a *provided* value fails validation (e.g. an empty
+    // string) — a genuinely malformed .env, not just a missing one. Still
+    // throws here on purpose: bad config the developer typed is worth
+    // surfacing loudly, unlike config that was simply never set yet.
     const issues = parsed.error.issues.map((issue) => `  - ${issue.path.join('.')}: ${issue.message}`).join('\n');
-    throw new Error(
-      `Invalid app configuration:\n${issues}\n\nCopy .env.example to .env and set at least EXPO_PUBLIC_API_URL, then restart the dev server (env vars are inlined at bundle time).`,
-    );
+    throw new Error(`Invalid app configuration:\n${issues}\n\nCheck your .env against .env.example.`);
   }
 
   return parsed.data;
 }
 
-export const env = loadEnv();
+const parsedEnv = loadEnv();
 
+if (!parsedEnv.EXPO_PUBLIC_API_URL) {
+  console.warn(
+    `[env] EXPO_PUBLIC_API_URL is not set — defaulting to ${DEFAULT_API_URL} for local development.\n` +
+      'Copy .env.example to .env and set it explicitly to point at a real backend.',
+  );
+}
+
+export const env = { ...parsedEnv, EXPO_PUBLIC_API_URL: parsedEnv.EXPO_PUBLIC_API_URL ?? DEFAULT_API_URL };
+
+export const isApiUrlConfigured = Boolean(parsedEnv.EXPO_PUBLIC_API_URL);
 export const apiBaseUrl = env.EXPO_PUBLIC_API_URL.replace(/\/+$/, '');
 export const wsBaseUrl = (env.EXPO_PUBLIC_WS_URL ?? apiBaseUrl.replace(/^http/, 'ws')).replace(/\/+$/, '');
 

@@ -2,6 +2,7 @@ import { Platform } from 'react-native';
 import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
 import { notificationsApi } from '../api/notifications';
+import { isExpoGo } from './expoEnvironment';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -26,6 +27,15 @@ Notifications.setNotificationHandler({
 export async function registerForPushNotifications(): Promise<{ registered: boolean; reason?: string }> {
   if (!Device.isDevice) {
     return { registered: false, reason: 'Push notifications require a physical device (not a simulator).' };
+  }
+
+  // Expo Go can request permission and show local notifications, but
+  // remote push token registration (getDevicePushTokenAsync) isn't
+  // supported there for this project's setup — skip cleanly with a clear
+  // reason instead of letting it fail unpredictably. Development-client
+  // and production builds are unaffected.
+  if (isExpoGo) {
+    return { registered: false, reason: 'Push notifications require the LCT Universal development client or a production build — not available in Expo Go.' };
   }
 
   const { status: existingStatus } = await Notifications.getPermissionsAsync();

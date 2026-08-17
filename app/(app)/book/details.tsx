@@ -40,8 +40,11 @@ export default function DetailsStep() {
   const update = useBookingFormStore((s) => s.update);
   const [showPicker, setShowPicker] = useState(false);
   const [pickerMode, setPickerMode] = useState<'date' | 'time'>('date');
+  // Computed once, at mount, via the lazy initializer — not on every
+  // render, which would otherwise silently push the minimum bookable time
+  // later while the user is still on this screen.
+  const [minimumDate] = useState(() => new Date(Date.now() + MIN_LEAD_TIME_MS));
 
-  const minimumDate = new Date(Date.now() + MIN_LEAD_TIME_MS);
   const selected = draft.scheduledAt ?? minimumDate;
   const isHourly = draft.serviceType === 'hourly';
   const duration = draft.hourlyDurationHours ?? 3;
