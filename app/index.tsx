@@ -7,6 +7,8 @@ import { hasSeenOnboarding } from '../src/lib/onboarding';
 
 export default function Index() {
   const status = useAuthStore((s) => s.status);
+  const isGuest = useAuthStore((s) => s.isGuest);
+  const guestModeChecked = useAuthStore((s) => s.guestModeChecked);
   const [onboardingChecked, setOnboardingChecked] = useState(false);
   const [needsOnboarding, setNeedsOnboarding] = useState(false);
 
@@ -17,7 +19,7 @@ export default function Index() {
     });
   }, []);
 
-  if (status === 'loading' || !onboardingChecked) {
+  if (status === 'loading' || !onboardingChecked || !guestModeChecked) {
     return (
       <View style={{ flex: 1, backgroundColor: colors.surfaceBlack, alignItems: 'center', justifyContent: 'center' }}>
         <ActivityIndicator color={colors.gold} size="large" />
@@ -25,7 +27,11 @@ export default function Index() {
     );
   }
 
-  if (status === 'signed-in') return <Redirect href="/(app)" />;
+  // Signed in and guest browsing both land directly in the app shell — the
+  // app is never fully locked behind auth. Specific actions (booking
+  // confirmation, payment methods, trip history) prompt for an account
+  // only when the guest actually reaches them — see AuthGate.tsx.
+  if (status === 'signed-in' || isGuest) return <Redirect href="/(app)" />;
   if (needsOnboarding) return <Redirect href="/onboarding" />;
-  return <Redirect href="/(auth)/login" />;
+  return <Redirect href="/welcome" />;
 }

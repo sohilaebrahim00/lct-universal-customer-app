@@ -10,13 +10,17 @@ import { profilesApi } from '../../../src/api/profiles';
 import { isStripeConfigured } from '../../../src/lib/env';
 import type { PaymentMethodRecord } from '../../../src/types/api';
 import { StripePayment } from '../../../src/components/payment/StripePayment';
+import { AuthGate } from '../../../src/components/AuthGate';
+import { useAuthStore } from '../../../src/store/authStore';
 
 export default function PaymentMethodsScreen() {
+  const status = useAuthStore((s) => s.status);
   const [methods, setMethods] = useState<PaymentMethodRecord[]>([]);
 
   const load = useCallback(() => {
+    if (status !== 'signed-in') return;
     profilesApi.paymentMethods().then(setMethods).catch(() => {});
-  }, []);
+  }, [status]);
 
   useFocusEffect(useCallback(() => { load(); }, [load]));
 
@@ -36,37 +40,42 @@ export default function PaymentMethodsScreen() {
         Payment Methods
       </AppText>
 
-      {methods.map((m) => (
-        <Card key={m.id} style={{ marginBottom: spacing.sm, flexDirection: 'row', alignItems: 'center' }}>
-          <Ionicons name="card-outline" size={20} color={colors.gold} style={{ marginRight: spacing.md }} />
-          <View style={{ flex: 1 }}>
-            <AppText variant="subheading">
-              {m.brand ? `${m.brand.toUpperCase()} •••• ${m.last4}` : 'Card on file'}
-            </AppText>
-            {m.exp_month && m.exp_year ? (
-              <AppText variant="caption">
-                Expires {m.exp_month}/{m.exp_year}
+      <AuthGate
+        title="Sign in to save a payment method"
+        message="Cards are saved securely to your account so checkout is one tap next time."
+      >
+        {methods.map((m) => (
+          <Card key={m.id} style={{ marginBottom: spacing.sm, flexDirection: 'row', alignItems: 'center' }}>
+            <Ionicons name="card-outline" size={20} color={colors.gold} style={{ marginRight: spacing.md }} />
+            <View style={{ flex: 1 }}>
+              <AppText variant="subheading">
+                {m.brand ? `${m.brand.toUpperCase()} •••• ${m.last4}` : 'Card on file'}
               </AppText>
-            ) : null}
-          </View>
-          <Pressable onPress={() => handleRemove(m.id)}>
-            <Ionicons name="trash-outline" size={20} color={colors.destructive} />
-          </Pressable>
-        </Card>
-      ))}
+              {m.exp_month && m.exp_year ? (
+                <AppText variant="caption">
+                  Expires {m.exp_month}/{m.exp_year}
+                </AppText>
+              ) : null}
+            </View>
+            <Pressable onPress={() => handleRemove(m.id)}>
+              <Ionicons name="trash-outline" size={20} color={colors.destructive} />
+            </Pressable>
+          </Card>
+        ))}
 
-      {!isStripeConfigured ? (
-        <AppText variant="bodyMuted" style={{ marginTop: spacing.md }}>
-          Card entry isn&apos;t configured on this build yet — EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY is missing.
-        </AppText>
-      ) : (
-        <>
-          <AppText variant="heading" style={{ marginTop: spacing.lg, marginBottom: spacing.sm }}>
-            Add a Card
+        {!isStripeConfigured ? (
+          <AppText variant="bodyMuted" style={{ marginTop: spacing.md }}>
+            Card entry isn&apos;t configured on this build yet — EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY is missing.
           </AppText>
-          <StripePayment onAddCard={handleAddCard} />
-        </>
-      )}
+        ) : (
+          <>
+            <AppText variant="heading" style={{ marginTop: spacing.lg, marginBottom: spacing.sm }}>
+              Add a Card
+            </AppText>
+            <StripePayment onAddCard={handleAddCard} />
+          </>
+        )}
+      </AuthGate>
     </ScreenContainer>
   );
 }

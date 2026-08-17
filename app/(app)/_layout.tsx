@@ -1,13 +1,16 @@
 import { useEffect } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { Redirect, Tabs } from 'expo-router';
+import { View } from 'react-native';
 import { colors, fonts, fontSizes } from '../../src/theme/tokens';
 import { useAuthStore } from '../../src/store/authStore';
 import { registerForPushNotifications } from '../../src/lib/pushNotifications';
 import { useNotificationRouter } from '../../src/lib/useNotificationRouter';
+import { ConciergeFab } from '../../src/components/ConciergeFab';
 
 export default function AppTabsLayout() {
   const status = useAuthStore((s) => s.status);
+  const isGuest = useAuthStore((s) => s.isGuest);
 
   useEffect(() => {
     if (status === 'signed-in') void registerForPushNotifications();
@@ -15,9 +18,15 @@ export default function AppTabsLayout() {
 
   useNotificationRouter();
 
-  if (status === 'signed-out' || status === 'not-configured') return <Redirect href="/(auth)/login" />;
+  // Guests get the full app shell — Home, Fleet, and browsing screens don't
+  // need an account. Specific actions (booking confirmation, payment
+  // methods, trip history, checkout) prompt for sign-in only when a guest
+  // actually reaches them — see src/components/AuthGate.tsx.
+  const canEnter = status === 'signed-in' || isGuest;
+  if (!canEnter) return <Redirect href="/welcome" />;
 
   return (
+    <View style={{ flex: 1 }}>
     <Tabs
       screenOptions={{
         headerShown: false,
@@ -29,7 +38,11 @@ export default function AppTabsLayout() {
     >
       <Tabs.Screen
         name="index"
-        options={{ title: 'Book', tabBarIcon: ({ color, size }) => <Ionicons name="car-sport-outline" size={size} color={color} /> }}
+        options={{ title: 'Home', tabBarIcon: ({ color, size }) => <Ionicons name="home-outline" size={size} color={color} /> }}
+      />
+      <Tabs.Screen
+        name="fleet"
+        options={{ title: 'Fleet', tabBarIcon: ({ color, size }) => <Ionicons name="car-sport-outline" size={size} color={color} /> }}
       />
       <Tabs.Screen
         name="trips"
@@ -44,6 +57,11 @@ export default function AppTabsLayout() {
         options={{ title: 'Account', tabBarIcon: ({ color, size }) => <Ionicons name="person-outline" size={size} color={color} /> }}
       />
       <Tabs.Screen name="book" options={{ href: null }} />
+      <Tabs.Screen name="about" options={{ href: null }} />
+      <Tabs.Screen name="corporate-info" options={{ href: null }} />
+      <Tabs.Screen name="demo-trip" options={{ href: null }} />
     </Tabs>
+    <ConciergeFab />
+    </View>
   );
 }

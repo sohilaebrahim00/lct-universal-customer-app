@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link } from 'expo-router';
 import { View } from 'react-native';
 import { AuthBrandHeader } from '../../src/components/AuthBrandHeader';
+import { SocialAuthButtons } from '../../src/components/SocialAuthButtons';
 import { Button } from '../../src/components/ui/Button';
 import { ScreenContainer } from '../../src/components/ui/ScreenContainer';
 import { TextField } from '../../src/components/ui/TextField';
@@ -79,6 +80,8 @@ export default function LoginScreen() {
       ) : null}
 
       <Button label="Sign In" onPress={handleLogin} loading={loading} />
+
+      <SocialAuthButtons />
 
       <View style={{ marginTop: spacing.md, alignItems: 'center' }}>
         <Link href="/(auth)/forgot-password">

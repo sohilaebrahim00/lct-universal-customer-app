@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, useRouter } from 'expo-router';
 import { View } from 'react-native';
 import { AuthBrandHeader } from '../../src/components/AuthBrandHeader';
+import { SocialAuthButtons } from '../../src/components/SocialAuthButtons';
 import { Button } from '../../src/components/ui/Button';
 import { ScreenContainer } from '../../src/components/ui/ScreenContainer';
 import { TextField } from '../../src/components/ui/TextField';
@@ -111,6 +112,8 @@ export default function SignupScreen() {
       ) : null}
 
       <Button label="Create Account" onPress={handleSignup} loading={loading} />
+
+      <SocialAuthButtons />
 
       <View style={{ marginTop: spacing.xl, alignItems: 'center' }}>
         <AppText variant="bodyMuted">

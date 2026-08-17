@@ -1,6 +1,7 @@
 import { useRouter } from 'expo-router';
 import { Image, Pressable, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { Button } from '../../../src/components/ui/Button';
 import { Card } from '../../../src/components/ui/Card';
 import { ScreenContainer } from '../../../src/components/ui/ScreenContainer';
 import { AppText } from '../../../src/components/ui/Typography';
@@ -21,8 +22,37 @@ function NavRow({ icon, label, onPress }: { icon: keyof typeof Ionicons.glyphMap
 
 export default function AccountScreen() {
   const router = useRouter();
+  const status = useAuthStore((s) => s.status);
   const profile = useAuthStore((s) => s.profile);
   const signOut = useAuthStore((s) => s.signOut);
+
+  if (status !== 'signed-in') {
+    return (
+      <ScreenContainer>
+        <AppText variant="display" style={{ marginBottom: spacing.lg }}>
+          Account
+        </AppText>
+
+        <Card style={{ alignItems: 'center', padding: spacing.xl, marginBottom: spacing.lg }}>
+          <Ionicons name="person-circle-outline" size={40} color={colors.gold} style={{ marginBottom: spacing.sm }} />
+          <AppText variant="subheading" center style={{ marginBottom: spacing.xs }}>
+            You&apos;re browsing as a guest
+          </AppText>
+          <AppText variant="bodyMuted" center style={{ marginBottom: spacing.lg }}>
+            Sign in or create a free account to save payment methods, view trip history, and manage your profile.
+          </AppText>
+          <Button label="Sign In" onPress={() => router.push('/(auth)/login')} style={{ width: '100%', marginBottom: spacing.sm }} />
+          <Button label="Create Account" variant="secondary" onPress={() => router.push('/(auth)/signup')} style={{ width: '100%' }} />
+        </Card>
+
+        <View style={{ gap: spacing.sm }}>
+          <NavRow icon="business-outline" label="About LCT Universal" onPress={() => router.push('/(app)/about')} />
+          <NavRow icon="briefcase-outline" label="Corporate Accounts" onPress={() => router.push('/(app)/corporate-info')} />
+          <NavRow icon="navigate-outline" label="Preview Live Tracking" onPress={() => router.push('/(app)/demo-trip')} />
+        </View>
+      </ScreenContainer>
+    );
+  }
 
   return (
     <ScreenContainer>
@@ -54,7 +84,10 @@ export default function AccountScreen() {
         <NavRow icon="notifications-outline" label="Notifications" onPress={() => router.push('/(app)/account/notifications')} />
         {profile?.corporate_account_id ? (
           <NavRow icon="business-outline" label="Corporate Account" onPress={() => router.push('/(app)/account/corporate')} />
-        ) : null}
+        ) : (
+          <NavRow icon="briefcase-outline" label="Corporate Solutions" onPress={() => router.push('/(app)/corporate-info')} />
+        )}
+        <NavRow icon="information-circle-outline" label="About LCT Universal" onPress={() => router.push('/(app)/about')} />
         <NavRow icon="settings-outline" label="Settings" onPress={() => router.push('/(app)/account/settings')} />
       </View>
 

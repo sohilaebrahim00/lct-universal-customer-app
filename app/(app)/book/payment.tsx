@@ -13,6 +13,7 @@ import { calculateFarePreview } from '../../../src/lib/pricingPreview';
 import { formatCurrency, formatDateTime, formatServiceType } from '../../../src/lib/format';
 import { isStripeConfigured } from '../../../src/lib/env';
 import { useStripeCheckout } from '../../../src/lib/useStripeCheckout';
+import { AuthGate } from '../../../src/components/AuthGate';
 
 function Row({ label, value }: { label: string; value: string }) {
   return (
@@ -124,12 +125,17 @@ export default function PaymentStep() {
         </AppText>
       ) : null}
 
-      <Button
-        label={isStripeConfigured ? 'Pay & Confirm Booking' : 'Confirm Booking'}
-        onPress={handlePayAndConfirm}
-        loading={submitting || processing}
-        style={{ marginTop: spacing.md }}
-      />
+      <AuthGate
+        title="Create an account to complete your booking"
+        message="You're one step away — sign in or create a free account to confirm and pay. Your trip details are saved."
+      >
+        <Button
+          label={isStripeConfigured ? 'Pay & Confirm Booking' : 'Confirm Booking'}
+          onPress={handlePayAndConfirm}
+          loading={submitting || processing}
+          style={{ marginTop: spacing.md }}
+        />
+      </AuthGate>
     </ScreenContainer>
   );
 }
