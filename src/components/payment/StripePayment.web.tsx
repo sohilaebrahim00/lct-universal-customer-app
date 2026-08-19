@@ -1,5 +1,5 @@
 import { View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { Smartphone } from 'lucide-react-native';
 import { AppText } from '../ui/Typography';
 import { colors, radius, spacing } from '../../theme/tokens';
 
@@ -12,7 +12,7 @@ import { colors, radius, spacing } from '../../theme/tokens';
 export function StripePayment() {
   return (
     <View style={styles.container}>
-      <Ionicons name="phone-portrait-outline" size={28} color={colors.gold} style={{ marginBottom: spacing.sm }} />
+      <Smartphone size={28} color={colors.gold} strokeWidth={1.5} style={{ marginBottom: spacing.sm }} />
       <AppText variant="subheading" center>
         Payment methods are available in the mobile app
       </AppText>

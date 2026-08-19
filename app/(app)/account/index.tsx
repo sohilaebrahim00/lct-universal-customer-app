@@ -1,6 +1,22 @@
 import { useRouter } from 'expo-router';
 import { Image, Pressable, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import {
+  ChevronRight,
+  UserCircle,
+  Building2,
+  Briefcase,
+  Navigation,
+  User,
+  Users,
+  MapPin,
+  CreditCard,
+  Clock,
+  Bell,
+  Info,
+  Settings,
+  LogOut,
+  type LucideIcon,
+} from 'lucide-react-native';
 import { Button } from '../../../src/components/ui/Button';
 import { Card } from '../../../src/components/ui/Card';
 import { ScreenContainer } from '../../../src/components/ui/ScreenContainer';
@@ -8,14 +24,14 @@ import { AppText } from '../../../src/components/ui/Typography';
 import { colors, radius, spacing } from '../../../src/theme/tokens';
 import { useAuthStore } from '../../../src/store/authStore';
 
-function NavRow({ icon, label, onPress }: { icon: keyof typeof Ionicons.glyphMap; label: string; onPress: () => void }) {
+function NavRow({ icon: Icon, label, onPress }: { icon: LucideIcon; label: string; onPress: () => void }) {
   return (
     <Pressable onPress={onPress} style={styles.row}>
-      <Ionicons name={icon} size={20} color={colors.gold} />
+      <Icon size={20} color={colors.gold} strokeWidth={1.5} />
       <AppText variant="body" style={{ flex: 1, marginLeft: spacing.md }}>
         {label}
       </AppText>
-      <Ionicons name="chevron-forward" size={18} color={colors.mutedForeground} />
+      <ChevronRight size={18} color={colors.mutedForeground} strokeWidth={1.5} />
     </Pressable>
   );
 }
@@ -34,7 +50,7 @@ export default function AccountScreen() {
         </AppText>
 
         <Card style={{ alignItems: 'center', padding: spacing.xl, marginBottom: spacing.lg }}>
-          <Ionicons name="person-circle-outline" size={40} color={colors.gold} style={{ marginBottom: spacing.sm }} />
+          <UserCircle size={40} color={colors.gold} strokeWidth={1.5} style={{ marginBottom: spacing.sm }} />
           <AppText variant="subheading" center style={{ marginBottom: spacing.xs }}>
             You&apos;re browsing as a guest
           </AppText>
@@ -46,9 +62,9 @@ export default function AccountScreen() {
         </Card>
 
         <View style={{ gap: spacing.sm }}>
-          <NavRow icon="business-outline" label="About LCT Universal" onPress={() => router.push('/(app)/about')} />
-          <NavRow icon="briefcase-outline" label="Corporate Accounts" onPress={() => router.push('/(app)/corporate-info')} />
-          <NavRow icon="navigate-outline" label="Preview Live Tracking" onPress={() => router.push('/(app)/demo-trip')} />
+          <NavRow icon={Building2} label="About LCT Universal" onPress={() => router.push('/(app)/about')} />
+          <NavRow icon={Briefcase} label="Corporate Accounts" onPress={() => router.push('/(app)/corporate-info')} />
+          <NavRow icon={Navigation} label="Preview Live Tracking" onPress={() => router.push('/(app)/demo-trip')} />
         </View>
       </ScreenContainer>
     );
@@ -65,7 +81,7 @@ export default function AccountScreen() {
           <Image source={{ uri: profile.avatar_url }} style={styles.avatar} />
         ) : (
           <View style={[styles.avatar, styles.avatarPlaceholder]}>
-            <Ionicons name="person" size={22} color={colors.gold} />
+            <User size={22} color={colors.gold} strokeWidth={1.5} />
           </View>
         )}
         <View style={{ marginLeft: spacing.md, flex: 1 }}>
@@ -76,23 +92,23 @@ export default function AccountScreen() {
       </Card>
 
       <View style={{ gap: spacing.sm, marginBottom: spacing.lg }}>
-        <NavRow icon="person-circle-outline" label="Edit Profile" onPress={() => router.push('/(app)/account/edit-profile')} />
-        <NavRow icon="people-outline" label="Saved Passengers" onPress={() => router.push('/(app)/account/saved-passengers')} />
-        <NavRow icon="location-outline" label="Saved Locations" onPress={() => router.push('/(app)/account/saved-locations')} />
-        <NavRow icon="card-outline" label="Payment Methods" onPress={() => router.push('/(app)/account/payment-methods')} />
-        <NavRow icon="time-outline" label="Trip History" onPress={() => router.push('/(app)/trips')} />
-        <NavRow icon="notifications-outline" label="Notifications" onPress={() => router.push('/(app)/account/notifications')} />
+        <NavRow icon={UserCircle} label="Edit Profile" onPress={() => router.push('/(app)/account/edit-profile')} />
+        <NavRow icon={Users} label="Saved Passengers" onPress={() => router.push('/(app)/account/saved-passengers')} />
+        <NavRow icon={MapPin} label="Saved Locations" onPress={() => router.push('/(app)/account/saved-locations')} />
+        <NavRow icon={CreditCard} label="Payment Methods" onPress={() => router.push('/(app)/account/payment-methods')} />
+        <NavRow icon={Clock} label="Trip History" onPress={() => router.push('/(app)/trips')} />
+        <NavRow icon={Bell} label="Notifications" onPress={() => router.push('/(app)/account/notifications')} />
         {profile?.corporate_account_id ? (
-          <NavRow icon="business-outline" label="Corporate Account" onPress={() => router.push('/(app)/account/corporate')} />
+          <NavRow icon={Building2} label="Corporate Account" onPress={() => router.push('/(app)/account/corporate')} />
         ) : (
-          <NavRow icon="briefcase-outline" label="Corporate Solutions" onPress={() => router.push('/(app)/corporate-info')} />
+          <NavRow icon={Briefcase} label="Corporate Solutions" onPress={() => router.push('/(app)/corporate-info')} />
         )}
-        <NavRow icon="information-circle-outline" label="About LCT Universal" onPress={() => router.push('/(app)/about')} />
-        <NavRow icon="settings-outline" label="Settings" onPress={() => router.push('/(app)/account/settings')} />
+        <NavRow icon={Info} label="About LCT Universal" onPress={() => router.push('/(app)/about')} />
+        <NavRow icon={Settings} label="Settings" onPress={() => router.push('/(app)/account/settings')} />
       </View>
 
       <Pressable onPress={() => void signOut()} style={styles.row}>
-        <Ionicons name="log-out-outline" size={20} color={colors.destructive} />
+        <LogOut size={20} color={colors.destructive} strokeWidth={1.5} />
         <AppText variant="body" color={colors.destructive} style={{ marginLeft: spacing.md }}>
           Log Out
         </AppText>

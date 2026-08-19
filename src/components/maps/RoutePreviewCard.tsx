@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { Platform, StyleSheet, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { Map, Navigation, Clock } from 'lucide-react-native';
 import { Card } from '../ui/Card';
 import { AppText } from '../ui/Typography';
 import { colors, radius, spacing } from '../../theme/tokens';
@@ -55,7 +55,7 @@ export function RoutePreviewCard({ pickup, dropoff, distanceMiles, durationMinut
     <Card style={{ padding: 0, overflow: 'hidden', marginBottom: spacing.md }}>
       {isExpoGo || Platform.OS === 'web' ? (
         <View style={styles.expoGoPreview}>
-          <Ionicons name="map-outline" size={22} color={colors.gold} />
+          <Map size={22} color={colors.gold} strokeWidth={1.5} />
           <AppText variant="caption" center style={{ marginTop: spacing.xs }}>
             {Platform.OS === 'web' ? 'Route map preview — full map available in the iOS/Android app' : "Route map preview isn't available in Expo Go"}
           </AppText>
@@ -65,13 +65,13 @@ export function RoutePreviewCard({ pickup, dropoff, distanceMiles, durationMinut
       )}
       <View style={styles.footer}>
         <View style={styles.metaItem}>
-          <Ionicons name="navigate-outline" size={16} color={colors.gold} />
+          <Navigation size={16} color={colors.gold} strokeWidth={1.5} />
           <AppText variant="body" style={{ marginLeft: 6 }}>
             {distanceMiles != null ? `${distanceMiles} mi` : '—'}
           </AppText>
         </View>
         <View style={styles.metaItem}>
-          <Ionicons name="time-outline" size={16} color={colors.gold} />
+          <Clock size={16} color={colors.gold} strokeWidth={1.5} />
           <AppText variant="body" style={{ marginLeft: 6 }}>
             {durationMinutes != null ? `${durationMinutes} min` : '—'}
           </AppText>

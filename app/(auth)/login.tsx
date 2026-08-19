@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, useRouter } from 'expo-router';
 import { View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { Sparkles } from 'lucide-react-native';
 import { AuthBrandHeader } from '../../src/components/AuthBrandHeader';
 import { SocialAuthButtons } from '../../src/components/SocialAuthButtons';
 import { Button } from '../../src/components/ui/Button';
@@ -90,7 +90,7 @@ export default function LoginScreen() {
         style={{ marginTop: spacing.sm }}
       />
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginTop: -spacing.xs }}>
-        <Ionicons name="sparkles-outline" size={12} color={colors.mutedForeground} />
+        <Sparkles size={12} color={colors.mutedForeground} strokeWidth={1.5} />
         <AppText variant="caption" style={{ marginLeft: 4 }}>
           Preview the app with sample data — no account needed
         </AppText>

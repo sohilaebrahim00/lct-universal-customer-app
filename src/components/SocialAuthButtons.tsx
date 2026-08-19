@@ -1,12 +1,12 @@
 import { Alert, Pressable, StyleSheet, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { Globe, Apple, type LucideIcon } from 'lucide-react-native';
 import { AppText } from './ui/Typography';
 import { colors, radius, spacing } from '../theme/tokens';
 
-function SocialButton({ icon, label, onPress }: { icon: keyof typeof Ionicons.glyphMap; label: string; onPress: () => void }) {
+function SocialButton({ icon: Icon, label, onPress }: { icon: LucideIcon; label: string; onPress: () => void }) {
   return (
     <Pressable onPress={onPress} style={styles.button}>
-      <Ionicons name={icon} size={18} color={colors.offWhite} />
+      <Icon size={18} color={colors.offWhite} strokeWidth={1.5} />
       <AppText variant="body" style={{ marginLeft: spacing.sm }}>
         {label}
       </AppText>
@@ -35,8 +35,8 @@ export function SocialAuthButtons() {
       </View>
 
       <View style={{ gap: spacing.sm }}>
-        <SocialButton icon="logo-google" label="Continue with Google" onPress={() => handleComingSoon('Google')} />
-        <SocialButton icon="logo-apple" label="Continue with Apple" onPress={() => handleComingSoon('Apple')} />
+        <SocialButton icon={Globe} label="Continue with Google" onPress={() => handleComingSoon('Google')} />
+        <SocialButton icon={Apple} label="Continue with Apple" onPress={() => handleComingSoon('Apple')} />
       </View>
     </View>
   );

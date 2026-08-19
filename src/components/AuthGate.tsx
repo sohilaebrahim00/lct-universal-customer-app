@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { useRouter } from 'expo-router';
 import { View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { Lock } from 'lucide-react-native';
 import { Button } from './ui/Button';
 import { Card } from './ui/Card';
 import { AppText } from './ui/Typography';
@@ -34,7 +34,7 @@ export function AuthGate({ title, message, children, onContinueLater }: Props) {
 
   return (
     <Card style={{ alignItems: 'center', padding: spacing.xl }}>
-      <Ionicons name="lock-closed-outline" size={26} color={colors.gold} style={{ marginBottom: spacing.sm }} />
+      <Lock size={26} color={colors.gold} strokeWidth={1.5} style={{ marginBottom: spacing.sm }} />
       <AppText variant="subheading" center style={{ marginBottom: spacing.xs }}>
         {title}
       </AppText>

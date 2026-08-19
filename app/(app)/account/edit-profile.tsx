@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useRouter } from 'expo-router';
 import { ActivityIndicator, Image, Pressable, StyleSheet, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { User, Camera } from 'lucide-react-native';
 import { Button } from '../../../src/components/ui/Button';
 import { ScreenContainer } from '../../../src/components/ui/ScreenContainer';
 import { TextField } from '../../../src/components/ui/TextField';
@@ -69,11 +69,11 @@ export default function EditProfileScreen() {
           <Image source={{ uri: avatarUrl }} style={styles.avatar} />
         ) : (
           <View style={[styles.avatar, styles.avatarPlaceholder]}>
-            <Ionicons name="person" size={32} color={colors.gold} />
+            <User size={32} color={colors.gold} strokeWidth={1.5} />
           </View>
         )}
         <View style={styles.avatarBadge}>
-          {uploadingAvatar ? <ActivityIndicator size="small" color={colors.surfaceBlack} /> : <Ionicons name="camera" size={14} color={colors.surfaceBlack} />}
+          {uploadingAvatar ? <ActivityIndicator size="small" color={colors.surfaceBlack} /> : <Camera size={14} color={colors.surfaceBlack} strokeWidth={1.5} />}
         </View>
       </Pressable>
       <AppText variant="caption" center style={{ marginBottom: spacing.lg }}>

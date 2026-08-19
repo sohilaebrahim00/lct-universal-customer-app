@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'expo-router';
 import { ActivityIndicator, Image, Pressable, StyleSheet, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { AlertCircle, Car, ChevronRight, Users, Briefcase } from 'lucide-react-native';
 import { ScreenContainer } from '../../../src/components/ui/ScreenContainer';
 import { AppText } from '../../../src/components/ui/Typography';
 import { FadeSlideIn } from '../../../src/components/ui/FadeSlideIn';
@@ -36,10 +36,10 @@ export default function FleetScreen() {
 
       {!vehicles && !error ? <ActivityIndicator color={colors.gold} style={{ marginTop: spacing.xl }} /> : null}
       {error ? (
-        <EmptyState icon="alert-circle-outline" title="Couldn't load the fleet" message={error} />
+        <EmptyState icon={AlertCircle} title="Couldn't load the fleet" message={error} />
       ) : null}
       {vehicles && vehicles.length === 0 ? (
-        <EmptyState icon="car-sport-outline" title="Fleet unavailable" message="The fleet listing isn't available right now — please check back shortly." />
+        <EmptyState icon={Car} title="Fleet unavailable" message="The fleet listing isn't available right now — please check back shortly." />
       ) : null}
 
       <View style={{ gap: spacing.md }}>
@@ -60,16 +60,16 @@ export default function FleetScreen() {
                         {tagline}
                       </AppText>
                     </View>
-                    <Ionicons name="chevron-forward" size={18} color={colors.mutedForeground} />
+                    <ChevronRight size={18} color={colors.mutedForeground} strokeWidth={1.5} />
                   </View>
 
                   <View style={styles.metaRow}>
                     <View style={styles.metaItem}>
-                      <Ionicons name="people-outline" size={14} color={colors.mutedForeground} />
+                      <Users size={14} color={colors.mutedForeground} strokeWidth={1.5} />
                       <AppText variant="caption"> {vehicle.capacity_passengers} passengers</AppText>
                     </View>
                     <View style={styles.metaItem}>
-                      <Ionicons name="briefcase-outline" size={14} color={colors.mutedForeground} />
+                      <Briefcase size={14} color={colors.mutedForeground} strokeWidth={1.5} />
                       <AppText variant="caption"> {vehicle.capacity_luggage} bags</AppText>
                     </View>
                   </View>

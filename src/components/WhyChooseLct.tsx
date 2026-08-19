@@ -1,14 +1,14 @@
 import { StyleSheet, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { User, Car, Plane, Building2, Clock } from 'lucide-react-native';
 import { AppText } from './ui/Typography';
 import { colors, radius, spacing } from '../theme/tokens';
 
 const REASONS = [
-  { icon: 'person-outline' as const, title: 'Professional Chauffeurs', desc: 'Vetted, trained, and dressed for the occasion.' },
-  { icon: 'car-sport-outline' as const, title: 'Premium Fleet', desc: 'Late-model Mercedes-Benz sedans, SUVs, and Sprinters.' },
-  { icon: 'airplane-outline' as const, title: 'Airport Specialists', desc: 'Flight tracking and meet & greet, done right.' },
-  { icon: 'business-outline' as const, title: 'Corporate Solutions', desc: 'Centralized billing for teams and executives.' },
-  { icon: 'time-outline' as const, title: 'On-Time Service', desc: 'Every pickup, on the minute — no exceptions.' },
+  { icon: User, title: 'Professional Chauffeurs', desc: 'Vetted, trained, and dressed for the occasion.' },
+  { icon: Car, title: 'Premium Fleet', desc: 'Late-model Mercedes-Benz sedans, SUVs, and Sprinters.' },
+  { icon: Plane, title: 'Airport Specialists', desc: 'Flight tracking and meet & greet, done right.' },
+  { icon: Building2, title: 'Corporate Solutions', desc: 'Centralized billing for teams and executives.' },
+  { icon: Clock, title: 'On-Time Service', desc: 'Every pickup, on the minute — no exceptions.' },
 ];
 
 export function WhyChooseLct() {
@@ -17,7 +17,7 @@ export function WhyChooseLct() {
       {REASONS.map((reason) => (
         <View key={reason.title} style={styles.row}>
           <View style={styles.iconWrap}>
-            <Ionicons name={reason.icon} size={22} color={colors.gold} />
+            <reason.icon size={22} color={colors.gold} strokeWidth={1.5} />
           </View>
           <View style={{ marginLeft: spacing.md, flex: 1 }}>
             <AppText variant="subheading">{reason.title}</AppText>

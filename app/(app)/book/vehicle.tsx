@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'expo-router';
 import { ActivityIndicator, Image, Pressable, StyleSheet, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { CheckCircle2, Users, Briefcase } from 'lucide-react-native';
 import { StepHeader } from '../../../src/components/booking/StepHeader';
 import { Button } from '../../../src/components/ui/Button';
 import { ScreenContainer } from '../../../src/components/ui/ScreenContainer';
@@ -107,16 +107,16 @@ export default function VehicleStep() {
                       {vehicle.description}
                     </AppText>
                   </View>
-                  {selected ? <Ionicons name="checkmark-circle" size={22} color={colors.gold} /> : null}
+                  {selected ? <CheckCircle2 size={22} color={colors.gold} strokeWidth={1.5} /> : null}
                 </View>
 
                 <View style={styles.metaRow}>
                   <View style={styles.metaItem}>
-                    <Ionicons name="people-outline" size={14} color={colors.mutedForeground} />
+                    <Users size={14} color={colors.mutedForeground} strokeWidth={1.5} />
                     <AppText variant="caption"> {vehicle.capacity_passengers} passengers</AppText>
                   </View>
                   <View style={styles.metaItem}>
-                    <Ionicons name="briefcase-outline" size={14} color={colors.mutedForeground} />
+                    <Briefcase size={14} color={colors.mutedForeground} strokeWidth={1.5} />
                     <AppText variant="caption"> {vehicle.capacity_luggage} bags</AppText>
                   </View>
                 </View>
@@ -164,7 +164,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   cardSelected: { borderColor: colors.gold, ...shadows.gold },
-  image: { width: '100%', height: 140 },
+  image: { width: '100%', height: 180 },
   body: { padding: spacing.md },
   metaRow: { flexDirection: 'row', gap: spacing.md, marginTop: spacing.sm },
   metaItem: { flexDirection: 'row', alignItems: 'center' },

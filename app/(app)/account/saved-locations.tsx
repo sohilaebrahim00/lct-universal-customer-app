@@ -1,7 +1,7 @@
 import { useCallback, useState } from 'react';
 import { useFocusEffect } from 'expo-router';
 import { Pressable, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { Trash2 } from 'lucide-react-native';
 import { Button } from '../../../src/components/ui/Button';
 import { Card } from '../../../src/components/ui/Card';
 import { ScreenContainer } from '../../../src/components/ui/ScreenContainer';
@@ -54,7 +54,7 @@ export default function SavedLocationsScreen() {
             <AppText variant="caption">{loc.address}</AppText>
           </View>
           <Pressable onPress={() => handleRemove(loc.id)}>
-            <Ionicons name="trash-outline" size={20} color={colors.destructive} />
+            <Trash2 size={20} color={colors.destructive} strokeWidth={1.5} />
           </Pressable>
         </Card>
       ))}

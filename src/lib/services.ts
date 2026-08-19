@@ -1,18 +1,55 @@
-import type { Ionicons } from '@expo/vector-icons';
 import type { ServiceType } from '../types/api';
 
 export interface ServiceMeta {
   type: ServiceType;
   label: string;
   description: string;
-  icon: keyof typeof Ionicons.glyphMap;
+  /** Lucide icon component name — see app/(app)/book/index.tsx for the mapping to the actual component. */
+  icon: 'plane' | 'briefcase' | 'sparkles' | 'navigation' | 'clock' | 'pen';
+  image: ReturnType<typeof require>;
 }
 
 export const SERVICES: ServiceMeta[] = [
-  { type: 'airport', label: 'Airport', description: 'Flight-tracked pickups and drop-offs', icon: 'airplane-outline' },
-  { type: 'corporate', label: 'Corporate', description: 'Business travel for your company', icon: 'briefcase-outline' },
-  { type: 'events', label: 'Events', description: 'Weddings, galas, and special occasions', icon: 'sparkles-outline' },
-  { type: 'point_to_point', label: 'Point to Point', description: 'A single pickup and drop-off', icon: 'navigate-outline' },
-  { type: 'hourly', label: 'Hourly Chauffeur', description: 'A dedicated vehicle by the hour', icon: 'time-outline' },
-  { type: 'custom', label: 'Custom Request', description: 'Tell us what you need', icon: 'create-outline' },
+  {
+    type: 'airport',
+    label: 'Airport Transfer',
+    description: 'Flight-tracked pickups and drop-offs, curb to gate.',
+    icon: 'plane',
+    image: require('../../assets/services/airport.jpg'),
+  },
+  {
+    type: 'corporate',
+    label: 'Corporate Travel',
+    description: 'Executive transportation solutions for your company.',
+    icon: 'briefcase',
+    image: require('../../assets/services/corporate.jpg'),
+  },
+  {
+    type: 'events',
+    label: 'Special Occasions',
+    description: 'Weddings, galas, and premium event transportation.',
+    icon: 'sparkles',
+    image: require('../../assets/services/events.jpg'),
+  },
+  {
+    type: 'point_to_point',
+    label: 'Point to Point',
+    description: 'A single private pickup and drop-off, door to door.',
+    icon: 'navigation',
+    image: require('../../assets/services/point-to-point.jpg'),
+  },
+  {
+    type: 'hourly',
+    label: 'Hourly Chauffeur',
+    description: 'A dedicated vehicle and driver, by the hour.',
+    icon: 'clock',
+    image: require('../../assets/services/hourly.jpg'),
+  },
+  {
+    type: 'custom',
+    label: 'Custom Request',
+    description: 'Tell us what you need — we will arrange it.',
+    icon: 'pen',
+    image: require('../../assets/services/custom.jpg'),
+  },
 ];

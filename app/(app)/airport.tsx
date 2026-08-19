@@ -1,6 +1,6 @@
 import { useRouter } from 'expo-router';
 import { Image, StyleSheet, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { Plane, User, Footprints, Briefcase, Clock } from 'lucide-react-native';
 import { Button } from '../../src/components/ui/Button';
 import { Card } from '../../src/components/ui/Card';
 import { ScreenContainer } from '../../src/components/ui/ScreenContainer';
@@ -10,11 +10,11 @@ import { colors, spacing } from '../../src/theme/tokens';
 import { useBookingFormStore } from '../../src/store/bookingFormStore';
 
 const FEATURES = [
-  { icon: 'airplane-outline' as const, title: 'Flight Monitoring', desc: 'We track your flight in real time and adjust for delays automatically.' },
-  { icon: 'person-outline' as const, title: 'Professional Chauffeur', desc: 'A licensed, uniformed chauffeur meets you at every pickup.' },
-  { icon: 'walk-outline' as const, title: 'Meet & Greet Service', desc: 'Your chauffeur waits inside arrivals with a name sign.' },
-  { icon: 'briefcase-outline' as const, title: 'Luggage Assistance', desc: 'Every bag handled from curb to vehicle and back.' },
-  { icon: 'time-outline' as const, title: 'Complimentary Waiting Time', desc: 'Extra time built in so a slow deplaning never costs you.' },
+  { icon: Plane, title: 'Flight Monitoring', desc: 'We track your flight in real time and adjust for delays automatically.' },
+  { icon: User, title: 'Professional Chauffeur', desc: 'A licensed, uniformed chauffeur meets you at every pickup.' },
+  { icon: Footprints, title: 'Meet & Greet Service', desc: 'Your chauffeur waits inside arrivals with a name sign.' },
+  { icon: Briefcase, title: 'Luggage Assistance', desc: 'Every bag handled from curb to vehicle and back.' },
+  { icon: Clock, title: 'Complimentary Waiting Time', desc: 'Extra time built in so a slow deplaning never costs you.' },
 ];
 
 export default function AirportScreen() {
@@ -51,7 +51,7 @@ export default function AirportScreen() {
           {FEATURES.map((feature, i) => (
             <FadeSlideIn key={feature.title} delay={i * 60}>
               <Card style={{ marginBottom: spacing.sm, flexDirection: 'row', alignItems: 'flex-start' }}>
-                <Ionicons name={feature.icon} size={22} color={colors.gold} style={{ marginTop: 2 }} />
+                <feature.icon size={22} color={colors.gold} strokeWidth={1.5} style={{ marginTop: 2 }} />
                 <View style={{ marginLeft: spacing.md, flex: 1 }}>
                   <AppText variant="subheading">{feature.title}</AppText>
                   <AppText variant="caption" style={{ marginTop: 2 }}>

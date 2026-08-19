@@ -1,6 +1,6 @@
 import { useRouter } from 'expo-router';
 import { Image, StyleSheet, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { ShieldCheck, Award, Heart, Compass } from 'lucide-react-native';
 import { Button } from '../../src/components/ui/Button';
 import { Divider } from '../../src/components/ui/Divider';
 import { ScreenContainer } from '../../src/components/ui/ScreenContainer';
@@ -9,10 +9,10 @@ import { FadeSlideIn } from '../../src/components/ui/FadeSlideIn';
 import { colors, radius, spacing } from '../../src/theme/tokens';
 
 const VALUES = [
-  { icon: 'shield-checkmark-outline' as const, title: 'Discretion', desc: 'What happens in our vehicles stays there.' },
-  { icon: 'ribbon-outline' as const, title: 'Excellence', desc: 'Every detail, every time.' },
-  { icon: 'heart-outline' as const, title: 'Service', desc: 'A concierge mindset in every interaction.' },
-  { icon: 'compass-outline' as const, title: 'Craft', desc: 'Doing one thing extraordinarily well.' },
+  { icon: ShieldCheck, title: 'Discretion', desc: 'What happens in our vehicles stays there.' },
+  { icon: Award, title: 'Excellence', desc: 'Every detail, every time.' },
+  { icon: Heart, title: 'Service', desc: 'A concierge mindset in every interaction.' },
+  { icon: Compass, title: 'Craft', desc: 'Doing one thing extraordinarily well.' },
 ];
 
 export default function AboutScreen() {
@@ -55,7 +55,7 @@ export default function AboutScreen() {
               <View key={value.title}>
                 {i > 0 ? <Divider /> : null}
                 <View style={styles.valueRow}>
-                  <Ionicons name={value.icon} size={22} color={colors.gold} />
+                  <value.icon size={22} color={colors.gold} strokeWidth={1.5} />
                   <View style={{ marginLeft: spacing.md, flex: 1 }}>
                     <AppText variant="subheading">{value.title}</AppText>
                     <AppText variant="caption">{value.desc}</AppText>

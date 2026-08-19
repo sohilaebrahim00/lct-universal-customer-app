@@ -1,5 +1,5 @@
 import { ScrollView, StyleSheet, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { Star } from 'lucide-react-native';
 import { AppText } from './ui/Typography';
 import { colors, radius, spacing } from '../theme/tokens';
 
@@ -14,7 +14,7 @@ function Stars({ rating }: { rating: number }) {
   return (
     <View style={{ flexDirection: 'row', marginBottom: spacing.sm }}>
       {Array.from({ length: 5 }).map((_, i) => (
-        <Ionicons key={i} name={i < rating ? 'star' : 'star-outline'} size={14} color={colors.gold} />
+        <Star key={i} size={14} color={colors.gold} strokeWidth={1.5} fill={i < rating ? colors.gold : 'transparent'} />
       ))}
     </View>
   );

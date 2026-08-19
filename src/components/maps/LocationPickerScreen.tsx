@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState, type RefObject } from 'react'
 import { useRouter } from 'expo-router';
 import { ActivityIndicator, Platform, Pressable, StyleSheet, View } from 'react-native';
 import type { Region } from 'react-native-maps';
-import { Ionicons } from '@expo/vector-icons';
+import { MapPin, Locate } from 'lucide-react-native';
 import { Button } from '../ui/Button';
 import { AppText } from '../ui/Typography';
 import { TextField } from '../ui/TextField';
@@ -162,7 +162,7 @@ export function LocationPickerScreen({ title, subtitle, onConfirm, bias }: Props
       <NativeLocationMap mapRef={mapRef} region={region} onRegionChangeComplete={handleRegionChangeComplete} />
 
       <View pointerEvents="none" style={styles.centerPin}>
-        <Ionicons name="location" size={40} color={colors.gold} />
+        <MapPin size={40} color={colors.gold} strokeWidth={1.5} />
       </View>
 
       <View style={styles.searchOverlay}>
@@ -170,7 +170,7 @@ export function LocationPickerScreen({ title, subtitle, onConfirm, bias }: Props
       </View>
 
       <Pressable style={styles.locateButton} onPress={handleUseCurrentLocation} disabled={locating}>
-        {locating ? <ActivityIndicator color={colors.gold} /> : <Ionicons name="locate" size={22} color={colors.gold} />}
+        {locating ? <ActivityIndicator color={colors.gold} /> : <Locate size={22} color={colors.gold} strokeWidth={1.5} />}
       </Pressable>
 
       <View style={styles.bottomSheet}>

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { usePathname, useRouter } from 'expo-router';
 import { ActivityIndicator, FlatList, Modal, Pressable, StyleSheet, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { Sparkles, X } from 'lucide-react-native';
 import { Button } from './ui/Button';
 import { TextField } from './ui/TextField';
 import { AppText } from './ui/Typography';
@@ -91,7 +91,7 @@ export function ConciergeFab() {
   return (
     <>
       <Pressable style={styles.fab} onPress={() => setOpen(true)} accessibilityLabel="Open AI Concierge">
-        <Ionicons name="sparkles" size={24} color={colors.surfaceBlack} />
+        <Sparkles size={24} color={colors.surfaceBlack} strokeWidth={1.5} />
       </Pressable>
 
       <Modal visible={open} animationType="slide" transparent onRequestClose={() => setOpen(false)}>
@@ -101,7 +101,7 @@ export function ConciergeFab() {
             <View style={styles.sheetHeader}>
               <AppText variant="subheading">AI Concierge</AppText>
               <Pressable onPress={() => setOpen(false)} hitSlop={12}>
-                <Ionicons name="close" size={22} color={colors.mutedForeground} />
+                <X size={22} color={colors.mutedForeground} strokeWidth={1.5} />
               </Pressable>
             </View>
 

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { StyleSheet, View, type LayoutChangeEvent } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { Circle, MapPin, Car } from 'lucide-react-native';
 import Animated, { Easing, interpolate, useAnimatedStyle, useSharedValue, withRepeat, withTiming } from 'react-native-reanimated';
 import { colors, radius, spacing } from '../../theme/tokens';
 
@@ -34,11 +34,11 @@ export function AnimatedRoutePreview() {
     <View style={styles.container}>
       <View style={styles.pinRow}>
         <View style={styles.pinLabel}>
-          <Ionicons name="ellipse" size={10} color={colors.gold} />
+          <Circle size={10} color={colors.gold} strokeWidth={1.5} fill={colors.gold} />
         </View>
         <View style={styles.pinLabel}>
           <Animated.View style={[styles.destinationGlow, glowStyle]} />
-          <Ionicons name="location" size={16} color={colors.gold} />
+          <MapPin size={16} color={colors.gold} strokeWidth={1.5} />
         </View>
       </View>
 
@@ -46,7 +46,7 @@ export function AnimatedRoutePreview() {
         <View style={styles.routeLine} />
         {trackWidth > 0 ? (
           <Animated.View style={[styles.marker, markerStyle]}>
-            <Ionicons name="car-sport" size={16} color={colors.surfaceBlack} />
+            <Car size={16} color={colors.surfaceBlack} strokeWidth={1.5} />
           </Animated.View>
         ) : null}
       </View>

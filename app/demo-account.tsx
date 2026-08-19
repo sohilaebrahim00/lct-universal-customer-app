@@ -1,6 +1,6 @@
 import { useRouter } from 'expo-router';
 import { View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { Sparkles, User, Home, Building2, Plane } from 'lucide-react-native';
 import { Button } from '../src/components/ui/Button';
 import { Card } from '../src/components/ui/Card';
 import { Divider } from '../src/components/ui/Divider';
@@ -21,9 +21,9 @@ const DEMO_HISTORY = [
 ];
 
 const DEMO_LOCATIONS = [
-  { icon: 'home-outline' as const, label: 'Home', address: '4820 Maple Ave, Dallas, TX' },
-  { icon: 'business-outline' as const, label: 'Office', address: '2100 Ross Ave, Dallas, TX' },
-  { icon: 'airplane-outline' as const, label: 'DFW Airport', address: '2400 Aviation Dr, DFW Airport, TX' },
+  { icon: Home, label: 'Home', address: '4820 Maple Ave, Dallas, TX' },
+  { icon: Building2, label: 'Office', address: '2100 Ross Ave, Dallas, TX' },
+  { icon: Plane, label: 'DFW Airport', address: '2400 Aviation Dr, DFW Airport, TX' },
 ];
 
 const DEMO_NOTIFICATIONS = [
@@ -37,7 +37,7 @@ export default function DemoAccountScreen() {
   return (
     <ScreenContainer>
       <View style={styles.badge}>
-        <Ionicons name="sparkles-outline" size={14} color={colors.surfaceBlack} />
+        <Sparkles size={14} color={colors.surfaceBlack} strokeWidth={1.5} />
         <AppText variant="caption" color={colors.surfaceBlack} style={{ marginLeft: spacing.xs, fontWeight: '700' as const }}>
           DEMO ACCOUNT
         </AppText>
@@ -53,7 +53,7 @@ export default function DemoAccountScreen() {
       <FadeSlideIn>
         <Card style={{ marginBottom: spacing.lg, flexDirection: 'row', alignItems: 'center' }}>
           <View style={styles.avatar}>
-            <Ionicons name="person" size={22} color={colors.gold} />
+            <User size={22} color={colors.gold} strokeWidth={1.5} />
           </View>
           <View style={{ marginLeft: spacing.md, flex: 1 }}>
             <AppText variant="subheading">{DEMO_PROFILE.name}</AppText>
@@ -114,7 +114,7 @@ export default function DemoAccountScreen() {
             <View key={loc.label}>
               {i > 0 ? <Divider /> : null}
               <View style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: spacing.xs }}>
-                <Ionicons name={loc.icon} size={18} color={colors.gold} />
+                <loc.icon size={18} color={colors.gold} strokeWidth={1.5} />
                 <View style={{ marginLeft: spacing.sm, flex: 1 }}>
                   <AppText variant="body">{loc.label}</AppText>
                   <AppText variant="caption">{loc.address}</AppText>

@@ -1,12 +1,14 @@
 import { useRouter } from 'expo-router';
-import { Pressable, StyleSheet, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { Image, Pressable, StyleSheet, View } from 'react-native';
+import { CheckCircle2 } from 'lucide-react-native';
 import { Button } from '../../../src/components/ui/Button';
 import { ScreenContainer } from '../../../src/components/ui/ScreenContainer';
 import { AppText } from '../../../src/components/ui/Typography';
-import { colors, radius, spacing } from '../../../src/theme/tokens';
+import { FadeSlideIn } from '../../../src/components/ui/FadeSlideIn';
+import { colors, radius, shadows, spacing } from '../../../src/theme/tokens';
 import { useBookingFormStore } from '../../../src/store/bookingFormStore';
 import { SERVICES } from '../../../src/lib/services';
+import { SERVICE_ICON_COMPONENTS } from '../../../src/lib/serviceIcons';
 
 export default function ServiceStep() {
   const router = useRouter();
@@ -17,30 +19,40 @@ export default function ServiceStep() {
     <ScreenContainer>
       <AppText variant="eyebrow">New Booking</AppText>
       <AppText variant="title" style={{ marginBottom: spacing.xs }}>
-        Choose a Service
+        Choose Your Service
       </AppText>
       <AppText variant="bodyMuted" style={{ marginBottom: spacing.lg }}>
         What kind of trip are you planning?
       </AppText>
 
-      <View style={{ gap: spacing.sm }}>
-        {SERVICES.map((service) => {
+      <View style={{ gap: spacing.md }}>
+        {SERVICES.map((service, i) => {
           const selected = draft.serviceType === service.type;
+          const Icon = SERVICE_ICON_COMPONENTS[service.icon];
           return (
-            <Pressable
-              key={service.type}
-              onPress={() => update({ serviceType: service.type })}
-              style={[styles.row, selected ? styles.rowSelected : null]}
-            >
-              <View style={styles.iconWrap}>
-                <Ionicons name={service.icon} size={22} color={colors.gold} />
-              </View>
-              <View style={{ flex: 1 }}>
-                <AppText variant="subheading">{service.label}</AppText>
-                <AppText variant="caption">{service.description}</AppText>
-              </View>
-              {selected ? <Ionicons name="checkmark-circle" size={22} color={colors.gold} /> : null}
-            </Pressable>
+            <FadeSlideIn key={service.type} delay={i * 60}>
+              <Pressable
+                onPress={() => update({ serviceType: service.type })}
+                style={[styles.card, shadows.card, selected ? styles.cardSelected : null]}
+              >
+                <Image source={service.image} style={styles.image} resizeMode="cover" />
+                <View style={styles.scrim} />
+                <View style={styles.iconBadge}>
+                  <Icon size={18} color={colors.gold} strokeWidth={1.5} />
+                </View>
+                {selected ? (
+                  <View style={styles.checkBadge}>
+                    <CheckCircle2 size={22} color={colors.gold} strokeWidth={1.5} fill={colors.surfaceBlack} />
+                  </View>
+                ) : null}
+                <View style={styles.textBlock}>
+                  <AppText variant="subheading">{service.label}</AppText>
+                  <AppText variant="caption" style={{ marginTop: 2 }}>
+                    {service.description}
+                  </AppText>
+                </View>
+              </Pressable>
+            </FadeSlideIn>
           );
         })}
       </View>
@@ -56,23 +68,43 @@ export default function ServiceStep() {
 }
 
 const styles = StyleSheet.create({
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-    padding: spacing.md,
-    borderRadius: radius.md,
+  card: {
+    height: 148,
+    borderRadius: radius.lg,
+    overflow: 'hidden',
     borderWidth: 1,
     borderColor: colors.border,
-    backgroundColor: colors.onyx,
+    justifyContent: 'flex-end',
   },
-  rowSelected: { borderColor: colors.gold },
-  iconWrap: {
-    width: 44,
-    height: 44,
+  cardSelected: {
+    borderColor: colors.gold,
+    borderWidth: 1.5,
+  },
+  image: { ...StyleSheet.absoluteFill },
+  scrim: {
+    ...StyleSheet.absoluteFill,
+    backgroundColor: 'rgba(2,2,1,0.35)',
+  },
+  iconBadge: {
+    position: 'absolute',
+    top: spacing.sm,
+    left: spacing.sm,
+    width: 36,
+    height: 36,
     borderRadius: radius.full,
-    backgroundColor: 'rgba(217,177,96,0.12)',
+    backgroundColor: 'rgba(2,2,1,0.55)',
+    borderWidth: 1,
+    borderColor: colors.border,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  checkBadge: {
+    position: 'absolute',
+    top: spacing.sm,
+    right: spacing.sm,
+  },
+  textBlock: {
+    padding: spacing.md,
+    backgroundColor: 'rgba(2,2,1,0.55)',
   },
 });

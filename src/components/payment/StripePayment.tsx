@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { Eye } from 'lucide-react-native';
 import { Button } from '../ui/Button';
 import { AppText } from '../ui/Typography';
 import { colors, radius, spacing } from '../../theme/tokens';
@@ -72,7 +72,7 @@ function NativeCardEntry({ onAddCard }: Props) {
 function ExpoGoPreview() {
   return (
     <View style={styles.container}>
-      <Ionicons name="eye-outline" size={26} color={colors.gold} style={{ marginBottom: spacing.sm }} />
+      <Eye size={26} color={colors.gold} strokeWidth={1.5} style={{ marginBottom: spacing.sm }} />
       <AppText variant="subheading" center>
         Card entry preview
       </AppText>

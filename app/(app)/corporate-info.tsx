@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'expo-router';
 import { Image, Linking, StyleSheet, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { Building2, Users, Briefcase, FileText, Headphones } from 'lucide-react-native';
 import { Button } from '../../src/components/ui/Button';
 import { Card } from '../../src/components/ui/Card';
 import { Divider } from '../../src/components/ui/Divider';
@@ -15,11 +15,11 @@ import { formatCurrency } from '../../src/lib/format';
 import { VEHICLE_DISPLAY_NAME } from '../../src/lib/vehicleImages';
 
 const FEATURES = [
-  { icon: 'business-outline' as const, title: 'Corporate Transportation', desc: 'A dedicated account for your company, with centralized billing and reporting.' },
-  { icon: 'people-outline' as const, title: 'Employee Rides', desc: 'Give your team a simple way to book rides, with optional manager approval.' },
-  { icon: 'briefcase-outline' as const, title: 'Executive Travel', desc: 'Priority chauffeurs and vehicles for leadership and client-facing travel.' },
-  { icon: 'document-text-outline' as const, title: 'Monthly Billing', desc: 'One consolidated invoice per month instead of per-trip receipts.' },
-  { icon: 'headset-outline' as const, title: 'Dedicated Support', desc: 'A direct line to our corporate team for scheduling and account questions.' },
+  { icon: Building2, title: 'Corporate Transportation', desc: 'A dedicated account for your company, with centralized billing and reporting.' },
+  { icon: Users, title: 'Employee Rides', desc: 'Give your team a simple way to book rides, with optional manager approval.' },
+  { icon: Briefcase, title: 'Executive Travel', desc: 'Priority chauffeurs and vehicles for leadership and client-facing travel.' },
+  { icon: FileText, title: 'Monthly Billing', desc: 'One consolidated invoice per month instead of per-trip receipts.' },
+  { icon: Headphones, title: 'Dedicated Support', desc: 'A direct line to our corporate team for scheduling and account questions.' },
 ];
 
 const CONTACT_EMAIL = 'reservations@lctuniversal.com';
@@ -57,7 +57,7 @@ export default function CorporateInfoScreen() {
           {FEATURES.map((feature, i) => (
             <FadeSlideIn key={feature.title} delay={i * 60}>
               <Card style={{ marginBottom: spacing.sm, flexDirection: 'row', alignItems: 'flex-start' }}>
-                <Ionicons name={feature.icon} size={22} color={colors.gold} style={{ marginTop: 2 }} />
+                <feature.icon size={22} color={colors.gold} strokeWidth={1.5} style={{ marginTop: 2 }} />
                 <View style={{ marginLeft: spacing.md, flex: 1 }}>
                   <AppText variant="subheading">{feature.title}</AppText>
                   <AppText variant="caption" style={{ marginTop: 2 }}>

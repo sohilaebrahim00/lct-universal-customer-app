@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { MapPin } from 'lucide-react-native';
 import { colors, fonts, fontSizes, radius, spacing } from '../../theme/tokens';
 import { AppText } from '../ui/Typography';
 import {
@@ -81,7 +81,7 @@ export function PlacesAutocomplete({ placeholder, bias, onSelect }: Props) {
         <View style={styles.dropdown}>
           {suggestions.map((s) => (
             <Pressable key={s.placeId} style={styles.row} onPress={() => handleSelect(s)}>
-              <Ionicons name="location-outline" size={16} color={colors.gold} />
+              <MapPin size={16} color={colors.gold} strokeWidth={1.5} />
               <View style={{ flex: 1, marginLeft: spacing.sm }}>
                 <AppText style={styles.primaryText}>{s.primaryText}</AppText>
                 {s.secondaryText ? (

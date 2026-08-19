@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'expo-router';
 import { View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { Star, Car, Info } from 'lucide-react-native';
 import { Button } from '../../src/components/ui/Button';
 import { Card } from '../../src/components/ui/Card';
 import { ScreenContainer } from '../../src/components/ui/ScreenContainer';
@@ -75,7 +75,7 @@ export default function DemoTripScreen() {
             <View style={{ flex: 1 }}>
               <AppText variant="subheading">{DEMO_DRIVER.name}</AppText>
               <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 2 }}>
-                <Ionicons name="star" size={12} color={colors.gold} />
+                <Star size={12} color={colors.gold} strokeWidth={1.5} fill={colors.gold} />
                 <AppText variant="caption" style={{ marginLeft: 4 }}>
                   {DEMO_DRIVER.rating.toFixed(1)} · {DEMO_DRIVER.experience}
                 </AppText>
@@ -91,7 +91,7 @@ export default function DemoTripScreen() {
             ) : null}
           </View>
           <View style={styles.vehicleRow}>
-            <Ionicons name="car-sport-outline" size={16} color={colors.mutedForeground} />
+            <Car size={16} color={colors.mutedForeground} strokeWidth={1.5} />
             <AppText variant="caption" style={{ marginLeft: spacing.xs }}>
               {DEMO_DRIVER.vehicle} · {DEMO_DRIVER.vehicleColor} · Plate {DEMO_DRIVER.plate}
             </AppText>
@@ -128,7 +128,7 @@ export default function DemoTripScreen() {
 
       <FadeSlideIn delay={200}>
         <View style={styles.noticeRow}>
-          <Ionicons name="information-circle-outline" size={16} color={colors.mutedForeground} />
+          <Info size={16} color={colors.mutedForeground} strokeWidth={1.5} />
           <AppText variant="caption" style={{ marginLeft: spacing.xs, flex: 1 }}>
             This is a simulated preview. Your real trips are tracked live once you book.
           </AppText>

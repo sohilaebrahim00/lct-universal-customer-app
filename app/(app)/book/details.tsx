@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useRouter } from 'expo-router';
 import { Platform, Pressable, StyleSheet, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { Minus, Plus, Calendar, Clock } from 'lucide-react-native';
 import { StepHeader } from '../../../src/components/booking/StepHeader';
 import { Button } from '../../../src/components/ui/Button';
 import { Card } from '../../../src/components/ui/Card';
@@ -37,13 +37,13 @@ function Stepper({ label, value, onChange, min, max }: { label: string; value: n
       <AppText variant="body">{label}</AppText>
       <View style={styles.stepper}>
         <Pressable style={styles.stepperButton} onPress={() => onChange(Math.max(min, value - 1))}>
-          <Ionicons name="remove" size={18} color={colors.gold} />
+          <Minus size={18} color={colors.gold} strokeWidth={1.5} />
         </Pressable>
         <AppText variant="subheading" style={{ minWidth: 28, textAlign: 'center' }}>
           {value}
         </AppText>
         <Pressable style={styles.stepperButton} onPress={() => onChange(Math.min(max, value + 1))}>
-          <Ionicons name="add" size={18} color={colors.gold} />
+          <Plus size={18} color={colors.gold} strokeWidth={1.5} />
         </Pressable>
       </View>
     </View>
@@ -116,13 +116,13 @@ export default function DetailsStep() {
           <Card style={{ marginBottom: spacing.md }}>
             <View style={styles.row}>
               <Pressable style={styles.field} onPress={() => openPicker('date')}>
-                <Ionicons name="calendar-outline" size={18} color={colors.gold} />
+                <Calendar size={18} color={colors.gold} strokeWidth={1.5} />
                 <AppText variant="body">
                   {draft.scheduledAt ? formatDateTime(draft.scheduledAt.toISOString()).split(' at ')[0] : 'Select date'}
                 </AppText>
               </Pressable>
               <Pressable style={styles.field} onPress={() => openPicker('time')}>
-                <Ionicons name="time-outline" size={18} color={colors.gold} />
+                <Clock size={18} color={colors.gold} strokeWidth={1.5} />
                 <AppText variant="body">
                   {draft.scheduledAt ? formatDateTime(draft.scheduledAt.toISOString()).split(' at ')[1] : 'Select time'}
                 </AppText>

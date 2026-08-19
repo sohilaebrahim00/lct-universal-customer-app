@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { Ionicons } from '@expo/vector-icons';
+import { Home, Car, Map, Sparkles, User } from 'lucide-react-native';
 import { Redirect, Tabs } from 'expo-router';
 import { View } from 'react-native';
 import { colors, fonts, fontSizes } from '../../src/theme/tokens';
@@ -38,23 +38,23 @@ export default function AppTabsLayout() {
     >
       <Tabs.Screen
         name="index"
-        options={{ title: 'Home', tabBarIcon: ({ color, size }) => <Ionicons name="home-outline" size={size} color={color} /> }}
+        options={{ title: 'Home', tabBarIcon: ({ color, size }) => <Home size={size} color={color} strokeWidth={1.5} /> }}
       />
       <Tabs.Screen
         name="fleet"
-        options={{ title: 'Fleet', tabBarIcon: ({ color, size }) => <Ionicons name="car-sport-outline" size={size} color={color} /> }}
+        options={{ title: 'Fleet', tabBarIcon: ({ color, size }) => <Car size={size} color={color} strokeWidth={1.5} /> }}
       />
       <Tabs.Screen
         name="trips"
-        options={{ title: 'Trips', tabBarIcon: ({ color, size }) => <Ionicons name="map-outline" size={size} color={color} /> }}
+        options={{ title: 'Bookings', tabBarIcon: ({ color, size }) => <Map size={size} color={color} strokeWidth={1.5} /> }}
       />
       <Tabs.Screen
         name="concierge"
-        options={{ title: 'Concierge', tabBarIcon: ({ color, size }) => <Ionicons name="sparkles-outline" size={size} color={color} /> }}
+        options={{ title: 'Concierge', tabBarIcon: ({ color, size }) => <Sparkles size={size} color={color} strokeWidth={1.5} /> }}
       />
       <Tabs.Screen
         name="account"
-        options={{ title: 'Account', tabBarIcon: ({ color, size }) => <Ionicons name="person-outline" size={size} color={color} /> }}
+        options={{ title: 'Profile', tabBarIcon: ({ color, size }) => <User size={size} color={color} strokeWidth={1.5} /> }}
       />
       <Tabs.Screen name="book" options={{ href: null }} />
       <Tabs.Screen name="about" options={{ href: null }} />

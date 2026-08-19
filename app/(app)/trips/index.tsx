@@ -2,6 +2,7 @@ import { useCallback, useState } from 'react';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { Pressable, RefreshControl, View } from 'react-native';
 import { ScrollView } from 'react-native-gesture-handler';
+import { Calendar, Clock } from 'lucide-react-native';
 import { Card } from '../../../src/components/ui/Card';
 import { Button } from '../../../src/components/ui/Button';
 import { ScreenContainer } from '../../../src/components/ui/ScreenContainer';
@@ -79,7 +80,7 @@ export default function TripsScreen() {
           </AppText>
           {upcoming.length === 0 ? (
             <EmptyState
-              icon="calendar-outline"
+              icon={Calendar}
               title="No upcoming trips"
               message="When you book a ride, it will show up here."
               action={<Button label="Book a Ride" onPress={() => router.push('/(app)/book')} />}
@@ -94,7 +95,7 @@ export default function TripsScreen() {
             Past
           </AppText>
           {past.length === 0 ? (
-            <EmptyState icon="time-outline" title="No past trips" message="Your completed trips will appear here." />
+            <EmptyState icon={Clock} title="No past trips" message="Your completed trips will appear here." />
           ) : (
             past.map((booking) => (
               <TripCard key={booking.id} booking={booking} onPress={() => router.push(`/(app)/trips/${booking.id}`)} />

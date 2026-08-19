@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ActivityIndicator, Image, StyleSheet, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { Users, Briefcase, Tag, CheckCircle2 } from 'lucide-react-native';
 import { Button } from '../../../src/components/ui/Button';
 import { Card } from '../../../src/components/ui/Card';
 import { Divider } from '../../../src/components/ui/Divider';
@@ -83,7 +83,7 @@ export default function VehicleDetailScreen() {
           <Card style={{ marginBottom: spacing.md }}>
             <View style={styles.specRow}>
               <View style={styles.specItem}>
-                <Ionicons name="people-outline" size={20} color={colors.gold} />
+                <Users size={20} color={colors.gold} strokeWidth={1.5} />
                 <AppText variant="subheading" style={{ marginTop: spacing.xs }}>
                   {vehicle.capacity_passengers}
                 </AppText>
@@ -91,7 +91,7 @@ export default function VehicleDetailScreen() {
               </View>
               <View style={styles.specDivider} />
               <View style={styles.specItem}>
-                <Ionicons name="briefcase-outline" size={20} color={colors.gold} />
+                <Briefcase size={20} color={colors.gold} strokeWidth={1.5} />
                 <AppText variant="subheading" style={{ marginTop: spacing.xs }}>
                   {vehicle.capacity_luggage}
                 </AppText>
@@ -99,7 +99,7 @@ export default function VehicleDetailScreen() {
               </View>
               <View style={styles.specDivider} />
               <View style={styles.specItem}>
-                <Ionicons name="pricetag-outline" size={20} color={colors.gold} />
+                <Tag size={20} color={colors.gold} strokeWidth={1.5} />
                 <AppText variant="subheading" style={{ marginTop: spacing.xs }}>
                   {formatCurrency(vehicle.base_rate)}
                 </AppText>
@@ -118,7 +118,7 @@ export default function VehicleDetailScreen() {
               <View key={feature}>
                 {i > 0 ? <Divider /> : null}
                 <View style={styles.featureRow}>
-                  <Ionicons name="checkmark-circle-outline" size={18} color={colors.gold} />
+                  <CheckCircle2 size={18} color={colors.gold} strokeWidth={1.5} />
                   <AppText variant="body" style={{ marginLeft: spacing.sm }}>
                     {feature}
                   </AppText>

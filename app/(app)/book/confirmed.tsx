@@ -1,6 +1,6 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { CheckCircle2 } from 'lucide-react-native';
 import { Button } from '../../../src/components/ui/Button';
 import { ScreenContainer } from '../../../src/components/ui/ScreenContainer';
 import { AppText } from '../../../src/components/ui/Typography';
@@ -20,7 +20,7 @@ export default function ConfirmedStep() {
   return (
     <ScreenContainer scroll={false}>
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-        <Ionicons name="checkmark-circle" size={72} color={colors.gold} />
+        <CheckCircle2 size={72} color={colors.gold} strokeWidth={1.5} />
         <AppText variant="title" center style={{ marginTop: spacing.lg }}>
           Booking Confirmed
         </AppText>

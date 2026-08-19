@@ -1,7 +1,7 @@
 import { useCallback, useState } from 'react';
 import { useFocusEffect } from 'expo-router';
 import { Pressable, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { CreditCard, Trash2 } from 'lucide-react-native';
 import { Card } from '../../../src/components/ui/Card';
 import { ScreenContainer } from '../../../src/components/ui/ScreenContainer';
 import { AppText } from '../../../src/components/ui/Typography';
@@ -46,7 +46,7 @@ export default function PaymentMethodsScreen() {
       >
         {methods.map((m) => (
           <Card key={m.id} style={{ marginBottom: spacing.sm, flexDirection: 'row', alignItems: 'center' }}>
-            <Ionicons name="card-outline" size={20} color={colors.gold} style={{ marginRight: spacing.md }} />
+            <CreditCard size={20} color={colors.gold} strokeWidth={1.5} style={{ marginRight: spacing.md }} />
             <View style={{ flex: 1 }}>
               <AppText variant="subheading">
                 {m.brand ? `${m.brand.toUpperCase()} •••• ${m.last4}` : 'Card on file'}
@@ -58,7 +58,7 @@ export default function PaymentMethodsScreen() {
               ) : null}
             </View>
             <Pressable onPress={() => handleRemove(m.id)}>
-              <Ionicons name="trash-outline" size={20} color={colors.destructive} />
+              <Trash2 size={20} color={colors.destructive} strokeWidth={1.5} />
             </Pressable>
           </Card>
         ))}
