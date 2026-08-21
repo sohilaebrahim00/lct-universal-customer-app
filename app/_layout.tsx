@@ -1,5 +1,16 @@
 import { useEffect, type ReactElement } from 'react';
-import { useFonts, CormorantGaramond_500Medium, CormorantGaramond_600SemiBold, CormorantGaramond_700Bold } from '@expo-google-fonts/cormorant-garamond';
+import {
+  useFonts,
+  // Cormorant 400 is the weight the redesign's type scale specifies at every
+  // serif step (display/title/heading/headingSm). It ships in the already
+  // installed @expo-google-fonts package — no new dependency, one extra font
+  // file. 500/600/700 stay registered while screens migrate off the old
+  // `fonts.displayBold`/`displayMedium` names in src/theme/tokens.ts.
+  CormorantGaramond_400Regular,
+  CormorantGaramond_500Medium,
+  CormorantGaramond_600SemiBold,
+  CormorantGaramond_700Bold,
+} from '@expo-google-fonts/cormorant-garamond';
 import { Manrope_400Regular, Manrope_500Medium, Manrope_600SemiBold, Manrope_700Bold } from '@expo-google-fonts/manrope';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
@@ -8,6 +19,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { colors } from '../src/theme/tokens';
 import { useAuthStore } from '../src/store/authStore';
+import { useLocaleStore } from '../src/i18n';
 import { AppLoadingScreen } from '../src/components/AppLoadingScreen';
 import { StripeAppProvider } from '../src/components/payment/StripeAppProvider';
 
@@ -19,6 +31,7 @@ function AppShell({ children }: { children: ReactElement[] }) {
 
 export default function RootLayout() {
   const [fontsLoaded, fontsError] = useFonts({
+    CormorantGaramond_400Regular,
     CormorantGaramond_500Medium,
     CormorantGaramond_600SemiBold,
     CormorantGaramond_700Bold,
@@ -28,6 +41,8 @@ export default function RootLayout() {
     Manrope_700Bold,
   });
   const initialize = useAuthStore((s) => s.initialize);
+  const initializeLocale = useLocaleStore((s) => s.initialize);
+  const localeHydrated = useLocaleStore((s) => s.hydrated);
 
   // Sets up the Supabase auth-state subscription on mount — initialize()
   // itself is synchronous (it returns an unsubscribe function immediately;
@@ -40,11 +55,17 @@ export default function RootLayout() {
     return initialize();
   }, [initialize]);
 
+  // Gated below (see `ready`) so the very first paint already shows the
+  // right language — otherwise the UI would flash English before switching.
   useEffect(() => {
-    if (fontsLoaded || fontsError) void SplashScreen.hideAsync();
-  }, [fontsLoaded, fontsError]);
+    void initializeLocale();
+  }, [initializeLocale]);
 
-  const ready = fontsLoaded || fontsError;
+  useEffect(() => {
+    if ((fontsLoaded || fontsError) && localeHydrated) void SplashScreen.hideAsync();
+  }, [fontsLoaded, fontsError, localeHydrated]);
+
+  const ready = (fontsLoaded || fontsError) && localeHydrated;
 
   return (
     <GestureHandlerRootView style={{ flex: 1, backgroundColor: colors.surfaceBlack }}>
