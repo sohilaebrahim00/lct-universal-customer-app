@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { usePathname, useRouter } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ActivityIndicator, FlatList, Modal, Pressable, StyleSheet, View } from 'react-native';
 import { Sparkles, X } from 'lucide-react-native';
 import { Button } from './ui/Button';
@@ -28,8 +29,19 @@ function Bubble({ message }: { message: ConciergeMessage }) {
   );
 }
 
-export function ConciergeFab() {
+interface FabProps {
+  /**
+   * Height of the tab bar this floats above, excluding the safe-area inset —
+   * the layout owns that number and passes it down. It used to be a hardcoded
+   * `bottom: 96`, derived from the old hardcoded 84pt tab bar, so it drifted on
+   * every device that wasn't a notched iPhone (audit P2-6).
+   */
+  bottomOffset?: number;
+}
+
+export function ConciergeFab({ bottomOffset = 54 }: FabProps) {
   const pathname = usePathname();
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<ConciergeMessage[]>([GREETING]);
@@ -44,7 +56,22 @@ export function ConciergeFab() {
     listRef.current?.scrollToEnd({ animated: true });
   }, [messages]);
 
-  if (pathname?.includes('concierge')) return null;
+  /*
+   * Hidden on the Concierge tab itself, and now also on Home.
+   *
+   * Home carries a sticky primary action ("Book a car"), and a floating gold
+   * circle sitting on top of a gold primary button is two competing accents
+   * inside the same 70pt of screen — the thing the one-primary-action rule
+   * exists to prevent. It was also a literal overlap: both landed at the same
+   * offset above the tab bar.
+   *
+   * The design's artboards show no FAB on any screen, and Concierge is one of
+   * the five tabs, so it is never more than one tap away. Flagged rather than
+   * deleted outright: whether the FAB earns its place at all now is a product
+   * call, not a layout one.
+   */
+  const onHome = pathname === '/' || pathname === '/(app)' || pathname === '/(app)/index';
+  if (pathname?.includes('concierge') || onHome) return null;
 
   async function sendMessage(text: string) {
     if (!text.trim() || loading) return;
@@ -90,7 +117,12 @@ export function ConciergeFab() {
 
   return (
     <>
-      <Pressable style={styles.fab} onPress={() => setOpen(true)} accessibilityLabel="Open AI Concierge">
+      <Pressable
+        style={[styles.fab, { bottom: bottomOffset + insets.bottom + spacing.md }]}
+        onPress={() => setOpen(true)}
+        accessibilityRole="button"
+        accessibilityLabel="Open AI Concierge"
+      >
         <Sparkles size={24} color={colors.surfaceBlack} strokeWidth={1.5} />
       </Pressable>
 
@@ -154,7 +186,6 @@ const styles = StyleSheet.create({
   fab: {
     position: 'absolute',
     right: spacing.lg,
-    bottom: 96,
     width: 56,
     height: 56,
     borderRadius: radius.full,

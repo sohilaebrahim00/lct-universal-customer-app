@@ -45,6 +45,20 @@ export const servicePolicy = {
   },
 
   /**
+   * The number a customer calls when the app cannot reach the backend, in E.164.
+   *
+   * Surfaced in slice 1 rather than agreed earlier, because building the failed
+   * state made the gap obvious: the design's error screen offers "Call dispatch"
+   * beside "Try again" — deliberately, because a customer with a car arriving in
+   * twenty minutes needs a human, not a retry button — and there is no phone
+   * number anywhere in this repo or the API to put on it.
+   *
+   * `null` → the failed state shows "Try again" alone. It does not show a
+   * disabled call button, and it certainly does not show a plausible number.
+   */
+  dispatchPhone: null as string | null,
+
+  /**
    * Whether dispatch can service an immediate request. Not confirmed.
    * The client currently enforces a one-hour minimum lead time
    * (`MIN_LEAD_TIME_MS` in the booking flow); this flag is what would relax it.

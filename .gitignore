@@ -40,3 +40,6 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+
+# Screenshot harness output — regenerated per slice, not review history
+design/progress/

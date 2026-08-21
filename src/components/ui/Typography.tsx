@@ -1,36 +1,84 @@
-import { StyleSheet, Text, type TextProps } from 'react-native';
-import { colors, fonts, fontSizes } from '../../theme/tokens';
+import { PixelRatio, StyleSheet, Text, type TextProps, type TextStyle } from 'react-native';
+import { theme, resolveType, type TypeRole } from '../../theme';
+import { isRTL } from '../../i18n/rtl';
 
-type Variant = 'display' | 'title' | 'heading' | 'subheading' | 'body' | 'bodyMuted' | 'caption' | 'eyebrow';
+/**
+ * The app's only text primitive.
+ *
+ * Roles, never sizes. `<AppText variant="subheading">` — never `fontSize: 16`.
+ * Each role resolves through the script axis in src/theme/type.ts, so the same
+ * semantic role is a different size, leading and tracking in Arabic than in
+ * Latin (Arabic takes no tracking at all, and needs ~12% more leading).
+ *
+ * ── Line height and dynamic type ────────────────────────────────────────────
+ * React Native's `lineHeight` is absolute, not a multiplier, and — unlike
+ * `fontSize` — it does NOT scale with the OS font-size setting. An absolute
+ * leading therefore clips as soon as the user raises text size. Every role
+ * multiplies its line height by `PixelRatio.getFontScale()` here so the designed
+ * ratio survives all the way to AX5 rather than the glyphs growing inside a
+ * fixed box.
+ *
+ * ── The old variant names still work ────────────────────────────────────────
+ * `bodyMuted` is an alias kept so the ~30 screens not yet rebuilt keep
+ * compiling and pick up the new scale for free. It is removed with the last of
+ * them.
+ */
+
+type LegacyVariant = 'bodyMuted';
+export type Variant = TypeRole | LegacyVariant;
 
 interface Props extends TextProps {
   variant?: Variant;
+  /** Overrides the role's default colour. Prefer the role's default. */
   color?: string;
   center?: boolean;
 }
 
-const variantStyles = StyleSheet.create({
-  display: { fontFamily: fonts.displayBold, fontSize: fontSizes.display, color: colors.offWhite, lineHeight: fontSizes.display * 1.08 },
-  title: { fontFamily: fonts.display, fontSize: fontSizes.xxl, color: colors.offWhite, lineHeight: fontSizes.xxl * 1.15 },
-  heading: { fontFamily: fonts.display, fontSize: fontSizes.xl, color: colors.offWhite, lineHeight: fontSizes.xl * 1.2 },
-  subheading: { fontFamily: fonts.sansSemiBold, fontSize: fontSizes.md, color: colors.offWhite },
-  body: { fontFamily: fonts.sans, fontSize: fontSizes.base, color: colors.offWhite, lineHeight: fontSizes.base * 1.5 },
-  bodyMuted: { fontFamily: fonts.sans, fontSize: fontSizes.base, color: colors.mutedForeground, lineHeight: fontSizes.base * 1.5 },
-  caption: { fontFamily: fonts.sansMedium, fontSize: fontSizes.sm, color: colors.mutedForeground },
-  eyebrow: {
-    fontFamily: fonts.sansSemiBold,
-    fontSize: fontSizes.xs,
-    color: colors.gold,
-    letterSpacing: 2,
-    textTransform: 'uppercase',
-  },
-});
+/** Every role's default colour, so no screen has to remember that captions are secondary. */
+const roleColor: Record<TypeRole, string> = {
+  display: theme.content.primary,
+  title: theme.content.primary,
+  heading: theme.content.primary,
+  headingSm: theme.content.primary,
+  figure: theme.content.primary,
+  section: theme.content.tertiary,
+  eyebrow: theme.content.accent,
+  subheading: theme.content.primary,
+  body: theme.content.primary,
+  bodyLead: theme.content.onSurface,
+  bodySm: theme.content.primary,
+  caption: theme.content.secondary,
+  captionSm: theme.content.tertiary,
+  micro: theme.content.tertiary,
+  label: theme.content.primary,
+  tabLabel: theme.content.tertiary,
+};
+
+function resolveRole(variant: Variant): { role: TypeRole; color: string } {
+  if (variant === 'bodyMuted') return { role: 'body', color: theme.content.secondary };
+  return { role: variant, color: roleColor[variant] };
+}
 
 export function AppText({ variant = 'body', color, center, style, ...rest }: Props) {
+  const { role, color: defaultColor } = resolveRole(variant);
+  const script = isRTL() ? 'arabic' : 'latin';
+  const base = resolveType(role, script);
+
+  // See the note above: fontSize scales with the OS setting and lineHeight does not.
+  const fontScale = PixelRatio.getFontScale();
+  const scaled: TextStyle = {
+    ...base,
+    ...(base.lineHeight === undefined ? {} : { lineHeight: Math.round(base.lineHeight * fontScale) }),
+  };
+
   return (
     <Text
-      style={[variantStyles[variant], color ? { color } : null, center ? { textAlign: 'center' } : null, style]}
+      style={[scaled, { color: color ?? defaultColor }, center ? styles.center : null, style]}
       {...rest}
     />
   );
 }
+
+const styles = StyleSheet.create({
+  center: { textAlign: 'center' },
+});

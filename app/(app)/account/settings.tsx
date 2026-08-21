@@ -1,14 +1,48 @@
 import { useState } from 'react';
 import Constants from 'expo-constants';
 import { Switch, View } from 'react-native';
+import { Button } from '../../../src/components/ui/Button';
 import { Card } from '../../../src/components/ui/Card';
 import { ScreenContainer } from '../../../src/components/ui/ScreenContainer';
 import { AppText } from '../../../src/components/ui/Typography';
 import { colors, spacing } from '../../../src/theme/tokens';
 import { useAuthStore } from '../../../src/store/authStore';
+import { useLocaleStore, useTranslation } from '../../../src/i18n';
 import { registerForPushNotifications } from '../../../src/lib/pushNotifications';
 
+function LanguageCard() {
+  const t = useTranslation();
+  const locale = useLocaleStore((s) => s.locale);
+  const setLocale = useLocaleStore((s) => s.setLocale);
+
+  return (
+    <Card style={{ marginBottom: spacing.md }}>
+      <AppText variant="subheading" style={{ marginBottom: 2 }}>
+        {t.language.title}
+      </AppText>
+      <AppText variant="caption" style={{ marginBottom: spacing.md }}>
+        {t.language.subtitle}
+      </AppText>
+      <View style={{ flexDirection: 'row', gap: spacing.sm }}>
+        <Button
+          label={t.language.english}
+          variant={locale === 'en' ? 'primary' : 'secondary'}
+          onPress={() => void setLocale('en')}
+          style={{ flex: 1 }}
+        />
+        <Button
+          label={t.language.arabic}
+          variant={locale === 'ar' ? 'primary' : 'secondary'}
+          onPress={() => void setLocale('ar')}
+          style={{ flex: 1 }}
+        />
+      </View>
+    </Card>
+  );
+}
+
 export default function SettingsScreen() {
+  const t = useTranslation();
   const profile = useAuthStore((s) => s.profile);
   const [pushEnabled, setPushEnabled] = useState(true);
   const [pushError, setPushError] = useState<string | null>(null);
@@ -29,14 +63,16 @@ export default function SettingsScreen() {
   return (
     <ScreenContainer>
       <AppText variant="title" style={{ marginBottom: spacing.lg }}>
-        Settings
+        {t.settings.title}
       </AppText>
+
+      <LanguageCard />
 
       <Card style={{ marginBottom: spacing.md }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-          <View style={{ flex: 1, marginRight: spacing.md }}>
-            <AppText variant="subheading">Push Notifications</AppText>
-            <AppText variant="caption">Booking updates, driver status, and trip reminders</AppText>
+          <View style={{ flex: 1, marginEnd: spacing.md }}>
+            <AppText variant="subheading">{t.settings.pushTitle}</AppText>
+            <AppText variant="caption">{t.settings.pushSubtitle}</AppText>
           </View>
           <Switch
             value={pushEnabled}
@@ -53,12 +89,12 @@ export default function SettingsScreen() {
       </Card>
 
       <Card style={{ marginBottom: spacing.md }}>
-        <AppText variant="caption">Signed in as</AppText>
+        <AppText variant="caption">{t.settings.signedInAs}</AppText>
         <AppText variant="body">{profile?.email ?? '—'}</AppText>
       </Card>
 
       <Card>
-        <AppText variant="caption">App Version</AppText>
+        <AppText variant="caption">{t.settings.appVersion}</AppText>
         <AppText variant="body">
           {Constants.expoConfig?.version ?? '1.0.0'} ({Constants.expoConfig?.slug ?? 'lct-universal-customer-app'})
         </AppText>
