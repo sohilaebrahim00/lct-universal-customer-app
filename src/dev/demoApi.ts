@@ -2,7 +2,6 @@ import type { Booking } from '../types/api';
 import type { TripStatus } from '../lib/tripStatus';
 import { nextTripStage } from '../lib/tripStatus';
 import {
-  DEMO_CONCIERGE,
   DEMO_CORPORATE_ACCOUNT,
   DEMO_CORPORATE_EMPLOYEES,
   chauffeurById,
@@ -206,16 +205,33 @@ export async function handleDemoRequest(
   }
 
   if (root === 'concierge') {
-    const last = DEMO_CONCIERGE[DEMO_CONCIERGE.length - 1];
     return {
       handled: true,
+      /*
+       * WRAPPED IN `{ intent }`, because that is what the real API returns.
+       *
+       * This used to answer with the intent FLAT, so `conciergeApi.send()` —
+       * which reads `r.intent` — got undefined and the screen crashed on
+       * `intent.assistantReply`. It never surfaced because the old concierge
+       * caught every failure and pushed it into the transcript as an assistant
+       * message: the app's crash wore the concierge's voice, and looked like a
+       * reply. Removing that anti-pattern exposed this within minutes.
+       *
+       * Exactly the class of defect the endpoint-level contract diff cannot
+       * see: the route and the envelope key both existed, and the PAYLOAD
+       * SHAPE did not match.
+       */
       data: await delay({
-        assistantReply: last?.content ?? 'I can help with that.',
-        serviceType: null,
-        pickupAddress: null,
-        dropoffAddress: null,
-        passengerCount: null,
-        missingFields: ['pickupAddress'],
+        intent: {
+          assistantReply:
+            'I can help with that. In this preview I cannot reach the AI service, so tell me the details and I will take you to the booking flow.',
+          serviceType: 'airport' as const,
+          pickupAddress: null,
+          dropoffAddress: null,
+          scheduledAtDescription: null,
+          passengerCount: null,
+          missingFields: ['pickupAddress', 'scheduledAt'],
+        },
       }),
     };
   }

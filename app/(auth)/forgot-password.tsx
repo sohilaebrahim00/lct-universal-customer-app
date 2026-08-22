@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'expo-router';
-import { View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import { AuthBrandHeader } from '../../src/components/AuthBrandHeader';
 import { Button } from '../../src/components/ui/Button';
 import { ScreenContainer } from '../../src/components/ui/ScreenContainer';
@@ -69,7 +69,7 @@ export default function ForgotPasswordScreen() {
             autoComplete="email"
           />
           {error ? (
-            <AppText variant="caption" color={colors.destructive} style={{ marginBottom: spacing.md }}>
+            <AppText variant="caption" color={colors.destructiveText} accessibilityLiveRegion="assertive" style={{ marginBottom: spacing.md }}>
               {error}
             </AppText>
           ) : null}
@@ -77,13 +77,21 @@ export default function ForgotPasswordScreen() {
         </>
       )}
 
-      <View style={{ marginTop: spacing.xl, alignItems: 'center' }}>
-        <Link href="/(auth)/login">
-          <AppText variant="body" color={colors.gold}>
-            Back to Sign In
-          </AppText>
+      <View style={styles.row}>
+        <Link href="/(auth)/login" asChild>
+          <Pressable accessibilityRole="link" style={styles.link} hitSlop={8}>
+            <AppText variant="body" color={colors.gold}>
+              Back to Sign In
+            </AppText>
+          </Pressable>
         </Link>
       </View>
     </ScreenContainer>
   );
 }
+
+const styles = StyleSheet.create({
+  row: { marginTop: spacing.xl, alignItems: 'center' },
+  /** 44 tall. A bare <Link> around text is a ~16pt target. */
+  link: { minHeight: 44, justifyContent: 'center', paddingHorizontal: spacing.sm },
+});

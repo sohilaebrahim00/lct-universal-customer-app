@@ -83,7 +83,7 @@ export default function EditProfileScreen() {
       <TextField label="Full Name" value={fullName} onChangeText={setFullName} />
       <TextField label="Phone" value={phone} onChangeText={setPhone} keyboardType="phone-pad" />
       {error ? (
-        <AppText variant="caption" color={colors.destructive} style={{ marginBottom: spacing.md }}>
+        <AppText variant="caption" color={colors.destructiveText} accessibilityLiveRegion="assertive" style={{ marginBottom: spacing.md }}>
           {error}
         </AppText>
       ) : null}

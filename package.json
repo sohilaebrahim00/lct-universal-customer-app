@@ -66,10 +66,11 @@
     "typecheck": "tsc --noEmit",
     "lint": "eslint app src",
     "test": "jest",
-    "export:web": "expo export --platform web --clear && node scripts/verify-build-mode.mjs dist",
-    "export:ios": "expo export --platform ios --clear",
-    "build:dev": "eas build --profile development",
-    "verify:build-mode": "node scripts/verify-build-mode.mjs"
+    "export:web": "expo export --platform web --clear && node scripts/verify-build-mode.mjs dist && node scripts/verify-maps-keys.mjs web",
+    "export:ios": "node scripts/verify-maps-keys.mjs ios && expo export --platform ios --clear",
+    "build:dev": "node scripts/verify-maps-keys.mjs ios,android && eas build --profile development",
+    "verify:build-mode": "node scripts/verify-build-mode.mjs",
+    "verify:maps-keys": "node scripts/verify-maps-keys.mjs"
   },
   "jest": {
     "preset": "ts-jest",

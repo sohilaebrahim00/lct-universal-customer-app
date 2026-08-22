@@ -647,20 +647,6 @@ export function tripVehicleFor(booking: Booking): TripVehicleInfo {
   return { name: vehicle.name, type: vehicle.type };
 }
 
-/** A short conversation, so the concierge screen is not an empty list. */
-export const DEMO_CONCIERGE: { role: 'user' | 'assistant'; content: string }[] = [
-  {
-    role: 'assistant',
-    content:
-      "Good afternoon. I'm the LCT Universal concierge — tell me what you need and I'll take care of it.",
-  },
-  { role: 'user', content: 'Can you move tomorrow morning’s pickup to 9am and add a child seat?' },
-  {
-    role: 'assistant',
-    content:
-      'Of course. I can shift the pickup and add a forward-facing seat at no charge — confirm the new time on the trip and I’ll note the seat for your chauffeur.',
-  },
-];
 
 /* ------------------------------------------------------------------ *
  * The website's published rate card.

@@ -35,7 +35,7 @@ export default function VehicleDetailScreen() {
   if (error) {
     return (
       <ScreenContainer>
-        <AppText variant="body" color={colors.destructive}>
+        <AppText variant="body" color={colors.destructiveText}>
           {error}
         </AppText>
       </ScreenContainer>

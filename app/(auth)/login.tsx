@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useRouter } from 'expo-router';
-import { View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import { Sparkles } from 'lucide-react-native';
 import { AuthBrandHeader } from '../../src/components/AuthBrandHeader';
 import { SocialAuthButtons } from '../../src/components/SocialAuthButtons';
@@ -76,7 +76,7 @@ export default function LoginScreen() {
       />
 
       {error ? (
-        <AppText variant="caption" color={colors.destructive} style={{ marginBottom: spacing.md }}>
+        <AppText variant="caption" color={colors.destructiveText} accessibilityLiveRegion="assertive" style={{ marginBottom: spacing.md }}>
           {error}
         </AppText>
       ) : null}
@@ -98,24 +98,38 @@ export default function LoginScreen() {
 
       <SocialAuthButtons />
 
-      <View style={{ marginTop: spacing.md, alignItems: 'center' }}>
-        <Link href="/(auth)/forgot-password">
-          <AppText variant="caption" color={colors.gold}>
-            Forgot password?
-          </AppText>
+      {/*
+        44pt, not the ~16pt a bare <Link> around caption text gives you.
+        "Forgot password?" is the control a locked-out customer needs most and
+        was the smallest target on the screen.
+      */}
+      <View style={styles.linkRow}>
+        <Link href="/(auth)/forgot-password" asChild>
+          <Pressable accessibilityRole="link" style={styles.link} hitSlop={8}>
+            <AppText variant="caption" color={colors.gold}>
+              Forgot password?
+            </AppText>
+          </Pressable>
         </Link>
       </View>
 
-      <View style={{ marginTop: spacing.xl, alignItems: 'center' }}>
-        <AppText variant="bodyMuted">
-          New to LCT Universal?{' '}
-          <Link href="/(auth)/signup">
+      <View style={styles.signupRow}>
+        <AppText variant="bodyMuted">New to LCT Universal?</AppText>
+        <Link href="/(auth)/signup" asChild>
+          <Pressable accessibilityRole="link" style={styles.link} hitSlop={8}>
             <AppText variant="body" color={colors.gold}>
               Create an account
             </AppText>
-          </Link>
-        </AppText>
+          </Pressable>
+        </Link>
       </View>
     </ScreenContainer>
   );
 }
+
+const styles = StyleSheet.create({
+  linkRow: { marginTop: spacing.md, alignItems: 'center' },
+  signupRow: { marginTop: spacing.xl, alignItems: 'center' },
+  /** The row grows to a real target; the type stays where it was. */
+  link: { minHeight: 44, justifyContent: 'center', paddingHorizontal: spacing.sm },
+});

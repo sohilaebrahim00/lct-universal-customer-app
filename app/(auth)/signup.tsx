@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useRouter } from 'expo-router';
-import { View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import { AuthBrandHeader } from '../../src/components/AuthBrandHeader';
 import { SocialAuthButtons } from '../../src/components/SocialAuthButtons';
 import { Button } from '../../src/components/ui/Button';
@@ -106,7 +106,7 @@ export default function SignupScreen() {
       <TextField label="Confirm Password" value={confirmPassword} onChangeText={setConfirmPassword} secureTextEntry />
 
       {error ? (
-        <AppText variant="caption" color={colors.destructive} style={{ marginBottom: spacing.md }}>
+        <AppText variant="caption" color={colors.destructiveText} accessibilityLiveRegion="assertive" style={{ marginBottom: spacing.md }}>
           {error}
         </AppText>
       ) : null}
@@ -115,16 +115,22 @@ export default function SignupScreen() {
 
       <SocialAuthButtons />
 
-      <View style={{ marginTop: spacing.xl, alignItems: 'center' }}>
-        <AppText variant="bodyMuted">
-          Already have an account?{' '}
-          <Link href="/(auth)/login">
+      <View style={styles.row}>
+        <AppText variant="bodyMuted">Already have an account?</AppText>
+        <Link href="/(auth)/login" asChild>
+          <Pressable accessibilityRole="link" style={styles.link} hitSlop={8}>
             <AppText variant="body" color={colors.gold}>
               Sign in
             </AppText>
-          </Link>
-        </AppText>
+          </Pressable>
+        </Link>
       </View>
     </ScreenContainer>
   );
 }
+
+const styles = StyleSheet.create({
+  row: { marginTop: spacing.xl, alignItems: 'center' },
+  /** 44 tall. A bare <Link> around text is a ~16pt target. */
+  link: { minHeight: 44, justifyContent: 'center', paddingHorizontal: spacing.sm },
+});

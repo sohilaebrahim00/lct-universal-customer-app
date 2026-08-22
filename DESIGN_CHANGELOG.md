@@ -129,6 +129,43 @@ Recorded because both were invisible until a screen actually depended on them.
 Both fixed by resolving coordinates from the address against one table, so an
 address and its point cannot drift apart.
 
+### Concierge
+
+- **One `Bubble`**, shared. There were two implementations — the screen's and
+  the removed FAB's — which is how two chat UIs in one app come to disagree
+  about who is speaking.
+- **A failed send is the customer's own bubble with a retry**, never an
+  assistant message. The old code pushed `{ role: 'assistant', content:
+  err.message }`, so a dropped connection read as the concierge saying "Network
+  request failed". The app's failure wore the concierge's voice.
+- **The typing indicator is inside a bubble** in the assistant's position, not a
+  detached spinner above the input. A spinner says "the app is busy"; a bubble
+  says "the concierge is replying", and it holds the space the reply will fill
+  so the list does not jump.
+- **`KeyboardAvoidingView` and `maintainVisibleContentPosition`** — new
+  content grows below what you are reading instead of shoving it.
+- **A structured intent card for anything carrying a date.** `scheduledAtDescription`
+  is a *phrase* — "tomorrow at 8am" — and the backend does not resolve it. The
+  card shows the phrase back in quotes and the action is **"Set date & time"**,
+  which routes to the date step rather than to vehicle selection. A client-side
+  guess at "tomorrow", feeding a fare promised as final, is the silent
+  substitution this whole redesign exists to remove.
+
+### Auth screens
+
+- Form errors are **announced** (`accessibilityLiveRegion="assertive"`). A
+  screen-reader user submitted a form and heard nothing at all. Assertive rather
+  than polite: an error answers something the user just did, and waiting for a
+  gap risks them having moved on.
+- Error text uses `destructiveText`, not `destructive`. The token file's own
+  rule is "strokes and fills only" for the latter. **Measured before claiming:
+  `destructive` is 4.70:1 on the page and does pass AA** — this is the wrong
+  token, not a contrast failure. It would fail on a tint, which is what the rule
+  exists to prevent.
+- "Forgot password?", "Create an account", "Sign in" and "Back to Sign In" are
+  **44pt targets**. They were bare `<Link>`s around text — about 16pt. The
+  control a locked-out customer needs most was the smallest thing on the screen.
+
 ### Fleet
 
 - Shows the website's published starting label — "From $95", no cents — in

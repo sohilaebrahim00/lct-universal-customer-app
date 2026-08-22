@@ -59,7 +59,7 @@ function NativeCardEntry({ onAddCard }: Props) {
         onCardChange={(details) => setCardComplete(details.complete)}
       />
       {error ? (
-        <AppText variant="caption" color={colors.destructive} style={{ marginBottom: spacing.md }}>
+        <AppText variant="caption" color={colors.destructiveText} accessibilityLiveRegion="assertive" style={{ marginBottom: spacing.md }}>
           {error}
         </AppText>
       ) : null}
