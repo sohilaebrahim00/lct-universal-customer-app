@@ -1,125 +1,87 @@
 import { useState } from 'react';
 import { useRouter } from 'expo-router';
-import { Platform, Pressable, StyleSheet, View } from 'react-native';
-import { Calendar, Clock } from 'lucide-react-native';
+import { StyleSheet } from 'react-native';
 import { ProgressRail } from '../../../src/components/ui/ProgressRail';
 import { Button } from '../../../src/components/ui/Button';
-import { Card } from '../../../src/components/ui/Card';
 import { ScreenContainer } from '../../../src/components/ui/ScreenContainer';
 import { Stepper } from '../../../src/components/ui/Stepper';
 import { TextField } from '../../../src/components/ui/TextField';
 import { AppText } from '../../../src/components/ui/Typography';
-import { colors, spacing } from '../../../src/theme/tokens';
+import { DateTimeField } from '../../../src/components/booking/DateTimeField';
+import { space, theme } from '../../../src/theme';
 import { useBookingFormStore } from '../../../src/store/bookingFormStore';
-import { formatDateTime } from '../../../src/lib/format';
 
 const MIN_LEAD_TIME_MS = 60 * 60 * 1000;
 
-// `@react-native-community/datetimepicker` has no web implementation at
-// all (no .web.js entry point) — it bundles fine for web (Metro doesn't
-// error), but it's not meaningful to render there. Required lazily, only
-// ever rendered on ios/android (see the Platform.OS branch in DetailsStep
-// below, which uses plain text fields for date/time entry on web instead).
-// Same reasoning/pattern as the lazy react-native-maps requires elsewhere.
-function NativeDateTimePicker(props: {
-  value: Date;
-  mode: 'date' | 'time';
-  minimumDate: Date;
-  onChange: (event: unknown, date?: Date) => void;
-}) {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports -- intentional lazy load, see comment above.
-  const DateTimePicker = require('@react-native-community/datetimepicker').default as typeof import('@react-native-community/datetimepicker').default;
-  return <DateTimePicker {...props} themeVariant="dark" />;
-}
-
+/**
+ * STEP 3 — WHEN & WHO.
+ *
+ * Collected BEFORE the car, which is what makes the fare on the next screen
+ * final rather than an estimate.
+ *
+ * ── The dead end this screen used to be ─────────────────────────────────────
+ * On web it rendered two plain text fields expecting `YYYY-MM-DD` and `HH:MM`.
+ * Anything else a person typed failed to parse, `scheduledAt` never got set,
+ * and the primary button sat disabled with nothing explaining why. The flow
+ * ended there. It is now the browser's own date and time controls (see
+ * DateTimeField.web.tsx), which emit exactly those formats — the class of bug
+ * is removed rather than validated around.
+ *
+ * ── Why the button no longer says "Pick a date and time" ────────────────────
+ * That is an instruction, not an action. A primary button names what it does;
+ * the reason it is unavailable belongs beside the field that is missing. So the
+ * label is always "Choose your car", and the requirement is a separate line.
+ */
 export default function DetailsStep() {
   const router = useRouter();
   const draft = useBookingFormStore((s) => s.draft);
   const update = useBookingFormStore((s) => s.update);
-  const [showPicker, setShowPicker] = useState(false);
-  const [pickerMode, setPickerMode] = useState<'date' | 'time'>('date');
-  // Computed once, at mount, via the lazy initializer — not on every
-  // render, which would otherwise silently push the minimum bookable time
-  // later while the user is still on this screen.
-  const [minimumDate] = useState(() => new Date(Date.now() + MIN_LEAD_TIME_MS));
-  // Web-only manual entry — see NativeDateTimePicker above for why.
-  const [webDateText, setWebDateText] = useState('');
-  const [webTimeText, setWebTimeText] = useState('');
 
-  const selected = draft.scheduledAt ?? minimumDate;
+  // Computed once, at mount — recomputing per render would silently push the
+  // earliest bookable time later while the customer is still on this screen.
+  const [minimumDate] = useState(() => new Date(Date.now() + MIN_LEAD_TIME_MS));
+  const [leadTimeError, setLeadTimeError] = useState<string | null>(null);
+
   const isHourly = draft.serviceType === 'hourly';
   const duration = draft.hourlyDurationHours ?? 3;
 
-  function openPicker(mode: 'date' | 'time') {
-    setPickerMode(mode);
-    setShowPicker(true);
-  }
-
-  function handleChange(_event: unknown, date?: Date) {
-    if (Platform.OS === 'android') setShowPicker(false);
-    if (date) update({ scheduledAt: date });
-  }
-
-  function handleWebDateTimeChange(dateText: string, timeText: string) {
-    setWebDateText(dateText);
-    setWebTimeText(timeText);
-    const parsed = new Date(`${dateText}T${timeText || '00:00'}:00`);
-    if (dateText && timeText && !Number.isNaN(parsed.getTime())) {
-      update({ scheduledAt: parsed });
+  function handleDateTime(next: Date | null) {
+    if (!next) {
+      setLeadTimeError(null);
+      update({ scheduledAt: null });
+      return;
     }
+    // A time inside the lead window is a real, explainable refusal — so it says
+    // so, rather than leaving the customer with a dead button.
+    if (next.getTime() < minimumDate.getTime()) {
+      setLeadTimeError('We need at least an hour’s notice. Please choose a later time.');
+      update({ scheduledAt: null });
+      return;
+    }
+    setLeadTimeError(null);
+    update({ scheduledAt: next });
   }
 
-  const canContinue = Boolean(draft.scheduledAt) && (!isHourly || duration > 0);
+  const missing = !draft.scheduledAt
+    ? 'Choose a pickup date and time to continue.'
+    : isHourly && duration <= 0
+      ? 'Choose how many hours you need.'
+      : null;
 
   return (
     <ScreenContainer>
-      <ProgressRail step={3} total={5} label="When & who" style={{ marginBottom: spacing.mdl }} />
-      <AppText variant="heading" style={{ marginBottom: spacing.mdl }}>
+      <ProgressRail step={3} total={5} label="When & who" style={styles.rail} />
+
+      <AppText variant="heading" accessibilityRole="header" style={styles.heading}>
         When should the car arrive?
       </AppText>
 
-      <AppText variant="subheading" style={{ marginBottom: spacing.sm }}>
-        Date & Time
-      </AppText>
-
-      {Platform.OS === 'web' ? (
-        <Card style={{ marginBottom: spacing.md }}>
-          <View style={styles.row}>
-            <View style={{ flex: 1 }}>
-              <TextField label="Date" value={webDateText} onChangeText={(text) => handleWebDateTimeChange(text, webTimeText)} placeholder="YYYY-MM-DD" style={{ marginBottom: 0 }} />
-            </View>
-            <View style={{ flex: 1 }}>
-              <TextField label="Time" value={webTimeText} onChangeText={(text) => handleWebDateTimeChange(webDateText, text)} placeholder="HH:MM" style={{ marginBottom: 0 }} />
-            </View>
-          </View>
-          <AppText variant="caption" style={{ marginTop: spacing.sm }}>
-            Web preview — use a native date/time picker in the iOS/Android app.
-          </AppText>
-        </Card>
-      ) : (
-        <>
-          <Card style={{ marginBottom: spacing.md }}>
-            <View style={styles.row}>
-              <Pressable style={styles.field} onPress={() => openPicker('date')}>
-                <Calendar size={18} color={colors.gold} strokeWidth={1.5} />
-                <AppText variant="body">
-                  {draft.scheduledAt ? formatDateTime(draft.scheduledAt.toISOString()).split(' at ')[0] : 'Select date'}
-                </AppText>
-              </Pressable>
-              <Pressable style={styles.field} onPress={() => openPicker('time')}>
-                <Clock size={18} color={colors.gold} strokeWidth={1.5} />
-                <AppText variant="body">
-                  {draft.scheduledAt ? formatDateTime(draft.scheduledAt.toISOString()).split(' at ')[1] : 'Select time'}
-                </AppText>
-              </Pressable>
-            </View>
-          </Card>
-
-          {showPicker ? (
-            <NativeDateTimePicker value={selected} mode={pickerMode} minimumDate={minimumDate} onChange={handleChange} />
-          ) : null}
-        </>
-      )}
+      <DateTimeField
+        value={draft.scheduledAt}
+        minimumDate={minimumDate}
+        onChange={handleDateTime}
+        error={leadTimeError}
+      />
 
       {isHourly ? (
         <Stepper
@@ -129,7 +91,7 @@ export default function DetailsStep() {
           onChange={(v) => update({ hourlyDurationHours: v })}
           min={1}
           max={12}
-          style={{ marginBottom: spacing.md }}
+          style={styles.stepper}
         />
       ) : null}
 
@@ -140,7 +102,7 @@ export default function DetailsStep() {
         onChange={(v) => update({ passengerCount: v })}
         min={1}
         max={40}
-        style={{ marginBottom: spacing.sm }}
+        style={styles.stepper}
       />
       <Stepper
         label="Luggage"
@@ -149,25 +111,39 @@ export default function DetailsStep() {
         onChange={(v) => update({ luggageCount: v })}
         min={0}
         max={40}
-        style={{ marginBottom: spacing.md }}
+        style={styles.stepper}
       />
 
       <TextField
-        label="Notes (optional)"
+        label="Notes for your chauffeur (optional)"
         value={draft.specialRequests}
         onChangeText={(text) => update({ specialRequests: text })}
-        placeholder="Child seat, extra stop, meet-and-greet sign..."
+        placeholder="Child seat, extra stop, meet-and-greet sign…"
         multiline
-        numberOfLines={3}
-        style={{ minHeight: 90, textAlignVertical: 'top', paddingTop: spacing.sm }}
+        containerStyle={styles.notes}
       />
 
-      <Button label="Choose your car" onPress={() => router.push('/(app)/book/vehicle')} disabled={!canContinue} disabledReason="Pick a date and time" haptic style={{ marginTop: spacing.md }} />
+      {/* What is needed sits beside the requirement, not on the button. */}
+      {missing ? (
+        <AppText variant="captionSm" center style={styles.missing}>
+          {missing}
+        </AppText>
+      ) : null}
+
+      <Button
+        label="Choose your car"
+        onPress={() => router.push('/(app)/book/vehicle')}
+        disabled={Boolean(missing)}
+        haptic
+      />
     </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
-  row: { flexDirection: 'row', gap: spacing.md },
-  field: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  rail: { marginBottom: space.mdl },
+  heading: { marginBottom: space.mdl },
+  stepper: { marginBottom: space.sm },
+  notes: { marginTop: space.sm },
+  missing: { marginBottom: space.sm, color: theme.content.tertiary },
 });

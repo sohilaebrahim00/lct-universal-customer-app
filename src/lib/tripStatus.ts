@@ -29,8 +29,12 @@ export const TRIP_STAGE_ORDER: TripStatus[] = [
 export const TRIP_STATUS_LABELS: Record<TripStatus, string> = {
   pending: 'Pending',
   confirmed: 'Confirmed',
-  driver_assigned: 'Driver Assigned',
-  driver_arriving: 'Driver Arriving',
+  // "Chauffeur", not "Driver". Blacklane and Wheely say chauffeur; Uber says
+  // driver. It is the brand distinction the whole design rests on, so it has to
+  // hold in the status labels a customer reads most often. The status KEYS stay
+  // as the backend defines them.
+  driver_assigned: 'Chauffeur Assigned',
+  driver_arriving: 'Chauffeur Arriving',
   passenger_picked_up: 'Passenger Picked Up',
   trip_started: 'Trip In Progress',
   completed: 'Completed',

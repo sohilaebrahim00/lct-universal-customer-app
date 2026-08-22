@@ -11,9 +11,10 @@ import { Surface } from '../ui/Surface';
 import { AppText } from '../ui/Typography';
 import { gutter, iconSize, iconStroke, radius, space, theme } from '../../theme';
 import type { Booking, ServiceType, TripDriverInfo, TripVehicleInfo } from '../../types/api';
-import { formatCurrency } from '../../lib/format';
 import type { AsyncState } from '../../lib/asyncState';
 import { isDemoMode } from '../../lib/env';
+import { formatCurrency, formatPickupWhen } from '../../lib/format';
+import { reputationSentence } from '../../config/reputation';
 
 /**
  * Home's presentation, with no data fetching in it.
@@ -187,14 +188,11 @@ export function HomeView({
                     variant="caption"
                     color={unavailable ? theme.content.tertiary : theme.content.primary}
                     center
+                    numberOfLines={1}
                   >
-                    {tile.label}
+                    {/* One line. Three lines made the DISABLED tile the loudest thing in the row. */}
+                    {unavailable ? `${tile.label} · soon` : tile.label}
                   </AppText>
-                  {unavailable ? (
-                    <AppText variant="captionSm" color={theme.content.tertiary} center>
-                      Not in this preview
-                    </AppText>
-                  ) : null}
                 </Pressable>
               );
             })}
@@ -203,6 +201,15 @@ export function HomeView({
       </ScrollView>
 
       <View style={styles.footer}>
+        {/*
+          Real aggregate figures with a named source and a read date — see
+          src/config/reputation.ts. One line, no stars graphic, no testimonial
+          text. Deliberately not the invented ReviewsSection that used to sit
+          on this screen; that file is deleted.
+        */}
+        <AppText variant="captionSm" center style={styles.reputation}>
+          {reputationSentence}
+        </AppText>
         <Button label="Book a car" haptic onPress={() => onStartBooking('point_to_point')} />
       </View>
     </View>
@@ -227,6 +234,21 @@ function NextTripCard({ trip, now, onPress }: { trip: NextTrip; now: Date; onPre
           </AppText>
 
           {/*
+            The countdown alone made the client do mental arithmetic, and on an
+            airport run where the car is coming TO is half the information. Both
+            go back: the absolute time with the vehicle class, and the pickup
+            address beneath it.
+          */}
+          <AppText variant="caption" numberOfLines={1} style={styles.whenLine}>
+            {[formatPickupWhen(booking.scheduled_at, now), vehicle?.name].filter(Boolean).join(' · ')}
+          </AppText>
+          {booking.pickup_address ? (
+            <AppText variant="captionSm" numberOfLines={1}>
+              {`From ${shortAddress(booking.pickup_address)}`}
+            </AppText>
+          ) : null}
+
+          {/*
             NOTE — the design shows a plate and colour here ("Black S-Class ·
             8XKL294"). Neither exists in the API: the trip join returns
             `{ name, type }`, and `vehicles` is a fare-class table with no plate,
@@ -237,14 +259,14 @@ function NextTripCard({ trip, now, onPress }: { trip: NextTrip; now: Date; onPre
             <View style={styles.chauffeurRow}>
               <Avatar name={driver.full_name} uri={driver.avatar_url} size="sm" />
               <View style={styles.chauffeurText}>
+                {/*
+                  The chauffeur's FULL name, as the customer will greet them.
+                  The vehicle class used to repeat under here; it now sits on the
+                  when-line above, so this row carries the person alone.
+                */}
                 <AppText variant="subheading" numberOfLines={1}>
                   {driver.full_name}
                 </AppText>
-                {vehicle ? (
-                  <AppText variant="captionSm" numberOfLines={1}>
-                    {vehicle.name}
-                  </AppText>
-                ) : null}
               </View>
               <View style={styles.trackChip}>
                 <AppText variant="caption" color={theme.content.accentSoft}>
@@ -324,8 +346,12 @@ const styles = StyleSheet.create({
   rebookRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 13, paddingHorizontal: 14 },
   rebookText: { flex: 1, marginStart: space.smd },
   tiles: { flexDirection: 'row', gap: 9 },
+  whenLine: { marginTop: space.xs },
+  reputation: { marginBottom: space.smd },
   tile: {
     flex: 1,
+    // flexBasis 0 so a longer label cannot make its tile wider than the others.
+    flexBasis: 0,
     paddingVertical: 13,
     paddingHorizontal: space.sm,
     borderRadius: radius.md,
@@ -337,6 +363,12 @@ const styles = StyleSheet.create({
     minHeight: 46,
   },
   tilePressed: { backgroundColor: theme.background.tertiary },
-  tileUnavailable: { backgroundColor: theme.background.primary, borderStyle: 'dashed' },
+  /*
+   * Quieter than the two active tiles, not louder. It used to carry a DASHED
+   * border and a second line of copy, which made the one thing you cannot tap
+   * the most conspicuous thing in the row. Same geometry as its neighbours —
+   * only the fill and the border drop back, so the eye passes over it.
+   */
+  tileUnavailable: { backgroundColor: 'transparent', borderColor: theme.border.edgeHighlight },
   footer: { paddingHorizontal: gutter, paddingBottom: space.smd, paddingTop: space.sm },
 });

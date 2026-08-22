@@ -240,7 +240,7 @@ export function Gallery() {
         <Surface level="card" style={styles.group}>
           <ListRow icon={MapPin} title="Saved locations" value="3" onPress={() => {}} />
           <ListRow icon={CreditCard} title="Payment methods" value="Amex ···· 4021" onPress={() => {}} />
-          <ListRow icon={Bell} title="Trip notifications" subtitle="Driver assigned, arriving, completed" onPress={() => {}} />
+          <ListRow icon={Bell} title="Trip notifications" subtitle="Chauffeur assigned, arriving, completed" onPress={() => {}} />
           <ListRow title="No icon, no chevron" chevron={false} divider={false} />
         </Surface>
         <Surface level="card" style={styles.group}>

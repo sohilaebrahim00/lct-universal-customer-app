@@ -1,5 +1,6 @@
 import type {
   Booking,
+  CorporateAccount,
   PaymentMethodRecord,
   Profile,
   SavedLocation,
@@ -99,9 +100,71 @@ export const DEMO_PROFILE: Profile = {
   updated_at: new Date('2026-08-01T10:00:00Z').toISOString(),
 };
 
+/**
+ * The company behind `DEMO_PROFILE`.
+ *
+ * `DEMO_PROFILE` already carries `corporate_account_id: 'demo-corporate'` and
+ * the manager role, which is what puts Corporate in the Account list. The demo
+ * API used to answer that endpoint with `{ account: null, employees: [] }`, so
+ * a persona who demonstrably HAS a company account was shown a corporate screen
+ * with nothing on it — the same lie the empty catches used to produce, arriving
+ * by a different route. This is the demo half of that fix; the app half is the
+ * unresolved-account branch in `app/(app)/account/corporate.tsx`.
+ *
+ * Invented, like the rest of this file, and fenced in `src/dev/` for the same
+ * reason: it is the seeded demo persona, not a claim about a real customer.
+ * Northline matches the persona's existing email domain.
+ */
+export const DEMO_CORPORATE_ACCOUNT: CorporateAccount = {
+  id: 'demo-corporate',
+  company_name: 'Northline Partners',
+  billing_email: 'ap@northline.co',
+  billing_address: '2100 Ross Ave, Suite 1400, Dallas, TX 75201',
+  requires_ride_approval: true,
+  monthly_spend_limit: null,
+};
+
+/**
+ * The persona's colleagues on that account. Same fence, same reason.
+ *
+ * Deliberately the SAME two people as `DEMO_SAVED_PASSENGERS` below, down to
+ * the phone numbers — in a real corporate account the colleagues you book cars
+ * for and the colleagues on the account are one set of people. Two overlapping
+ * but subtly different casts would make the demo look like two databases.
+ */
+export const DEMO_CORPORATE_EMPLOYEES: Profile[] = [
+  DEMO_PROFILE,
+  {
+    id: 'demo-employee-2',
+    role: 'customer',
+    full_name: 'Priya Raman',
+    email: 'p.raman@northline.co',
+    phone: '+1 (214) 555-0192',
+    avatar_url: null,
+    corporate_account_id: 'demo-corporate',
+    corporate_role: 'employee',
+    created_at: new Date('2026-01-12T10:00:00Z').toISOString(),
+    updated_at: new Date('2026-08-01T10:00:00Z').toISOString(),
+  },
+  {
+    id: 'demo-employee-3',
+    role: 'customer',
+    full_name: 'Tomas Lindqvist',
+    email: 't.lindqvist@northline.co',
+    phone: '+1 (817) 555-0117',
+    avatar_url: null,
+    corporate_account_id: 'demo-corporate',
+    corporate_role: 'employee',
+    created_at: new Date('2026-03-02T10:00:00Z').toISOString(),
+    updated_at: new Date('2026-08-01T10:00:00Z').toISOString(),
+  },
+];
+
 export const DEMO_DRIVER: TripDriverInfo = {
   id: 'demo-driver',
-  full_name: 'Daniel A.',
+  // Full name, not "Daniel A.". Abbreviating the surname is a ride-hailing
+  // privacy convention — a chauffeur service introduces the person.
+  full_name: 'Daniel Alvarez',
   avatar_url: null,
   rating: '4.98',
 };

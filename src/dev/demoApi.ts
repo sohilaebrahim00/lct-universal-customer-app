@@ -1,6 +1,8 @@
 import type { Booking } from '../types/api';
 import {
   DEMO_CONCIERGE,
+  DEMO_CORPORATE_ACCOUNT,
+  DEMO_CORPORATE_EMPLOYEES,
   DEMO_DRIVER,
   DEMO_PAYMENT_METHODS,
   DEMO_PROFILE,
@@ -247,7 +249,17 @@ export async function handleDemoRequest(
   }
 
   if (root === 'corporate') {
-    return { handled: true, data: await delay({ account: null, employees: [], bookings: [] }) };
+    // Answers with the seeded company rather than nulls — see DEMO_CORPORATE_ACCOUNT.
+    // No pending approvals: the demo has no booking awaiting one, and an invented
+    // approval queue would be a screen inventing work that does not exist.
+    return {
+      handled: true,
+      data: await delay({
+        account: DEMO_CORPORATE_ACCOUNT,
+        employees: DEMO_CORPORATE_EMPLOYEES,
+        bookings: [],
+      }),
+    };
   }
 
   return { handled: false };

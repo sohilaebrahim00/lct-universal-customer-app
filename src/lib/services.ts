@@ -41,7 +41,7 @@ export const SERVICES: ServiceMeta[] = [
   {
     type: 'hourly',
     label: 'Hourly Chauffeur',
-    description: 'A dedicated vehicle and driver, by the hour.',
+    description: 'A dedicated vehicle and chauffeur, by the hour.',
     icon: 'clock',
     image: require('../../assets/services/hourly.jpg'),
   },

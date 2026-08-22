@@ -4,6 +4,7 @@ import { View } from 'react-native';
 import { Button } from '../../../src/components/ui/Button';
 import { Card } from '../../../src/components/ui/Card';
 import { ScreenContainer } from '../../../src/components/ui/ScreenContainer';
+import { ErrorState } from '../../../src/components/ui/ErrorState';
 import { AppText } from '../../../src/components/ui/Typography';
 import { colors, spacing } from '../../../src/theme/tokens';
 import { corporateApi } from '../../../src/api/corporate';
@@ -17,12 +18,37 @@ export default function CorporateScreen() {
   const [account, setAccount] = useState<CorporateAccount | null>(null);
   const [employees, setEmployees] = useState<Profile[]>([]);
   const [pending, setPending] = useState<Booking[]>([]);
+  const [loadError, setLoadError] = useState<Error | null>(null);
+  /*
+   * Distinguishes "not back yet" from "came back empty". Without it, the empty
+   * state below would flash on every mount before the request resolves.
+   */
+  const [settled, setSettled] = useState(false);
 
   const load = useCallback(() => {
-    corporateApi.account().then(setAccount).catch(() => {});
+    setLoadError(null);
+    setSettled(false);
+    const fail = (cause: unknown) =>
+      setLoadError(cause instanceof Error ? cause : new Error(String(cause)));
+
+    /*
+     * These three used to swallow their rejection with an empty catch, which
+     * rendered an EMPTY corporate screen on failure: a customer whose profile
+     * genuinely HAS a corporate account was shown one that looked like it held
+     * nothing. That is a screen that lies — the one category that always gets
+     * fixed — and it is one tap from Account, so a client reaches it.
+     *
+     * An error branch is a fix, not a redesign. The screen's layout, copy and
+     * behaviour on the success path are untouched.
+     */
+    corporateApi
+      .account()
+      .then(setAccount)
+      .catch(fail)
+      .finally(() => setSettled(true));
     if (isApprover) {
-      corporateApi.employees().then(setEmployees).catch(() => {});
-      corporateApi.bookings('pending_approval').then(setPending).catch(() => {});
+      corporateApi.employees().then(setEmployees).catch(fail);
+      corporateApi.bookings('pending_approval').then(setPending).catch(fail);
     }
   }, [isApprover]);
 
@@ -36,6 +62,34 @@ export default function CorporateScreen() {
   async function handleReject(id: string) {
     await corporateApi.rejectBooking(id);
     load();
+  }
+
+  // A failed load says so and offers a retry. It never renders the success
+  // layout with empty data, because that reads as "your company has nothing
+  // here" rather than "we could not reach it".
+  /*
+   * `settled && !account` is the SAME failure wearing different clothes: the
+   * customer's profile carries a `corporate_account_id`, which is the only
+   * reason this screen is reachable, yet the account came back empty. Rendering
+   * the normal layout there produces a page that reads "your company has
+   * nothing set up" when the truth is "we could not resolve it". Both cases get
+   * the same honest answer and the same retry.
+   */
+  const unresolved = Boolean(loadError) || (settled && !account && Boolean(profile?.corporate_account_id));
+
+  if (unresolved) {
+    return (
+      <ScreenContainer>
+        <AppText variant="title" style={{ marginBottom: spacing.lg }}>
+          Corporate Account
+        </AppText>
+        <ErrorState
+          title="We couldn’t load your company’s details"
+          message="Your account is unaffected — this is on our end."
+          onRetry={load}
+        />
+      </ScreenContainer>
+    );
   }
 
   return (

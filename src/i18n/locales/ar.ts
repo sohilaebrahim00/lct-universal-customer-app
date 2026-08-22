@@ -12,7 +12,7 @@ export const ar: typeof en = {
   settings: {
     title: 'الإعدادات',
     pushTitle: 'الإشعارات الفورية',
-    pushSubtitle: 'تحديثات الحجز، وحالة السائق، وتذكيرات الرحلات',
+    pushSubtitle: 'تحديثات الحجز، وحالة السائق الخاص، وتذكيرات الرحلات',
     signedInAs: 'تم تسجيل الدخول باسم',
     appVersion: 'إصدار التطبيق',
   },

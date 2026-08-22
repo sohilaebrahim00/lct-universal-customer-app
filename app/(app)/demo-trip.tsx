@@ -30,7 +30,9 @@ const STAGE_DURATION_MS = 3200;
  * animated route and the ETA.
  */
 const DEMO_DRIVER = {
-  name: 'Your chauffeur',
+  // First name only. Not a rating, not tenure, not a plate — those are claims
+  // with no backing field. A name is not.
+  name: 'Daniel',
   vehicle: 'Executive Sedan',
 };
 

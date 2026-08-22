@@ -14,7 +14,7 @@ export const en = {
   settings: {
     title: 'Settings',
     pushTitle: 'Push Notifications',
-    pushSubtitle: 'Booking updates, driver status, and trip reminders',
+    pushSubtitle: 'Booking updates, chauffeur status, and trip reminders',
     signedInAs: 'Signed in as',
     appVersion: 'App Version',
   },

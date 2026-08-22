@@ -239,6 +239,7 @@ app until it is answered.
 |---|---|---|
 | B1 | **What is the complimentary waiting time**, per service type (standard vs airport)? | `servicePolicy.complimentaryWaitMinutes` — the destination sheet's airport note and the confirmation screen |
 | B2 | **Does the Airport page's existing claim match it?** That page markets "Complimentary Waiting Time" with no figure. The copy has been left exactly as written — it is LCT's own marketing, and a benefit stated without a number is not a fabricated number. But it should not stay unquantified once B1 is answered. | `app/(app)/airport.tsx` |
+| B3 | **Who owns the rating figure, and how often is it refreshed?** Home shows "4.93 from 55 reviews", read by hand from the Clienity reputation dashboard on 2026-08-22 and frozen in a constant with its source and read-date. It is a SNAPSHOT: there is no reviews endpoint and no integration, so it will silently go stale. Either re-read it before each release, or expose it from the backend and delete the constant. | `src/config/reputation.ts` → `src/components/home/HomeView.tsx` |
 
 Resolved since the first list: the free-cancellation window (published and
 tiered — 12h sedans and SUVs, 6h airport, 48h hourly and events) and the
