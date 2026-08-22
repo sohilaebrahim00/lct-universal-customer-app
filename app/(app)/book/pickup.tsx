@@ -11,6 +11,7 @@ export default function PickupStep() {
     <LocationPickerScreen
       title="Pickup Location"
       subtitle="Search for a pickup address"
+      confirmLabel="Confirm pickup"
       onConfirm={(result) => {
         update({ pickupAddress: result.address, pickupLat: result.lat || undefined, pickupLng: result.lng || undefined });
         if (draft.serviceType === 'hourly') {

@@ -46,7 +46,7 @@ const CAMERA_MS = 900;
 export function TrackingMap({ chauffeur, bearing, pickup, dropoff, phase }: TrackingMapProps) {
   /* eslint-disable @typescript-eslint/no-require-imports -- lazy native load, see above. */
   const Maps = require('react-native-maps') as typeof import('react-native-maps');
-  const { default: MapView, Marker, MarkerAnimated } = Maps;
+  const { default: MapView, Marker, MarkerAnimated, PROVIDER_GOOGLE } = Maps;
   const { useEffect, useMemo, useRef } = require('react') as typeof import('react');
   /* eslint-enable @typescript-eslint/no-require-imports */
 
@@ -68,6 +68,30 @@ export function TrackingMap({ chauffeur, bearing, pickup, dropoff, phase }: Trac
       <MapView
         ref={mapRef}
         style={styles.fill}
+        /*
+         * GOOGLE ON BOTH PLATFORMS.
+         *
+         * Apple Maps ignores `customMapStyle` entirely, so without this the
+         * iOS tracking screen rendered in Apple's own theme — a default map
+         * surface inside a near-black champagne-and-gold app, on the one screen
+         * where the customer is watching hardest and the map IS the product.
+         * That is not a small inconsistency; it is the brand disappearing at
+         * the worst possible moment.
+         *
+         * The intent was always Google on both: `app.config.ts` has declared
+         * `ios.config.googleMapsApiKey` since the project started. The provider
+         * was simply never selected.
+         *
+         * Two things this costs, both reported rather than assumed:
+         *   1. The Google Maps iOS SDK adds binary weight. NOT MEASURED — there
+         *      has been no EAS build in this environment. Measure at the first
+         *      one.
+         *   2. `GOOGLE_MAPS_API_KEY_IOS` is unset, so on iOS this is inert
+         *      until a real key exists: the map renders blank rather than
+         *      falling back to Apple. `isMapsConfigured()` already gates the
+         *      screens that can degrade to manual entry.
+         */
+        provider={PROVIDER_GOOGLE}
         // The warm near-black style, so the map belongs to this app rather than
         // looking like a Google product embedded in it.
         customMapStyle={MAP_STYLE_NIGHT}

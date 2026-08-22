@@ -143,6 +143,54 @@ address and its point cannot drift apart.
   (`BACKEND_FOLLOWUPS.md` §6), which stays open. It only stops the app
   publishing a third number that agrees with neither.
 
+### Booking — pickup and destination (artboards 2d, 2e)
+
+One component, two screens; they differ only in copy and whether a route is
+drawn, which is not enough to justify two files that drift apart.
+
+- **The app's own map style**, shared with the tracking screen rather than
+  duplicated — two map styles in one app drift, and these are the only two
+  places a customer sees a map.
+- **The centre pin lifts while the map moves**, with its shadow staying on the
+  map plane. Not decoration: a pin welded to the centre of a moving map reads as
+  part of the map, and the customer cannot tell whether they are dragging the
+  pin or the world. Suppressed under reduced motion — the shadow still separates
+  the planes.
+- **Saved and recent places in the sheet**, and they **commit in one tap**. The
+  customer has already named the place; asking them to confirm a map position
+  for it is a step that existed only because it was easier to build. Recents are
+  derived from `GET /bookings` (`BACKEND_FOLLOWUPS.md` §4 — no recents
+  endpoint), both ends of every journey, de-duplicated against saved by address
+  **and by proximity**.
+- **`fitToCoordinates`** on the destination screen instead of a hand-rolled
+  `latitudeDelta: 0.01`, which framed a one-mile hop and a twenty-three-mile
+  airport run identically and put the other end off screen on the latter.
+- **The route drawn in gold with a glow** — two polylines, wide and faint under
+  narrow and solid, because `react-native-maps` cannot put a shadow on a
+  polyline. A straight line, not a driven route: this is a picker and the
+  customer is still choosing where the line ends. The exact route is computed
+  once on confirmation.
+- Primary action names what it does — "Confirm pickup" / "Confirm destination"
+  rather than a generic "Confirm Location" on both.
+- **Every fallback intact.** Manual entry when Maps is unconfigured, in Expo Go,
+  and on web — and saved/recent places now work *there too*, where they matter
+  most, because that path has no search, no autocomplete and no panning.
+
+**Verified (web, manual fallback):** saved and recent lists render, one tap
+commits and advances, the full booking path completes, no console errors.
+
+**Unverified — native only:** the map, the lifting pin, `fitToCoordinates`, the
+route polyline and its glow. `react-native-maps` has no web implementation —
+the same caveat as the tracking screen, stated up front rather than discovered
+at the end. See `RUNBOOK_AUTH_VERIFICATION.md` §7.
+
+### Booking — when & who (artboard 2f)
+
+- Given the **same header as steps 4 and 5** — back control beside the progress
+  rail. Steps 4 and 5 had one and this did not, so the only way back out of the
+  middle of the flow was the system gesture: a hardware back on Android, and on
+  iOS an edge swipe that the map screens either side of it intercept.
+
 ### Booking — vehicle selection
 
 - Sprinter and Coach show **Request quote** and a request action in every build,
@@ -152,6 +200,19 @@ address and its point cannot drift apart.
   Quote" — committing LCT to a price they have explicitly said they do not give.
 
 ### Live tracking (`trips/[id]`) — artboard 2k
+
+- **Google Maps on iOS as well as Android** (`provider={PROVIDER_GOOGLE}`).
+  Apple Maps ignores `customMapStyle` entirely, so without this the iOS
+  tracking screen rendered in Apple's default theme — inside a near-black
+  champagne-and-gold app, on the one screen where the map *is* the product and
+  the customer is watching hardest. The intent was always Google on both:
+  `app.config.ts` has declared `ios.config.googleMapsApiKey` since the
+  project started; the provider was simply never selected.
+  **Two costs, reported rather than assumed:** the Google Maps iOS SDK adds
+  binary weight, **not measured** — there has been no EAS build in this
+  environment, so measure at the first one. And `GOOGLE_MAPS_API_KEY_IOS` is
+  unset, so on iOS this is **inert until a real key exists**: the map renders
+  blank rather than falling back to Apple.
 
 - **The map is the screen.** Full bleed, sheet floating over it. It was a 200pt
   map card inside a scroll view, framed at a fixed `latitudeDelta: 0.02` —

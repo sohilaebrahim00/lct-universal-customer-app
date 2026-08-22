@@ -13,6 +13,18 @@ export default function DestinationStep() {
       title="Drop-off Location"
       subtitle="Search for a destination"
       bias={draft.pickupLat && draft.pickupLng ? { lat: draft.pickupLat, lng: draft.pickupLng } : undefined}
+      /*
+       * The pickup, so the map draws the route to it and frames BOTH ends with
+       * fitToCoordinates. Null when the pickup came through manual entry, which
+       * reports no coordinates — the screen then behaves exactly as the pickup
+       * screen does, which is the correct degradation rather than a broken map.
+       */
+      origin={
+        draft.pickupLat && draft.pickupLng
+          ? { latitude: draft.pickupLat, longitude: draft.pickupLng }
+          : null
+      }
+      confirmLabel="Confirm destination"
       onConfirm={async (result) => {
         update({ dropoffAddress: result.address, dropoffLat: result.lat || undefined, dropoffLng: result.lng || undefined });
 

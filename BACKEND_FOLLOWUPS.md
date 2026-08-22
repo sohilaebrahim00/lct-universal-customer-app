@@ -788,9 +788,32 @@ correcting and needs no shared constant, but it is inferring a contract rather
 than reading one, and it is wrong for exactly one frame after any change in
 cadence.
 
-*What would change.* Decide the interval — 3–5s is the usual trade against
-battery — write it down, and either enforce it with a rate limit or publish it
-in the payload so the client can pace exactly rather than approximately.
+### RECOMMENDED CADENCE — a number to approve, not a question to answer
+
+Proposed default, so the business is signing off a figure rather than inventing
+one. **Confirm or change it; do not leave it open.**
+
+| Trip state | Interval | Why |
+|---|---|---|
+| `passenger_picked_up` / `trip_started` — under way | **5 s** | The marker is being watched continuously and the vehicle is moving fastest |
+| `driver_assigned` / `driver_arriving` — assigned, not yet aboard | **15 s** | The customer checks periodically rather than stares; a 15s-stale position is still useful for "is it close" |
+| `completed` / `cancelled` | **stop entirely** | A finished trip is a record. Continuing to post is battery and data spent on nothing, and it keeps a driver's location flowing after the job that justified collecting it |
+
+**The trade-off, in one line:** more frequent posts cost the driver's battery and
+mobile data and add write load, and buy a marker that is less stale.
+
+**What a faster cadence does NOT buy is smoothness.** `useSmoothedLocation`
+already interpolates across whatever gap it measures, and 5s is well inside what
+it covers cleanly — the marker moves continuously at 15s too, it is simply
+following a position that is up to fifteen seconds old. So the choice is purely
+about **accuracy**, which makes it a straightforward business trade rather than
+a UX one.
+
+*Implementation.* Write the chosen figures down, then either enforce them with a
+rate limit on `PATCH /trips/:id/location` or publish the current expected
+interval in the payload so the client can pace exactly rather than by
+measurement. Publishing it is better: it survives a future change without a
+client release.
 
 ### G-3 · `driver_locations` is never written during a trip
 

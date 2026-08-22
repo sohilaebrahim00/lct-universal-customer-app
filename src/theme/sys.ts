@@ -155,6 +155,15 @@ const dark = {
     /** The 1px lit edge inside the gradient. */
     specular: alpha.goldSpecular,
     shadow: alpha.goldShadow,
+    /**
+     * The halo under a route polyline.
+     *
+     * `react-native-maps` cannot put a shadow on a polyline, so the glow is a
+     * second, wider stroke drawn beneath the first. Reuses `goldShadow` — the
+     * same 0.24 champagne that haloes a raised surface — so a route reads as
+     * lit by the same light as everything else.
+     */
+    routeGlow: alpha.goldShadow,
   },
 
   skeleton: {

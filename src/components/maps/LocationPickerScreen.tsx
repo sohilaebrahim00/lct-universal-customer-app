@@ -1,21 +1,56 @@
-import { useCallback, useEffect, useRef, useState, type RefObject } from 'react';
-import { ActivityIndicator, Platform, Pressable, StyleSheet, View } from 'react-native';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { ActivityIndicator, Animated, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import type { Region } from 'react-native-maps';
-import { MapPin, Locate } from 'lucide-react-native';
+import { Locate, MapPin } from 'lucide-react-native';
 import { Button } from '../ui/Button';
 import { AppText } from '../ui/Typography';
 import { TextField } from '../ui/TextField';
-import { colors, radius, spacing } from '../../theme/tokens';
+import { gutter, iconSize, iconStroke, radius, space, theme } from '../../theme';
 import { PlacesAutocomplete } from './PlacesAutocomplete';
-import { reverseGeocode } from '../../lib/googlePlaces';
+import { PlacesSheet } from './PlacesSheet';
+import { NativePickerMap, type PickerMapHandle } from './NativePickerMap';
+import { geocodeAddress, reverseGeocode } from '../../lib/googlePlaces';
 import { useCurrentLocation } from '../../lib/useCurrentLocation';
+import { useMotion } from '../../lib/useMotion';
 import { isMapsConfigured } from '../../lib/env';
 import { isExpoGo } from '../../lib/expoEnvironment';
+import { profilesApi } from '../../api/profiles';
+import { bookingsApi } from '../../api/bookings';
+import { recentPlacesFrom, type RecentPlace } from '../../lib/recentPlaces';
+import type { LatLng } from '../../lib/geo';
+import type { SavedLocation } from '../../types/api';
+
+/**
+ * PICKUP AND DESTINATION — artboards 2d and 2e.
+ *
+ * One component, two screens. They differ only in their copy and in whether a
+ * route is drawn, which is not enough difference to justify two files that
+ * drift apart.
+ *
+ * ── What changed from the old picker ────────────────────────────────────────
+ * The default Google surface became the app's own near-black style; the static
+ * pin now lifts while the map moves; saved and recent places sit in the sheet
+ * instead of forcing every customer to type an address they have typed before;
+ * and the destination screen draws the route with `fitToCoordinates` rather
+ * than the hand-rolled `latitudeDelta: 0.01` that framed every journey
+ * identically regardless of length.
+ *
+ * ── Every fallback is intact ────────────────────────────────────────────────
+ * `mapAvailable` is false when Maps is unconfigured, inside Expo Go, or on web,
+ * and the manual-entry screen is unchanged in behaviour. It is reached by more
+ * customers than the map is during development, and it is the only path the web
+ * demo has.
+ *
+ * ── Unverified on web, and this is expected ─────────────────────────────────
+ * `react-native-maps` has no web implementation, so the map, the lifting pin,
+ * `fitToCoordinates` and the route polyline CANNOT be exercised in the web
+ * build. Same caveat as the tracking screen. What web verifies is the manual
+ * fallback; the map path needs a device. See RUNBOOK_AUTH_VERIFICATION.md §7.
+ */
 
 const DEFAULT_REGION: Region = {
-  // Dallas–Fort Worth — LCT Universal's home market — used only as a
-  // starting map center before the user picks a real location or grants
-  // location permission; never sent to the backend as-is.
+  // Dallas–Fort Worth, LCT's home market. A starting camera only — never sent
+  // to the backend, and replaced the moment the customer picks anything.
   latitude: 32.7767,
   longitude: -96.797,
   latitudeDelta: 0.15,
@@ -33,95 +68,146 @@ interface Props {
   subtitle: string;
   onConfirm: (result: LocationResult) => void;
   bias?: { lat: number; lng: number };
+  /**
+   * The journey's other end. When set, the map draws the route to it and frames
+   * both — this is what makes the destination screen a destination screen.
+   */
+  origin?: LatLng | null;
+  /** Label for the primary action. Defaults to the generic one. */
+  confirmLabel?: string;
 }
 
-interface MapHandle {
-  animateToRegion: (region: Region, duration?: number) => void;
-}
+export function LocationPickerScreen({ title, subtitle, onConfirm, bias, origin, confirmLabel }: Props) {
+  const mapRef = useRef<PickerMapHandle | null>(null);
+  const motion = useMotion();
 
-// The real map view is only ever rendered when Google Maps is configured,
-// we're not running in Expo Go, AND we're not on web (see the early return
-// in LocationPickerScreen below) — react-native-maps wraps a native
-// UIKit/Google Maps view with no real web renderer, so it's never even
-// attempted there, matching the web-preview build's mock-map requirement.
-// `react-native-maps` is required lazily here, inside this component's own
-// render, rather than as a static top-level import, so its native binding
-// is only ever touched on a platform where it's actually going to render.
-// Same reasoning and pattern as StripeAppProvider.tsx.
-function NativeLocationMap({
-  mapRef,
-  region,
-  onRegionChangeComplete,
-}: {
-  mapRef: RefObject<MapHandle | null>;
-  region: Region;
-  onRegionChangeComplete: (region: Region) => void;
-}) {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports -- intentional lazy load, see comment above.
-  const MapView = require('react-native-maps').default as typeof import('react-native-maps').default;
-  return (
-    <MapView
-      ref={mapRef as never}
-      style={StyleSheet.absoluteFill}
-      initialRegion={region}
-      onRegionChangeComplete={onRegionChangeComplete}
-      showsUserLocation
-    />
-  );
-}
-
-export function LocationPickerScreen({ title, subtitle, onConfirm, bias }: Props) {
-  const mapRef = useRef<MapHandle | null>(null);
   const [region, setRegion] = useState<Region>(
-    bias ? { ...DEFAULT_REGION, latitude: bias.lat, longitude: bias.lng, latitudeDelta: 0.05, longitudeDelta: 0.05 } : DEFAULT_REGION,
+    bias
+      ? { ...DEFAULT_REGION, latitude: bias.lat, longitude: bias.lng, latitudeDelta: 0.05, longitudeDelta: 0.05 }
+      : DEFAULT_REGION,
   );
   const [address, setAddress] = useState<string | null>(null);
   const [resolving, setResolving] = useState(false);
   const [manualAddress, setManualAddress] = useState('');
+  const [saved, setSaved] = useState<SavedLocation[]>([]);
+  const [recent, setRecent] = useState<RecentPlace[]>([]);
   const { loading: locating, getCurrentLocation } = useCurrentLocation();
   const regionDebounce = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  /** Drives the pin's lift. 0 = resting on the map, 1 = raised. */
+  const [lift] = useState(() => new Animated.Value(0));
 
   const mapAvailable = isMapsConfigured && !isExpoGo && Platform.OS !== 'web';
 
   const resolveAddress = useCallback((lat: number, lng: number) => {
     setResolving(true);
     reverseGeocode(lat, lng)
-      .then((result) => setAddress(result))
+      .then(setAddress)
       .finally(() => setResolving(false));
+  }, []);
+
+  /* ---- saved and recent places ---- */
+  useEffect(() => {
+    let active = true;
+    // Both are conveniences. A failure means the lists do not appear; it is
+    // never a screen error, because search and the map still work without them.
+    void profilesApi
+      .savedLocations()
+      .then((locations) => {
+        if (active) setSaved(locations);
+        return locations;
+      })
+      .catch(() => [] as SavedLocation[])
+      .then((locations) =>
+        bookingsApi
+          .list()
+          .then((bookings) => {
+            if (active) setRecent(recentPlacesFrom(bookings, { exclude: locations }));
+          })
+          .catch(() => {}),
+      );
+    return () => {
+      active = false;
+    };
   }, []);
 
   useEffect(() => {
     if (!mapAvailable) return;
-    // Deferred a microtask so the initial resolve's setState doesn't run
-    // synchronously within the effect body itself — same outcome (starts
-    // essentially immediately after mount), just satisfies the rule that
-    // effects shouldn't call setState synchronously. Subsequent moves are
-    // handled by onRegionChangeComplete, not this effect.
-    const lat = region.latitude;
-    const lng = region.longitude;
-    Promise.resolve().then(() => resolveAddress(lat, lng));
+    // Deferred a microtask so the first resolve's setState never runs
+    // synchronously inside the effect body.
+    const { latitude, longitude } = region;
+    void Promise.resolve().then(() => resolveAddress(latitude, longitude));
+    // Mount only: every later move is handled by onRegionChangeComplete.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  /**
+   * THE PIN LIFTS WHILE THE MAP MOVES.
+   *
+   * Not decoration. A pin welded to the centre of a moving map reads as part of
+   * the map, and the customer cannot tell whether they are dragging the pin or
+   * the world beneath it. Lifting it — with the shadow staying put — says the
+   * map is moving and the pin is held, which is exactly what is happening.
+   *
+   * Under reduced motion it does not lift. The shadow alone still separates the
+   * two planes, and the address readout is the real feedback either way.
+   */
+  function setPinLifted(raised: boolean) {
+    if (motion.reduced) return;
+    Animated.spring(lift, {
+      toValue: raised ? 1 : 0,
+      useNativeDriver: true,
+      speed: 20,
+      bounciness: raised ? 0 : 6,
+    }).start();
+  }
+
+  function handleRegionChange() {
+    setPinLifted(true);
+  }
+
   function handleRegionChangeComplete(next: Region) {
+    setPinLifted(false);
     setRegion(next);
     if (regionDebounce.current) clearTimeout(regionDebounce.current);
+    // Debounced: a customer panning across the metroplex would otherwise fire a
+    // geocode per frame, and each one costs money.
     regionDebounce.current = setTimeout(() => resolveAddress(next.latitude, next.longitude), 400);
   }
 
-  function handlePlaceSelected(details: { formattedAddress: string; lat: number; lng: number }) {
-    const next: Region = { latitude: details.lat, longitude: details.lng, latitudeDelta: 0.01, longitudeDelta: 0.01 };
+  function moveTo(lat: number, lng: number) {
+    const next: Region = { latitude: lat, longitude: lng, latitudeDelta: 0.01, longitudeDelta: 0.01 };
     setRegion(next);
-    setAddress(details.formattedAddress);
     mapRef.current?.animateToRegion(next, 400);
+  }
+
+  function handlePlaceSelected(details: { formattedAddress: string; lat: number; lng: number }) {
+    setAddress(details.formattedAddress);
+    moveTo(details.lat, details.lng);
+  }
+
+  /**
+   * A saved or recent place commits immediately.
+   *
+   * The customer has already named the place; asking them to confirm a map
+   * position for it is a step that exists only because it was easier to build.
+   * A recent stored through the manual fallback has no coordinates, so it is
+   * geocoded first — and if that fails it is still committed by address, which
+   * is exactly what the manual path does anyway.
+   */
+  async function handlePlacePicked(place: { address: string; lat: number | null; lng: number | null }) {
+    if (place.lat !== null && place.lng !== null && (place.lat !== 0 || place.lng !== 0)) {
+      onConfirm({ address: place.address, lat: place.lat, lng: place.lng });
+      return;
+    }
+    const point = await geocodeAddress(place.address);
+    onConfirm({ address: place.address, lat: point?.lat ?? 0, lng: point?.lng ?? 0 });
   }
 
   async function handleUseCurrentLocation() {
     const coords = await getCurrentLocation();
     if (!coords) return;
-    const next: Region = { latitude: coords.lat, longitude: coords.lng, latitudeDelta: 0.01, longitudeDelta: 0.01 };
-    setRegion(next);
-    mapRef.current?.animateToRegion(next, 400);
+    moveTo(coords.lat, coords.lng);
     resolveAddress(coords.lat, coords.lng);
   }
 
@@ -132,11 +218,8 @@ export function LocationPickerScreen({ title, subtitle, onConfirm, bias }: Props
      * This used to call onConfirm() — which itself pushes the next step — and
      * THEN router.back(), popping the screen it had just pushed. On the dev
      * server the race usually resolved forwards; in a production build it
-     * resolves backwards, so the booking flow never advanced past pickup at all.
-     * Audit P0-7 called this out as a visible double transition; it is in fact a
-     * dead end.
-     *
-     * The caller owns navigation. This only reports the result.
+     * resolved backwards, so the booking flow never advanced past pickup at
+     * all. The caller owns navigation; this only reports the result.
      */
     if (mapAvailable) {
       if (!address) return;
@@ -147,59 +230,132 @@ export function LocationPickerScreen({ title, subtitle, onConfirm, bias }: Props
     }
   }
 
+  /* ------------------------------------------------------------------ *
+   * Manual entry — Maps unconfigured, Expo Go, or web.
+   * ------------------------------------------------------------------ */
   if (!mapAvailable) {
     return (
-      <View style={[styles.container, { padding: spacing.lg, justifyContent: 'center' }]}>
-        <AppText variant="title" style={{ marginBottom: spacing.xs }}>
+      <ScrollView contentContainerStyle={styles.manual}>
+        <AppText variant="title" accessibilityRole="header" style={styles.manualTitle}>
           {title}
         </AppText>
-        <AppText variant="bodyMuted" style={{ marginBottom: spacing.lg }}>
+        <AppText variant="bodyMuted" style={styles.manualBody}>
           {Platform.OS === 'web'
             ? 'This web preview shows a placeholder here — the interactive map picker is available in the iOS/Android app. Enter the address manually below.'
             : isExpoGo
               ? "Map search doesn't run inside Expo Go — enter the address manually. Open this build with the LCT Universal development client for the full map picker."
               : "Map search isn't configured on this build yet (EXPO_PUBLIC_GOOGLE_MAPS_API_KEY is missing) — enter the address manually."}
         </AppText>
-        <TextField label="Address" value={manualAddress} onChangeText={setManualAddress} placeholder={subtitle} />
-        <Button label="Confirm Location" onPress={handleConfirm} disabled={!manualAddress.trim()} />
-      </View>
+
+        {/*
+          Saved and recent places work WITHOUT a map, and this is where they
+          matter most: it is the path with no search, no autocomplete and no
+          panning, so a one-tap route to a known address is the only shortcut
+          available at all.
+        */}
+        <PlacesSheet saved={saved} recent={recent} onSelect={handlePlacePicked} />
+
+        <TextField
+          label="Address"
+          value={manualAddress}
+          onChangeText={setManualAddress}
+          placeholder={subtitle}
+          containerStyle={styles.manualField}
+        />
+        <Button
+          label={confirmLabel ?? 'Confirm Location'}
+          onPress={handleConfirm}
+          disabled={!manualAddress.trim()}
+        />
+      </ScrollView>
     );
   }
 
+  /* ------------------------------------------------------------------ *
+   * The map.
+   * ------------------------------------------------------------------ */
   return (
     <View style={styles.container}>
-      <NativeLocationMap mapRef={mapRef} region={region} onRegionChangeComplete={handleRegionChangeComplete} />
+      <NativePickerMap
+        mapRef={mapRef}
+        region={region}
+        origin={origin ?? null}
+        target={{ latitude: region.latitude, longitude: region.longitude }}
+        onRegionChange={handleRegionChange}
+        onRegionChangeComplete={handleRegionChangeComplete}
+      />
 
-      <View pointerEvents="none" style={styles.centerPin}>
-        <MapPin size={40} color={colors.gold} strokeWidth={1.5} />
+      {/*
+        The pin, and its shadow, as two separate planes. The shadow stays on the
+        map while the pin rises — that separation is the whole signal.
+      */}
+      <View pointerEvents="none" style={styles.centrePin}>
+        <Animated.View
+          style={[
+            styles.pinShadow,
+            { transform: [{ scale: lift.interpolate({ inputRange: [0, 1], outputRange: [1, 0.6] }) }] },
+          ]}
+        />
+        <Animated.View
+          style={{
+            transform: [{ translateY: lift.interpolate({ inputRange: [0, 1], outputRange: [0, -14] }) }],
+          }}
+        >
+          <MapPin size={40} color={theme.content.accent} strokeWidth={1.5} />
+        </Animated.View>
       </View>
 
       <View style={styles.searchOverlay}>
         <PlacesAutocomplete placeholder={subtitle} bias={bias} onSelect={handlePlaceSelected} />
       </View>
 
-      <Pressable style={styles.locateButton} onPress={handleUseCurrentLocation} disabled={locating}>
-        {locating ? <ActivityIndicator color={colors.gold} /> : <Locate size={22} color={colors.gold} strokeWidth={1.5} />}
+      <Pressable
+        style={styles.locateButton}
+        onPress={handleUseCurrentLocation}
+        disabled={locating}
+        accessibilityRole="button"
+        accessibilityLabel="Use my current location"
+      >
+        {locating ? (
+          <ActivityIndicator color={theme.content.accent} />
+        ) : (
+          <Locate size={iconSize.md} color={theme.content.accent} strokeWidth={iconStroke.interactive} />
+        )}
       </Pressable>
 
-      <View style={styles.bottomSheet}>
-        <AppText variant="caption">{title}</AppText>
+      <View style={styles.sheet}>
+        <AppText variant="micro">{title}</AppText>
         {resolving ? (
-          <ActivityIndicator color={colors.gold} style={{ marginVertical: spacing.sm, alignSelf: 'flex-start' }} />
+          <ActivityIndicator color={theme.content.accent} style={styles.resolving} />
         ) : (
-          <AppText variant="subheading" style={{ marginVertical: spacing.xs }} numberOfLines={2}>
+          <AppText variant="subheading" style={styles.address} numberOfLines={2}>
             {address ?? 'Move the map to select a location'}
           </AppText>
         )}
-        <Button label="Confirm Location" onPress={handleConfirm} disabled={!address || resolving} />
+
+        <ScrollView style={styles.places} showsVerticalScrollIndicator={false}>
+          <PlacesSheet saved={saved} recent={recent} onSelect={handlePlacePicked} />
+        </ScrollView>
+
+        <Button
+          label={confirmLabel ?? 'Confirm Location'}
+          onPress={handleConfirm}
+          disabled={!address || resolving}
+        />
       </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.surfaceBlack },
-  centerPin: {
+  container: { flex: 1, backgroundColor: theme.background.primary },
+
+  manual: { padding: gutter, paddingTop: space.xl },
+  manualTitle: { marginBottom: space.xs },
+  manualBody: { marginBottom: space.md },
+  manualField: { marginTop: space.md, marginBottom: space.md },
+
+  centrePin: {
     position: 'absolute',
     top: '50%',
     left: '50%',
@@ -207,36 +363,46 @@ const styles = StyleSheet.create({
     marginTop: -40,
     alignItems: 'center',
   },
-  searchOverlay: {
+  /* Sits under the pin, on the map plane, and shrinks as the pin rises. */
+  pinShadow: {
     position: 'absolute',
-    top: spacing.xl,
-    left: spacing.md,
-    right: spacing.md,
+    bottom: -3,
+    width: 12,
+    height: 4,
+    borderRadius: radius.full,
+    backgroundColor: 'rgba(0,0,0,0.55)',
   },
+
+  searchOverlay: { position: 'absolute', top: space.xl, left: space.md, right: space.md },
   locateButton: {
     position: 'absolute',
-    right: spacing.md,
-    bottom: 200,
+    right: space.md,
+    bottom: 300,
     width: 44,
     height: 44,
     borderRadius: radius.full,
-    backgroundColor: colors.onyx,
+    backgroundColor: theme.background.tertiary,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: theme.border.hairlineStrong,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  bottomSheet: {
+
+  sheet: {
     position: 'absolute',
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: colors.onyx,
+    maxHeight: '55%',
+    backgroundColor: theme.background.tertiary,
     borderTopWidth: 1,
-    borderTopColor: colors.border,
+    borderTopColor: theme.border.hairlineStrong,
     borderTopLeftRadius: radius.xl,
     borderTopRightRadius: radius.xl,
-    padding: spacing.lg,
-    paddingBottom: spacing.xl,
+    padding: gutter,
+    paddingBottom: space.xl,
   },
+  resolving: { marginVertical: space.sm, alignSelf: 'flex-start' },
+  address: { marginVertical: space.xs },
+  places: { flexGrow: 0, marginBottom: space.smd },
 });

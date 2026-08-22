@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { useRouter } from 'expo-router';
-import { StyleSheet } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+import { ChevronLeft, ChevronRight } from 'lucide-react-native';
+import { IconButton } from '../../../src/components/ui/IconButton';
 import { ProgressRail } from '../../../src/components/ui/ProgressRail';
 import { Button } from '../../../src/components/ui/Button';
 import { ScreenContainer } from '../../../src/components/ui/ScreenContainer';
@@ -9,6 +11,7 @@ import { TextField } from '../../../src/components/ui/TextField';
 import { AppText } from '../../../src/components/ui/Typography';
 import { DateTimeField } from '../../../src/components/booking/DateTimeField';
 import { space, theme } from '../../../src/theme';
+import { isRTL } from '../../../src/i18n/rtl';
 import { useBookingFormStore } from '../../../src/store/bookingFormStore';
 
 const MIN_LEAD_TIME_MS = 60 * 60 * 1000;
@@ -70,7 +73,24 @@ export default function DetailsStep() {
 
   return (
     <ScreenContainer>
-      <ProgressRail step={3} total={5} label="When & who" style={styles.rail} />
+      {/*
+        The same header as steps 4 and 5 — back control beside the rail.
+        Steps 4 and 5 had one and this did not, so the only way out of the
+        middle of the booking flow was the system gesture. On Android that is a
+        hardware back; on iOS it is an edge swipe that the map screens either
+        side of this one intercept.
+      */}
+      <View style={styles.header}>
+        <IconButton
+          icon={isRTL() ? ChevronRight : ChevronLeft}
+          accessibilityLabel="Go back"
+          variant="circular"
+          onPress={() => (router.canGoBack() ? router.back() : router.replace('/(app)'))}
+        />
+        <View style={styles.railWrap}>
+          <ProgressRail step={3} total={5} label="When & who" />
+        </View>
+      </View>
 
       <AppText variant="heading" accessibilityRole="header" style={styles.heading}>
         When should the car arrive?
@@ -141,7 +161,8 @@ export default function DetailsStep() {
 }
 
 const styles = StyleSheet.create({
-  rail: { marginBottom: space.mdl },
+  header: { flexDirection: 'row', alignItems: 'center', marginBottom: space.mdl },
+  railWrap: { flex: 1, marginStart: space.smd },
   heading: { marginBottom: space.mdl },
   stepper: { marginBottom: space.sm },
   notes: { marginTop: space.sm },

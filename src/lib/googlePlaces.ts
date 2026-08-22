@@ -96,6 +96,33 @@ export async function reverseGeocode(lat: number, lng: number): Promise<string |
   return body.results?.[0]?.formatted_address ?? null;
 }
 
+/**
+ * An address string to a point.
+ *
+ * The mirror of `reverseGeocode`, and needed for exactly one case: a saved or
+ * recent place captured through the manual-entry fallback has an address and no
+ * coordinates. Without this, choosing it would commit a booking with a 0,0
+ * point — which is what made every such fare price on base rate alone.
+ *
+ * Returns null when Maps is unconfigured or the address does not resolve. The
+ * caller commits by address anyway in that case, which is exactly what the
+ * manual path already does.
+ */
+export async function geocodeAddress(address: string): Promise<{ lat: number; lng: number } | null> {
+  if (!isMapsConfigured || !address.trim()) return null;
+
+  const url = new URL('https://maps.googleapis.com/maps/api/geocode/json');
+  url.searchParams.set('address', address);
+  url.searchParams.set('key', env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY!);
+
+  const response = await fetch(url.toString());
+  if (!response.ok) return null;
+
+  const body = (await response.json()) as { results?: { geometry?: { location?: { lat: number; lng: number } } }[] };
+  const point = body.results?.[0]?.geometry?.location;
+  return point ? { lat: point.lat, lng: point.lng } : null;
+}
+
 export interface RouteInfo {
   distanceMiles: number;
   durationMinutes: number;
