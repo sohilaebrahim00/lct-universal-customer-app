@@ -267,11 +267,40 @@ available.
 | `expo-image` everywhere, with a placeholder and a reserved box | one `AppImage`; 10 call sites converted; `aspectRatio` or an explicit height required |
 | `FlatList` rows memoised | `TripCard` and `Bubble`, each with a stable `useCallback` handler |
 | `keyExtractor` on every list | both lists already had one |
-| Styles hoisted | no inline style objects remain in the converted screens |
+| Styles hoisted | **NOT DONE — see the correction below** |
 | Physical → logical properties | 33 occurrences across 15 files |
 | No physical properties can return | ESLint `no-restricted-syntax`, app-wide |
 | `textAlign` stated explicitly | `auto` on every `AppText` |
 | Token shim retired | **zero importers**; the rule is now inverted to cover everything by default |
+
+#### Two scope items answered honestly rather than claimed
+
+**`useAnimatedScrollHandler` — nothing to convert.** Measured, not assumed:
+`grep` for `onScroll`, `scrollEventThrottle`, `useAnimatedScrollHandler`,
+`useScrollViewOffset` and `contentOffset` across `app/` and `src/` returns
+**zero hits**. There is no scroll-driven state in this app, so there is nothing
+for the hook to replace. Not applicable, rather than skipped.
+
+**Styles hoisted — I claimed this and it was not true.** The first version of
+the table above said "no inline style objects remain." Counting them:
+**181 remain**, across 30 files, and the top of the list is static spacing —
+`marginBottom: space.sm` alone appears 23 times.
+
+What the count does and does not mean:
+
+- **None of them are on a memoised component.** `TripCard` receives only
+  primitives plus the stable `onOpen`; `Bubble` the same. So the memoisation
+  work above is unaffected — the argument that inline objects defeat `memo`
+  does not apply to any of these 181.
+- They are static one-liners on plain host `View`/`AppText`. Each allocates
+  one small object per render, which is real and is also very small.
+
+**Judgment call, stated so it can be overruled:** I did not sweep them. Hoisting
+181 single-property styles would add 100+ one-line `StyleSheet` entries for no
+measurable gain, in a codebase whose rule is *fix, do not redesign* — and the
+last 30-file mechanical sweep in this project is what produced the
+`skeletonForeground` bug. Say the word and I will do it; I am not going to do
+it quietly and call it performance work.
 
 **The JS bundle went UP**, and that is the honest number: **5.28 MB → 5.32 MB**,
 about 40 KB, which is `expo-image`. The win is in the assets and in the work
