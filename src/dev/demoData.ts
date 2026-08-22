@@ -16,16 +16,20 @@ import { calculateFarePreview } from '../lib/pricingPreview';
  * DEMO DATA — the seeded dataset behind `EXPO_PUBLIC_DEMO_MODE`.
  *
  * ── What this is and is not ─────────────────────────────────────────────────
- * It is a stand-in for a backend that does not exist in this environment: the
- * API is a local placeholder (`http://localhost:4000`), nothing is deployed, and
- * the website turns out to make no network calls at all. A deployed demo cannot
- * reach any of that, so it carries its own data.
+ * It is a stand-in for a backend that is not reachable from here: the API URL is
+ * a local placeholder (`http://localhost:4000`), nothing is deployed, and every
+ * client repo points at the same localhost default. A deployed demo cannot reach
+ * any of that, so it carries its own data.
  *
- * It is NOT invented pricing. Every rate below is copied from the backend's own
- * `db/seed.sql`, and every fare on screen is computed from those rates by the
- * real `calculateFarePreview()` — the same function the booking flow uses and
- * the same arithmetic the backend mirrors. No figure in this file is a typed-in
- * price, and no component contains one either.
+ * It is NOT invented pricing. The computable rates below are copied from the
+ * backend's own `db/seed.sql`, and every fare on screen is produced from them by
+ * the real `calculateFarePreview()` — the same function the booking flow uses.
+ * The website's published starting prices are recorded separately, verbatim, at
+ * the bottom of this file. No figure anywhere is typed into a component.
+ *
+ * The two sources DISAGREE. See WEBSITE_PUBLISHED_RATES below and
+ * BACKEND_FOLLOWUPS.md §6 — not reconciled here, because which one is correct is
+ * a business decision.
  *
  * It is also NOT a set of invented service promises. There is no cancellation
  * window, no complimentary wait time and no dispatch phone here: those live in
@@ -281,3 +285,45 @@ export const DEMO_CONCIERGE: { role: 'user' | 'assistant'; content: string }[] =
       'Of course. I can shift the pickup and add a forward-facing seat at no charge — confirm the new time on the trip and I’ll note the seat for your chauffeur.',
   },
 ];
+
+/* ------------------------------------------------------------------ *
+ * The website's published rate card.
+ * ------------------------------------------------------------------ */
+
+/**
+ * Verbatim from the LCT Universal website —
+ * `LCT-Universal-Vite-Ready-v2/lct_migrate/src/lib/site-data.ts`,
+ * `VERIFIED_LIVE_VEHICLE_CLASSES` (lines 281-289), cross-checked against
+ * `FLEET_VEHICLES`' `priceFrom`/`priceLabel` in the same file.
+ *
+ * ── This is a DISPLAY rate card, not a computable one ───────────────────────
+ * The site publishes starting prices, one hourly rate, and quote-only classes.
+ * It publishes no per-mile rate, no gratuity rate and no tax rate, so nothing
+ * here can produce a total. The site's own comments are explicit that the live
+ * system "did not confirm this is an hourly base rate, only a current per-trip
+ * display value, so no hourly semantics are invented".
+ *
+ * So these labels are shown where a starting price is the right thing to show —
+ * browsing the fleet — and NO per-mile rate has been derived backwards from
+ * them. Inventing a derivation would be the same error as inventing a rate.
+ *
+ * ── It disagrees with the backend, materially ───────────────────────────────
+ * See BACKEND_FOLLOWUPS.md §6. Summary: the advertised "From $95" floor is
+ * below the backend's own minimum charge ($83.36); "First Class Sedan
+ * $150/hour" has no backend class at all; the site marks Sprinter and both
+ * coaches "Request Quote" while the backend prices them; and three capacities
+ * differ. Not reconciled here — that is a business decision.
+ */
+export const WEBSITE_PUBLISHED_RATES: Record<string, string> = {
+  // Backend `vehicle_type` → the website's published label, unchanged.
+  executive_sedan: 'From $95',
+  suv: 'From $110',
+  sprinter: 'Request Quote',
+  coach: 'Request Quote',
+};
+
+/** Website classes with no backend equivalent, recorded so the gap is not lost. */
+export const WEBSITE_CLASSES_WITHOUT_BACKEND_EQUIVALENT = [
+  { name: 'Luxury SUV', priceLabel: 'From $130' },
+  { name: 'First Class Sedan', priceLabel: '$150/hour' },
+] as const;

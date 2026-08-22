@@ -12,6 +12,7 @@ import type { Vehicle } from '../../../src/types/api';
 import { formatCurrency } from '../../../src/lib/format';
 import { VEHICLE_DISPLAY_NAME, VEHICLE_IMAGES } from '../../../src/lib/vehicleImages';
 import { VEHICLE_TAGLINE } from '../../../src/lib/vehicleFeatures';
+import { publishedRateFor } from '../../../src/lib/publishedRates';
 
 export default function FleetScreen() {
   const router = useRouter();
@@ -75,8 +76,19 @@ export default function FleetScreen() {
                   </View>
 
                   <View style={styles.priceRow}>
+                    {/*
+                      The WEBSITE's published starting price, not the backend's
+                      base_rate. Browsing the fleet is exactly where a starting
+                      price belongs, and the website is what the business
+                      actually advertises to customers. The two disagree — the
+                      site says "From $95" where base_rate is $65 — which is
+                      logged in BACKEND_FOLLOWUPS.md §6 rather than reconciled
+                      here. The booking flow still quotes a computed all-in
+                      total; a floor is for browsing, an exact fare is for
+                      committing.
+                    */}
                     <AppText variant="subheading" color={colors.gold}>
-                      {`From ${formatCurrency(vehicle.base_rate)}`}
+                      {publishedRateFor(vehicle.type) ?? `From ${formatCurrency(vehicle.base_rate)}`}
                     </AppText>
                   </View>
                 </View>

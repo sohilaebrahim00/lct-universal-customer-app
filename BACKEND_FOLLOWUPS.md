@@ -153,6 +153,72 @@ creation, which this pass does not.
 
 ---
 
+## 6. The website and the backend publish different prices
+
+**Priority: high, and this one is a business problem before it is an engineering
+one.**
+
+The website is what the business advertises to customers. The backend is what it
+charges. They do not agree.
+
+### Website — `LCT-Universal-Vite-Ready-v2/lct_migrate/src/lib/site-data.ts`, `VERIFIED_LIVE_VEHICLE_CLASSES` (lines 281-289)
+
+| Class | pax | bags | Published |
+|---|---|---|---|
+| Sedan | 3 | 2 | From $95 |
+| SUV | 6 | 6 | From $110 |
+| Luxury SUV | 6 | 6 | From $130 |
+| First Class Sedan | 2 | 2 | $150/hour |
+| Executive Sprinter | 14 | 10 | Request Quote |
+| Mini Coach | 39 | — | Request Quote |
+| Motor Coach | 56 | — | Request Quote |
+
+### Backend — `lct-universal-backend/db/seed.sql`
+
+(`0002_vehicles.sql` defines only the columns; the rates are in the seed.)
+
+| Class | pax | bags | base | per mile | per hour |
+|---|---|---|---|---|---|
+| Executive Sedan | 3 | 3 | $65.00 | $3.25 | $100.00 |
+| Executive SUV | 6 | 6 | $85.00 | $3.75 | $120.00 |
+| Sprinter Van | 14 | 14 | $150.00 | $4.50 | $200.00 |
+| Coach / Custom | 40 | 40 | $400.00 | $6.00 | $250.00 |
+
+### The four conflicts
+
+1. **The advertised floor is not enforced.** The site promises "From $95" for a
+   Sedan. The backend's minimum possible charge is base $65 plus 20% gratuity and
+   8.25% tax = **$83.36** — below the advertised floor. A short trip is quoted
+   under what the site says it starts at.
+2. **The one explicit hourly rate on the site exists nowhere in the backend.**
+   "First Class Sedan $150/hour" has no backend class at all, and the backend's
+   sedan hourly rate is $100.
+3. **Quote-only versus computable.** The site marks Executive Sprinter, Mini
+   Coach and Motor Coach "Request Quote". The backend prices all of them. The app
+   would commit to a fixed number for vehicles the business says it will not
+   quote without asking.
+4. **Capacities differ**: Sedan 2 bags vs 3; Sprinter 10 bags vs 14; the site's
+   Motor Coach carries 56 where the backend's Coach carries 40. The site also
+   lists 7 classes to the backend's 4.
+
+### Why it matters
+
+The entire fixed-price promise this redesign is built on — the number on the
+vehicle card is the number charged — cannot hold while a customer quoted from the
+website is charged from the database. Whichever source is wrong, they have to be
+made one source.
+
+**Not reconciled here.** Picking the more convenient number would hide the
+problem rather than solve it.
+
+**What the app does meanwhile:** the Fleet browse screen shows the website's
+published starting price, because a floor is the right thing when browsing. The
+booking flow shows a computed all-in total from the backend rates, because those
+are the only rates that define a computation. No per-mile rate has been derived
+backwards from a headline figure.
+
+---
+
 ## Not a backend gap
 
 Recorded so it is not re-litigated: the **fare parity check** in slice 7 has both
