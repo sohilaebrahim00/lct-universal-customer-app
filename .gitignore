@@ -43,3 +43,4 @@ yarn-error.*
 
 # Screenshot harness output — regenerated per slice, not review history
 design/progress/
+dist-live/
