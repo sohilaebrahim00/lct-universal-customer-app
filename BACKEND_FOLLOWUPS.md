@@ -543,6 +543,135 @@ screen is invented:
 
 ---
 
+## 8. Fare parity — the verdict, and the one defect it found
+
+**The arithmetic is clean. The timezone is not.**
+
+Run it yourself: `npx jest tests/fareParity.test.ts`. The suite executes the
+client's `calculateFarePreview()` and the backend's `calculateFare()` against
+identical inputs, in the same process, in the same millisecond. Both are pure —
+no I/O, no database, no server — which is why this is a numeric diff rather than
+a code review.
+
+### What was compared
+
+**1,611 assertions across 4 vehicle classes × 6 service types × 8 boundary times
+× 9 distances**, plus hourly durations and every error branch.
+
+- Times sit one minute either side of both surcharge edges: 21:59 / 22:00 /
+  22:01 and 04:59 / 05:00 / 05:01. The rule is `hour >= 22 || hour < 5`, so 22:00
+  is inside and 05:00 is outside, and both directions are pinned.
+- Distances include 0 (a real input — manual address entry reports no route),
+  0.1 and 7.77 to push `perMileRate * distance` onto a third decimal so any
+  difference in *where* each side rounds would surface, and 1000 to catch a
+  divergence that only appears at magnitude.
+- Rates are copied verbatim from the backend's own `db/seed.sql`. Testing parity
+  on invented rates would prove nothing about production.
+
+### Verdict
+
+**Every shared field matches exactly, in every case.** `baseFare`,
+`distanceFare`, `timeFare`, `surcharges`, `gratuity`, `tax`, `totalFare` — no
+divergence at any boundary, no rounding difference, no drift at magnitude. The
+constants agree (0.2, 0.0825, $15). Both reject the same invalid inputs with the
+same `RangeError`. The mirror is faithful.
+
+The suite was also run under `TZ=America/Chicago`, `TZ=Asia/Dubai` and `TZ=UTC`.
+All 1,611 pass in all three.
+
+### THE DEFECT: the surcharge is decided by the machine, not the journey
+
+Both implementations decide the late-night surcharge with `date.getHours()` —
+the local hour of whichever machine is executing. The client runs on the
+customer's device; the backend runs on a server. **Neither names a timezone**, so
+the same pickup instant is priced differently depending on where the code runs.
+No amount of care inside either file can fix this, because the bug is the absence
+of a zone, not a mistake in the arithmetic.
+
+Measured, on an Executive Sedan / 23.2 mi / airport booking:
+
+| Pickup instant (UTC) | Zone | Local hour | Surcharge | Total |
+|---|---|---|---|---|
+| `2026-03-11T00:00:00Z` | America/Chicago | 19:00 | $0 | **$180.06** |
+| `2026-03-11T00:00:00Z` | UTC | 00:00 | $15 | **$199.30** |
+| `2026-03-11T07:00:00Z` | America/Chicago | 02:00 | $15 | **$199.30** |
+| `2026-03-11T07:00:00Z` | UTC | 07:00 | $0 | **$180.06** |
+
+So for a DFW company running its backend in UTC — the default nearly everywhere:
+
+- **An ordinary 19:00 Dallas airport run: the device shows $180.06, the server
+  charges $199.30. A $19.24 overcharge, on every evening booking between 18:00
+  and 23:00 local.**
+- **A genuine 02:00 Dallas pickup: the device shows $199.30, the server charges
+  $180.06. A $19.24 undercharge, on every booking in the small hours.**
+
+Both directions are the same broken promise. The undercharge is the one that
+reaches the business rather than the customer.
+
+This is not a theoretical edge. It fires on ordinary bookings, every day, and it
+is currently invisible because nothing compares the two numbers.
+
+### What it needs — a decision, then a change in both repos
+
+**Not a presentation-layer fix.** The redesign cannot solve it from the client,
+and the client must not "correct" for it, because a client that adjusts the
+server's price is the same defect wearing a disguise.
+
+1. **Name the timezone.** LCT operates in Dallas–Fort Worth. The surcharge window
+   is a *business* rule about Texas evenings, so it should be evaluated in
+   `America/Chicago`, not in whatever zone the executing machine happens to be
+   set to.
+2. Change `isLateNight()` in **both** `pricing.ts` and `pricingPreview.ts` to
+   resolve the hour in a fixed zone — `Intl.DateTimeFormat('en-US', { timeZone:
+   'America/Chicago', hour: 'numeric', hour12: false })` needs no dependency and
+   works in Hermes and Node alike.
+3. Keep `tests/fareParity.test.ts` green under all three `TZ` values. Once the
+   zone is fixed, the cross-zone table above should collapse to one row per
+   instant — and that is the regression test.
+
+**Open question for LCT (B6, below):** is the late-night window Dallas local
+time, or the passenger's local time? Dallas is almost certainly right for a
+DFW-only operator, but it is a business decision and it has not been asked.
+
+### The second finding: three fields the client can never compute
+
+`waiting_fare`, `extra_stops_fare` and `discount_amount` are computed
+server-side and have no client-side equivalent — waiting time is measured after
+the fact, extra stops are added by dispatch, and a promo discount is resolved
+against the `promo_codes` table. Asserted in the suite: a 25-minute wait adds
+$32.07 to the server's total and $0 to the client's; two extra stops add $25.65;
+a 15% promo makes the customer pay *less* than the breakdown they were shown.
+
+None of these fires today, because the app never sends `waitingMinutes`,
+`extraStops` or `promoCode` — the backend defaults them to 0 and no promo UI
+exists. **They are latent, not active.** They become active the moment anyone
+adds a promo-code field, which is exactly when nobody will be looking at this.
+
+### What was fixed in the app, and what was deliberately not
+
+Fixed — all presentation layer:
+
+- `src/lib/serverFare.ts` reads the authoritative fare off a server-priced
+  booking. One place converts the `numeric(10,2)` strings.
+- `submit()` returns the whole `Booking`, not just its id, so the comparison is
+  possible at all.
+- The payment screen compares the authorised total against the server's **before
+  anything reaches Stripe**, to the cent, with no tolerance band. A difference
+  stops the flow, shows the server's breakdown and the two totals, and requires a
+  second explicit authorisation. Verified by making the demo backend disagree by
+  $19.24 and rebuilding: the interstitial fired, the flow stopped at
+  `/book/payment`, and re-authorising created no second booking.
+- The confirmation screen — the receipt, the thing a customer screenshots — was
+  printing `draft.allInFare`. It now fetches the booking and shows the server's
+  total.
+- `Booking` declares the three missing fare columns.
+
+**Not fixed, deliberately:** the timezone itself. It requires a change to the
+backend's `pricing.ts` and a business answer about which zone governs, and this
+phase does not touch backend logic or absorb a divergence into the UI.
+
+---
+
 ## Business inputs still pending
 
 Not engineering work — questions only LCT can answer. Each renders nothing in the
@@ -555,6 +684,7 @@ app until it is answered.
 | B3 | **Who owns the rating figure, and how often is it refreshed?** Home shows "4.93 from 55 reviews", read by hand from the Clienity reputation dashboard on 2026-08-22 and frozen in a constant with its source and read-date. It is a SNAPSHOT: there is no reviews endpoint and no integration, so it will silently go stale. Either re-read it before each release, or expose it from the backend and delete the constant. | `src/config/reputation.ts` → `src/components/home/HomeView.tsx` |
 | B4 | **How late is late?** The dispatcher board must surface the problem row, and nothing defines what one is. Same threshold for an airport pickup as for a dinner reservation? Measured from the scheduled time or from the chauffeur's ETA? At what point does it escalate to a call? Until this is answered the board computes it client-side with a five-minute grace the preview invented. See §7 D-2. | the board query, once §7 D-1 exists |
 | B5 | **Is meet-and-greet a service the customer selects, and does it cost anything?** The chauffeur cannot be told to walk into the terminal because no booking says so. This is a pricing and packaging question before it is a column. See §7 C-3. | `bookings.meet_and_greet`, the airport booking flow |
+| B6 | **Which timezone governs the late-night surcharge?** Dallas local time, or the passenger's? Today neither is chosen — both calculators read the executing machine's local hour, so a UTC-hosted backend overcharges $19.24 on ordinary evening bookings and undercharges by the same on genuine late-night ones. Dallas is almost certainly the answer for a DFW-only operator, but it is a business decision and it has not been asked. See §8. | `isLateNight()` in both `pricing.ts` and `pricingPreview.ts` |
 
 Resolved since the first list: the free-cancellation window (published and
 tiered — 12h sedans and SUVs, 6h airport, 48h hourly and events) and the

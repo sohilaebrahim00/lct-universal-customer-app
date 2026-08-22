@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import type { CreateBookingInput } from '../api/bookings';
 import { bookingsApi } from '../api/bookings';
-import type { ServiceType, Vehicle } from '../types/api';
+import type { Booking, ServiceType, Vehicle } from '../types/api';
 import type { FareBreakdown } from '../lib/pricingPreview';
 
 export interface BookingDraft {
@@ -63,7 +63,7 @@ interface BookingFormState {
   isReadyForVehicleSelection: () => boolean;
   isReadyForDetails: () => boolean;
   isReadyForPayment: () => boolean;
-  submit: () => Promise<{ bookingId: string; tripId: string } | null>;
+  submit: () => Promise<{ bookingId: string; tripId: string; booking: Booking } | null>;
 }
 
 export const useBookingFormStore = create<BookingFormState>((set, get) => ({
@@ -116,15 +116,34 @@ export const useBookingFormStore = create<BookingFormState>((set, get) => ({
         primaryPassengerName: draft.primaryPassengerName || undefined,
         primaryPassengerPhone: draft.primaryPassengerPhone || undefined,
         specialRequests: draft.specialRequests || undefined,
-        // Sent so the created booking stores the exact figure the customer
-        // authorised, rather than a re-derivation of it.
+        /*
+         * `allInFare` reaches the DEMO backend and nothing else.
+         *
+         * This used to carry a comment claiming the created booking "stores the
+         * exact figure the customer authorised, rather than a re-derivation of
+         * it". That is false against the real API and was true only because the
+         * demo layer is the only thing that reads it. The backend's
+         * `createBookingSchema` is a plain `z.object`, so zod strips unknown
+         * keys silently: the field is dropped, and `POST /bookings` prices the
+         * booking itself with its own `calculateFare()`.
+         *
+         * It is still sent, because `src/dev/demoApi.ts` uses it to keep demo
+         * fares consistent with the vehicle card. It is NOT a guarantee, and the
+         * guarantee now lives where it belongs — in the payment screen's
+         * comparison of the server's returned total against the authorised one.
+         */
         ...(draft.allInFare ? { allInFare: draft.allInFare } : {}),
         flightNumber: draft.flightNumber || undefined,
       };
 
       const result = await bookingsApi.create(input);
       set({ submitting: false });
-      return { bookingId: result.booking.id, tripId: result.tripId };
+      // The whole BOOKING comes back, not just its id. The server priced it,
+      // and from here on its `total_fare` is the authoritative number — the
+      // payment screen compares it against what the customer authorised before
+      // anything reaches Stripe. Returning only the id is what made that
+      // comparison impossible.
+      return { bookingId: result.booking.id, tripId: result.tripId, booking: result.booking };
     } catch (err) {
       set({ submitting: false, error: err instanceof Error ? err.message : 'Failed to create booking' });
       return null;

@@ -359,6 +359,20 @@ function makeBooking(input: {
     distance_fare: fare.distanceFare.toFixed(2),
     time_fare: fare.timeFare.toFixed(2),
     surcharges: fare.surcharges.toFixed(2),
+    /*
+     * Zero, and honestly zero.
+     *
+     * The real API has returned these three since migration 0015 and the demo
+     * has to carry the same shape, or `serverFareFrom()` reads `undefined`
+     * where the backend would give it a figure. They are '0.00' rather than
+     * invented values because `calculateFarePreview()` — which prices every
+     * demo booking — has no concept of waiting time, extra stops or a promo
+     * code, and seeding a number the demo cannot derive would be inventing one.
+     * Zero-valued lines render nothing, so the demo breakdown is unchanged.
+     */
+    waiting_fare: '0.00',
+    extra_stops_fare: '0.00',
+    discount_amount: '0.00',
     gratuity: fare.gratuity.toFixed(2),
     tax: fare.tax.toFixed(2),
     total_fare: fare.totalFare.toFixed(2),

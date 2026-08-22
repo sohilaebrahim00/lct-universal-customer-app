@@ -12,6 +12,7 @@ import { AppText } from '../../../src/components/ui/Typography';
 import { gutter, iconSize, iconStroke, radius, space, theme } from '../../../src/theme';
 import { useBookingFormStore } from '../../../src/store/bookingFormStore';
 import { calculateFarePreview, type FareBreakdown } from '../../../src/lib/pricingPreview';
+import { fareDiffers, serverFareFrom, type ServerFare } from '../../../src/lib/serverFare';
 import { formatCurrency, formatDateTime, formatServiceType } from '../../../src/lib/format';
 import { isStripeConfigured } from '../../../src/lib/env';
 import { useStripeCheckout } from '../../../src/lib/useStripeCheckout';
@@ -27,13 +28,23 @@ import { isRTL } from '../../../src/i18n/rtl';
  * opacity is the most-complained-about failure in this product category, and
  * the answer is showing every line before the customer authorises it.
  *
- * The total comes from `draft.allInFare` — the exact object the vehicle screen
- * computed and the customer chose on. It is not recomputed here. That is what
- * makes the reassurance line true rather than decorative: the two screens read
- * one value, so they cannot disagree.
+ * ── The two numbers, and which one is real ──────────────────────────────────
+ * BEFORE the customer authorises, the total is `draft.allInFare` — the exact
+ * object the vehicle screen computed and the customer chose the car on,
+ * carried, never re-derived. It is a PREVIEW, and it is labelled as one by
+ * the absence of the reassurance line.
  *
- * If the draft somehow arrives without it, this screen recomputes AND drops the
- * reassurance line, because at that point the claim would be unverified.
+ * AFTER `POST /bookings` returns, the total is the SERVER's, read straight off
+ * the created booking. That is the number Stripe charges — `/payments/intent`
+ * sends `amount: Number(booking.total_fare)` — so it is the only number that
+ * was ever authoritative. The two are compared before anything reaches Stripe,
+ * and a difference of one cent stops the flow. See `handlePayAndConfirm` and
+ * `src/lib/serverFare.ts`.
+ *
+ * This is the fix for a defect that survived the whole redesign: the screen
+ * had never once read the server's figure, and the guard that looked like it
+ * was checking for exactly this was comparing the client's preview against the
+ * client's own recomputation.
  *
  * ── The cancellation line ───────────────────────────────────────────────────
  * Renders only when `servicePolicy.freeCancellationWindowHours` is set. It is
@@ -53,21 +64,11 @@ export default function PaymentStep() {
   /** The figure the customer chose on, carried forward — not re-derived. */
   const carried = draft.allInFare;
 
-  /*
-   * THE FARE-CHANGED CHECK.
-   *
-   * The route reorder that collects date/time BEFORE the car has not landed, so
-   * the vehicle screen priced against a fallback time. If the customer then
-   * picks a slot between 11pm and 5am, the late-night surcharge applies and the
-   * carried figure is stale.
-   *
-   * Rather than silently swapping the number — the exact failure this whole
-   * redesign exists to remove — the difference is recomputed here and stated on
-   * screen. The customer authorises the new number knowing it moved and why.
-   * When the reorder lands this can only ever be a no-op, and it stays as the
-   * guard against the backend disagreeing.
+  /**
+   * A last-resort preview, for a draft that somehow arrives with no carried
+   * fare. Only ever a preview — the reassurance line stays off until the
+   * server has confirmed a figure, so nothing here can claim to be the price.
    */
-
   const fallback = useMemo<FareBreakdown | null>(() => {
     if (carried || !draft.vehicle || !draft.serviceType) return null;
     try {
@@ -87,53 +88,66 @@ export default function PaymentStep() {
     }
   }, [carried, draft]);
 
-  /** Recomputed against the ACTUAL scheduled time, once that is known. */
-  const recomputed = useMemo<FareBreakdown | null>(() => {
-    if (!draft.vehicle || !draft.serviceType || !draft.scheduledAt) return null;
-    try {
-      return calculateFarePreview({
-        vehicle: {
-          baseRate: Number(draft.vehicle.base_rate),
-          perMileRate: Number(draft.vehicle.per_mile_rate),
-          perHourRate: draft.vehicle.per_hour_rate === null ? null : Number(draft.vehicle.per_hour_rate),
-        },
-        serviceType: draft.serviceType,
-        distanceMiles: draft.distanceMiles,
-        hourlyDurationHours: draft.hourlyDurationHours,
-        scheduledAt: draft.scheduledAt,
-      });
-    } catch {
-      return null;
-    }
-  }, [draft]);
+  /**
+   * The server's fare, once `POST /bookings` has returned one.
+   *
+   * Null until the customer authorises. From the moment it is set it REPLACES
+   * the preview everywhere on this screen — it is the number Stripe will
+   * charge, and the preview never was.
+   */
+  const [serverFare, setServerFare] = useState<ServerFare | null>(null);
+  /** The created booking, held so a second authorisation does not create another. */
+  const [created, setCreated] = useState<{ bookingId: string; tripId: string } | null>(null);
+  /** True when the server disagreed with the number the customer chose the car on. */
+  const [priceChanged, setPriceChanged] = useState(false);
 
-  const fare = recomputed ?? carried ?? fallback;
-  const fareChanged = Boolean(carried && recomputed && recomputed.totalFare !== carried.totalFare);
+  /*
+   * The preview-against-preview guard is GONE.
+   *
+   * It recomputed `calculateFarePreview()` here and compared the result to the
+   * carried object — two runs of the same function, on the same inputs, in the
+   * same process. It could only ever agree, and its own comment admitted as
+   * much once the route reorder landed. Worse, it read as a fare-change guard
+   * while never once seeing the server's figure, which is the only number that
+   * can actually differ. Replaced by the comparison in `handlePayAndConfirm`.
+   *
+   * The preview still renders here BEFORE authorisation, because until a
+   * booking exists there is no server figure to show. It is the same object the
+   * customer chose the car on, carried, never re-derived.
+   */
+  const preview = carried ?? fallback;
 
-  const lines = useMemo<FareLine[]>(() => {
-    if (!fare) return [];
-    const rows: FareLine[] = [{ label: 'Base fare', amount: fare.baseFare }];
-    if (fare.distanceFare > 0) {
+  const previewLines = useMemo<FareLine[]>(() => {
+    if (!preview) return [];
+    const rows: FareLine[] = [{ label: 'Base fare', amount: preview.baseFare }];
+    if (preview.distanceFare > 0) {
       rows.push({
         label: draft.distanceMiles ? `Distance · ${draft.distanceMiles} mi` : 'Distance',
-        amount: fare.distanceFare,
+        amount: preview.distanceFare,
       });
     }
-    if (fare.timeFare > 0) rows.push({ label: 'Time', amount: fare.timeFare });
-    if (fare.surcharges > 0) rows.push({ label: 'Late-night surcharge', amount: fare.surcharges });
-    rows.push({ label: 'Gratuity · 20%', amount: fare.gratuity });
-    rows.push({ label: 'Tax', amount: fare.tax });
+    if (preview.timeFare > 0) rows.push({ label: 'Time', amount: preview.timeFare });
+    if (preview.surcharges > 0) rows.push({ label: 'Late-night surcharge', amount: preview.surcharges });
+    rows.push({ label: 'Gratuity · 20%', amount: preview.gratuity });
+    rows.push({ label: 'Tax', amount: preview.tax });
     return rows;
-  }, [fare, draft.distanceMiles]);
+  }, [preview, draft.distanceMiles]);
 
-  async function handlePayAndConfirm() {
-    setError(null);
-    const result = await submit();
-    if (!result) return;
+  /** What is on screen: the server's breakdown once it exists, the preview until then. */
+  const shownLines = serverFare ? serverFare.lines : previewLines;
+  const shownTotal = serverFare ? serverFare.total : (preview?.totalFare ?? null);
+  const currency = serverFare?.currency ?? 'usd';
 
+  /**
+   * Takes the created booking to Stripe and on to the confirmation screen.
+   *
+   * Split out so a customer who has just been shown a changed price can
+   * authorise the NEW figure without a second booking being created.
+   */
+  async function proceedToPayment(bookingId: string, tripId: string) {
     if (isStripeConfigured) {
       setProcessing(true);
-      const checkout = await payWithStripe(result.bookingId);
+      const checkout = await payWithStripe(bookingId);
       setProcessing(false);
       if (checkout.status === 'error') {
         setError(checkout.message ?? 'Payment failed');
@@ -142,10 +156,52 @@ export default function PaymentStep() {
       if (checkout.status === 'cancelled') return;
     }
 
-    router.replace(`/(app)/book/confirmed?bookingId=${result.bookingId}&tripId=${result.tripId}`);
+    router.replace(`/(app)/book/confirmed?bookingId=${bookingId}&tripId=${tripId}`);
   }
 
-  const total = fare ? formatCurrency(fare.totalFare) : null;
+  /**
+   * THE GUARD THAT MATTERS.
+   *
+   * `POST /bookings` prices the booking server-side and ignores anything the
+   * client sends about money. `POST /payments/intent` then charges
+   * `Number(booking.total_fare)`. So between authorising and being charged,
+   * there is exactly one moment where the two numbers can be compared — here,
+   * after creation and before Stripe — and until now nothing did.
+   *
+   * If they differ by a single cent the flow STOPS. The customer sees the
+   * server's breakdown, the old total, the new one, and authorises again or
+   * goes back. Never a silent substitution, in either direction: being charged
+   * less than the breakdown showed is the same broken promise pointed the other
+   * way, and it is the one that reaches the business rather than the customer.
+   */
+  async function handlePayAndConfirm() {
+    setError(null);
+
+    // Already created and re-authorised at the server's price — do not create
+    // a second booking.
+    if (created) {
+      await proceedToPayment(created.bookingId, created.tripId);
+      return;
+    }
+
+    const result = await submit();
+    if (!result) return;
+
+    const authorised = preview?.totalFare ?? null;
+    const server = serverFareFrom(result.booking);
+
+    setServerFare(server);
+    setCreated({ bookingId: result.bookingId, tripId: result.tripId });
+
+    if (authorised !== null && fareDiffers(authorised, server.total)) {
+      setPriceChanged(true);
+      return; // Stops here. Nothing reaches Stripe on a number the customer has not seen.
+    }
+
+    await proceedToPayment(result.bookingId, result.tripId);
+  }
+
+  const total = shownTotal !== null ? formatCurrency(shownTotal, currency) : null;
 
   return (
     <View style={styles.screen}>
@@ -176,31 +232,51 @@ export default function PaymentStep() {
           <ListRow title="Car" value={draft.vehicle?.name ?? '—'} chevron={false} divider={false} />
         </Card>
 
-        {fare ? (
+        {shownTotal !== null ? (
           <Card style={styles.card}>
             <PriceBreakdown
-              lines={lines}
-              total={fare.totalFare}
-              // True only when the total IS the carried object. Never a static string.
-              // A claim, so only made when it is true.
+              lines={shownLines}
+              total={shownTotal}
+              currency={currency}
+              /*
+               * The reassurance is a CLAIM, so it is made only when it is true
+               * — and it is only true once the server has confirmed the figure.
+               *
+               * It used to appear while the screen was showing a client
+               * preview, which meant it was reassuring the customer about a
+               * number nobody had checked. Now it waits for `serverFare`, and
+               * says so: this is the price, confirmed, and it matches.
+               */
               reassurance={
-                carried && !fareChanged
-                  ? `This is the same ${formatCurrency(carried.totalFare)} you chose the car on. Nothing has been added.`
+                serverFare && !priceChanged && carried
+                  ? `Confirmed at ${formatCurrency(serverFare.total, currency)} — the same price you chose the car on.`
                   : undefined
               }
             />
           </Card>
         ) : null}
 
-        {fareChanged && carried && recomputed ? (
+        {/*
+          THE INTERSTITIAL. Renders only when the server's figure differs from
+          the one the customer authorised, and the flow is already stopped
+          before Stripe by the time it appears.
+
+          It does not guess WHY the number moved. The old copy asserted a
+          late-night surcharge as the cause, which it could not know: a promo
+          code, waiting time, an extra stop or a rate change would all land
+          here too. The breakdown above shows which line differs; this states
+          the two totals and nothing it cannot support.
+        */}
+        {priceChanged && serverFare && carried ? (
           <Card style={styles.changedCard}>
-            <AppText variant="subheading" color={theme.content.accentEmphasis}>
-              The fare changed
+            <AppText variant="subheading" color={theme.content.accentEmphasis} accessibilityRole="header">
+              The price changed
             </AppText>
-            <AppText variant="captionSm" style={styles.changedBody}>
-              {`Your pickup time falls in the late-night window, so a surcharge applies. It was ${formatCurrency(
-                carried.totalFare,
-              )}; it is now ${formatCurrency(recomputed.totalFare)}. Nothing is charged until you authorise it.`}
+            <AppText variant="captionSm" style={styles.changedBody} accessibilityLiveRegion="polite">
+              {`You chose this car at ${formatCurrency(carried.totalFare)}. Our system has priced the booking at ${formatCurrency(
+                serverFare.total,
+                currency,
+              )} — the breakdown above is the confirmed one. Nothing has been charged. Authorise the new total, or go back and change your booking.`}
             </AppText>
           </Card>
         ) : null}
@@ -247,10 +323,17 @@ export default function PaymentStep() {
           message="You're one step away — sign in or create a free account to confirm. Your trip details are saved."
           onContinueLater={() => router.push('/(app)')}
         >
+          {/*
+            The label always names the number being authorised, and after a
+            price change that is the SERVER's number — the customer is pressing
+            a button that states what they will be charged.
+          */}
           <Button
-            label={total ? `Authorise ${total}` : 'Authorise'}
+            label={
+              total ? (priceChanged ? `Authorise the new total, ${total}` : `Authorise ${total}`) : 'Authorise'
+            }
             loading={submitting || processing}
-            disabled={!fare}
+            disabled={shownTotal === null}
             disabledReason="Pick a car first"
             haptic
             onPress={handlePayAndConfirm}

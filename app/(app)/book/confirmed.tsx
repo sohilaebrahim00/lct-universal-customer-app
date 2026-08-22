@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Pressable, ScrollView, Share, StyleSheet, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -16,6 +16,8 @@ import { Surface } from '../../../src/components/ui/Surface';
 import { AppText } from '../../../src/components/ui/Typography';
 import { choreography, gutter, iconSize, iconStroke, radius, space, theme } from '../../../src/theme';
 import { useBookingFormStore } from '../../../src/store/bookingFormStore';
+import { bookingsApi } from '../../../src/api/bookings';
+import type { Booking } from '../../../src/types/api';
 import { formatCurrency, formatDateTime } from '../../../src/lib/format';
 import { useMotion } from '../../../src/lib/useMotion';
 import { cancellationSentenceFor } from '../../../src/config/servicePolicy';
@@ -74,7 +76,46 @@ export default function ConfirmedStep() {
     return source ? `LCT-${source.slice(-6).padStart(6, '0')}` : null;
   }, [bookingId]);
 
-  const fare = draft.allInFare;
+  /**
+   * THE TOTAL ON A RECEIPT IS THE SERVER'S, ALWAYS.
+   *
+   * This read `draft.allInFare` — the client's preview — and printed it as the
+   * reservation total. So even after the payment screen was fixed to compare
+   * against and charge the server's figure, the confirmation screen went back
+   * to showing the client's. The same defect, one screen downstream, and the
+   * more damaging one: this screen is the receipt, and it is what the customer
+   * screenshots.
+   *
+   * It now fetches the booking. Fetching rather than passing the number through
+   * the route is deliberate — this screen is reachable by deep link and survives
+   * a reload, and in both cases a param would be gone while the booking is not.
+   * Until the fetch lands the total renders nothing rather than a preview, on
+   * the same rule as everywhere else: no figure beats a figure that might be
+   * wrong.
+   */
+  const [booking, setBooking] = useState<Booking | null>(null);
+
+  useEffect(() => {
+    if (!bookingId) return;
+    let active = true;
+    bookingsApi
+      .get(bookingId)
+      .then((b) => {
+        if (active) setBooking(b);
+      })
+      .catch(() => {
+        // The booking exists — the customer has just made it — so a failure
+        // here is a transient read. The total stays blank rather than falling
+        // back to the preview, which is the number this fix exists to stop
+        // showing.
+        if (active) setBooking(null);
+      });
+    return () => {
+      active = false;
+    };
+  }, [bookingId]);
+
+  const serverTotal = booking ? formatCurrency(booking.total_fare, booking.currency) : null;
   const scheduled = draft.scheduledAt ? formatDateTime(draft.scheduledAt.toISOString()) : null;
   const route = [draft.pickupAddress, draft.dropoffAddress].filter(Boolean).join(' → ');
 
@@ -156,7 +197,7 @@ export default function ConfirmedStep() {
             <View style={styles.footDivider} />
             <View style={styles.footCell}>
               <AppText variant="micro">Total</AppText>
-              <AppText variant="subheading">{fare ? formatCurrency(fare.totalFare) : '—'}</AppText>
+              <AppText variant="subheading">{serverTotal ?? ''}</AppText>
             </View>
           </View>
         </Surface>

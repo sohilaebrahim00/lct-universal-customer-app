@@ -63,11 +63,36 @@ export interface Booking {
   flight_number: string | null;
   status: import('../lib/tripStatus').TripStatus;
   approval_status: 'auto_approved' | 'pending_approval' | 'approved' | 'rejected';
+  /*
+   * THE FARE, AS THE SERVER COMPUTED IT.
+   *
+   * Every one of these is `numeric(10,2)` in Postgres and arrives as a STRING
+   * through `pg` — not a rounding artefact to be tidied away, but the reason
+   * the app must never do arithmetic on them without an explicit `Number()`.
+   *
+   * `waiting_fare`, `extra_stops_fare` and `discount_amount` were missing from
+   * this interface while the API had been returning them since migration 0015
+   * (`db/migrations/0015_booking_pricing_extensions.sql`, and the repository
+   * selects `*`). Adding them is a type catching up with a response, not a new
+   * API surface — nothing on the backend changes.
+   *
+   * They matter because the client's `calculateFarePreview()` cannot compute
+   * any of the three: it has no concept of waiting time, extra stops, or a
+   * promo code it never sees. A booking carrying any of them is charged a
+   * different number from the breakdown the preview produced. The honest
+   * interface is to display the server's line, never to approximate it.
+   */
   base_fare: string;
   distance_miles: string | null;
   distance_fare: string;
   time_fare: string;
   surcharges: string;
+  /** Driver waiting time beyond the grace period, at the server's per-minute rate. */
+  waiting_fare: string;
+  /** Flat fee per additional stop beyond the single pickup/drop-off. */
+  extra_stops_fare: string;
+  /** Promo-code discount, applied to the subtotal BEFORE gratuity and tax. */
+  discount_amount: string;
   gratuity: string;
   tax: string;
   total_fare: string;
