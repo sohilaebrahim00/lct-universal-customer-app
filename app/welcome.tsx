@@ -41,7 +41,7 @@ export default function WelcomeScreen() {
             Executive Transportation Redefined
           </AppText>
           <AppText variant="bodyMuted" center style={styles.subhead}>
-            Chauffeured sedans, SUVs, and coaches — booked in minutes, tracked in real time.
+            Chauffeured sedans, SUVs and coaches across Dallas–Fort Worth, tracked in real time.
           </AppText>
         </FadeSlideIn>
 

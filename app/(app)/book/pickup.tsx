@@ -14,7 +14,8 @@ export default function PickupStep() {
       onConfirm={(result) => {
         update({ pickupAddress: result.address, pickupLat: result.lat || undefined, pickupLng: result.lng || undefined });
         if (draft.serviceType === 'hourly') {
-          router.push('/(app)/book/vehicle');
+          // Hourly has no destination, but still needs a date before the car.
+          router.push('/(app)/book/details');
         } else {
           router.push('/(app)/book/destination');
         }

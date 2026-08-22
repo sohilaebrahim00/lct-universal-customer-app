@@ -47,9 +47,10 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
    * It also means there is exactly one place to check that a demo build cannot
    * reach the network: this one.
    *
-   * The lazy require matters. A static import would pull the seeded dataset
-   * into every bundle, and metro.config.js blocks src/dev/ from a
-   * non-demo production build — so a static import would fail to resolve there.
+   * The require is lazy so the seeded dataset is only touched when demo mode
+   * is on. Metro still resolves it statically — it collects requires regardless
+   * of reachability — so the module is in the graph either way; what the lazy
+   * form buys is that it is never EXECUTED in a normal build.
    */
   if (isDemoMode) {
     // eslint-disable-next-line @typescript-eslint/no-require-imports -- see above

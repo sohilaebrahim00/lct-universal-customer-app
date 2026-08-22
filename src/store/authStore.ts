@@ -43,7 +43,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
      * Gated on the build-time flag only. A normal build never takes this path.
      */
     if (isDemoMode) {
-      // eslint-disable-next-line @typescript-eslint/no-require-imports -- src/dev is blocked from non-demo production bundles
+      // eslint-disable-next-line @typescript-eslint/no-require-imports -- lazy so the seed is only touched in demo mode; see metro.config.js
       const { DEMO_PROFILE } = require('../dev/demoData') as typeof import('../dev/demoData');
       set({
         status: 'signed-in',

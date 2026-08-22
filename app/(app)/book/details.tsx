@@ -73,7 +73,7 @@ export default function DetailsStep() {
 
   return (
     <ScreenContainer>
-      <ProgressRail step={4} total={5} label="When & who" style={{ marginBottom: spacing.mdl }} />
+      <ProgressRail step={3} total={5} label="When & who" style={{ marginBottom: spacing.mdl }} />
       <AppText variant="heading" style={{ marginBottom: spacing.mdl }}>
         When should the car arrive?
       </AppText>
@@ -162,7 +162,7 @@ export default function DetailsStep() {
         style={{ minHeight: 90, textAlignVertical: 'top', paddingTop: spacing.sm }}
       />
 
-      <Button label="Continue" onPress={() => router.push('/(app)/book/payment')} disabled={!canContinue} style={{ marginTop: spacing.md }} />
+      <Button label="Choose your car" onPress={() => router.push('/(app)/book/vehicle')} disabled={!canContinue} disabledReason="Pick a date and time" haptic style={{ marginTop: spacing.md }} />
     </ScreenContainer>
   );
 }

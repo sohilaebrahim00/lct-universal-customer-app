@@ -38,7 +38,10 @@ export default function DestinationStep() {
           }
         }
 
-        router.push('/(app)/book/vehicle');
+        // THE REORDER: date and time are collected before the car, so the fare
+        // quoted on the vehicle screen is computed from the real scheduledAt
+        // and is genuinely final (audit P0-3).
+        router.push('/(app)/book/details');
       }}
     />
   );

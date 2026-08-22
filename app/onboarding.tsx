@@ -1,107 +1,115 @@
-import { useRef, useState } from 'react';
 import { useRouter } from 'expo-router';
-import { Dimensions, Image, StyleSheet, View, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
-import { ScrollView } from 'react-native-gesture-handler';
-import Animated, { useAnimatedStyle, useSharedValue, withTiming, type SharedValue } from 'react-native-reanimated';
+import { Image, Pressable, StyleSheet, View } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button } from '../src/components/ui/Button';
 import { AppText } from '../src/components/ui/Typography';
-import { colors, radius, spacing } from '../src/theme/tokens';
+import { space, theme } from '../src/theme';
 import { markOnboardingSeen } from '../src/lib/onboarding';
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
-
-const SLIDES = [
-  {
-    image: require('../assets/onboarding/book.jpg'),
-    eyebrow: 'Book in Seconds',
-    title: 'Executive Transportation, On Demand',
-    subtitle: 'Airport transfers, corporate travel, and events — book a professional chauffeur in a few taps.',
-  },
-  {
-    image: require('../assets/onboarding/track.jpg'),
-    eyebrow: 'Live Tracking',
-    title: 'Watch Your Ride Approach',
-    subtitle: 'Follow your chauffeur in real time, from confirmation to arrival, every step of the way.',
-  },
-  {
-    image: require('../assets/onboarding/ride.jpg'),
-    eyebrow: 'Ride in Comfort',
-    title: 'A Premium Experience, Every Time',
-    subtitle: 'Executive sedans, luxury SUVs, and coaches — every class includes a professional chauffeur.',
-  },
-];
-
-function Dot({ index, scrollX }: { index: number; scrollX: SharedValue<number> }) {
-  const style = useAnimatedStyle(() => {
-    const distance = Math.abs(scrollX.value / SCREEN_WIDTH - index);
-    const active = distance < 0.5;
-    return {
-      width: withTiming(active ? 22 : 8, { duration: 200 }),
-      opacity: withTiming(active ? 1 : 0.4, { duration: 200 }),
-    };
-  });
-  return <Animated.View style={[styles.dot, style]} />;
-}
-
+/**
+ * ONBOARDING — one slide, per artboard 2a.
+ *
+ * ── Why the copy changed ────────────────────────────────────────────────────
+ * The previous version led with "Book in Seconds" and "Executive
+ * Transportation, On Demand". The app enforces a one-hour minimum lead time and
+ * on-demand is unconfirmed with dispatch (`servicePolicy.onDemandEnabled` is
+ * false), so both lines promised something the system actively refuses. The
+ * first screen a customer sees is the worst place in the product to make a
+ * promise that the second screen breaks.
+ *
+ * Replaced with the company's own language: "Reserve executive transportation
+ * across Dallas–Fort Worth and Grapevine, Texas." Reserve, not book-in-seconds —
+ * which is what LCT actually does, and what the flow actually supports.
+ *
+ * ── Why one slide ───────────────────────────────────────────────────────────
+ * Three slides ran before the customer had any reason to care. The other two
+ * are earned rather than asserted: the fleet lives in the Fleet screen, and
+ * tracking is demonstrated from Trips. Value goes behind one Continue.
+ *
+ * The logo also appears here at the same size it appears everywhere else, which
+ * ends the three-stage splash reveal (native splash → loading screen → welcome,
+ * each at a different size).
+ */
 export default function OnboardingScreen() {
   const router = useRouter();
-  const scrollRef = useRef<ScrollView>(null);
-  const scrollX = useSharedValue(0);
-  const [page, setPage] = useState(0);
+  const insets = useSafeAreaInsets();
 
-  function handleScroll(event: NativeSyntheticEvent<NativeScrollEvent>) {
-    const x = event.nativeEvent.contentOffset.x;
-    scrollX.value = x;
-    setPage(Math.round(x / SCREEN_WIDTH));
-  }
-
-  async function handleDone() {
+  async function handleContinue() {
     await markOnboardingSeen();
     router.replace('/welcome');
   }
 
-  function handleNext() {
-    if (page < SLIDES.length - 1) {
-      scrollRef.current?.scrollTo({ x: (page + 1) * SCREEN_WIDTH, animated: true });
-    } else {
-      handleDone();
-    }
+  async function handleSignIn() {
+    await markOnboardingSeen();
+    router.replace('/(auth)/login');
   }
 
   return (
-    <View style={styles.container}>
-      <ScrollView
-        ref={scrollRef}
-        horizontal
-        pagingEnabled
-        showsHorizontalScrollIndicator={false}
-        onScroll={handleScroll}
-        scrollEventThrottle={16}
-      >
-        {SLIDES.map((slide) => (
-          <View key={slide.title} style={styles.slide}>
-            <Image source={slide.image} style={StyleSheet.absoluteFill} resizeMode="cover" />
-            <View style={[StyleSheet.absoluteFill, styles.overlay]} />
-            <View style={styles.content}>
-              <AppText variant="eyebrow">{slide.eyebrow}</AppText>
-              <AppText variant="title" style={{ marginTop: spacing.xs, marginBottom: spacing.sm }}>
-                {slide.title}
-              </AppText>
-              <AppText variant="bodyMuted">{slide.subtitle}</AppText>
-            </View>
-          </View>
-        ))}
-      </ScrollView>
+    <View style={styles.screen}>
+      {/*
+        The interior shot with the chauffeur — it says what the service is.
+        The treatment is the design's: saturation pulled back and brightness
+        down, so the photograph reads as a ground for type rather than
+        competing with it.
+      */}
+      <Image
+        source={require('../assets/onboarding/ride.jpg')}
+        style={StyleSheet.absoluteFill}
+        resizeMode="cover"
+        accessibilityIgnoresInvertColors
+      />
+      <View style={styles.desaturate} pointerEvents="none" />
 
-      <View style={styles.footer}>
-        <View style={styles.dots}>
-          {SLIDES.map((_, i) => (
-            <Dot key={i} index={i} scrollX={scrollX} />
-          ))}
-        </View>
-        <View style={styles.actions}>
-          <Button label="Skip" variant="ghost" onPress={handleDone} style={{ flex: 1 }} />
-          <Button label={page === SLIDES.length - 1 ? 'Get Started' : 'Next'} onPress={handleNext} style={{ flex: 1 }} />
+      {/*
+        React Native has no CSS filter, so `saturate(.75) brightness(.62)` is
+        approximated: a low-opacity neutral wash flattens saturation, and the
+        vertical scrim below carries the brightness reduction. Flagged as an
+        approximation rather than presented as the filter.
+      */}
+      <LinearGradient
+        colors={['rgba(2,2,1,0.55)', 'rgba(2,2,1,0.15)', 'rgba(2,2,1,0.92)', theme.background.primary]}
+        locations={[0, 0.34, 0.78, 1]}
+        style={StyleSheet.absoluteFill}
+        pointerEvents="none"
+      />
+
+      <View style={[styles.content, { paddingTop: insets.top + space.smd, paddingBottom: insets.bottom + space.xl }]}>
+        <Image
+          source={require('../assets/brand/lct-logo.png')}
+          style={styles.logo}
+          resizeMode="contain"
+          accessibilityLabel="LCT Universal Executive Transports"
+        />
+
+        <View style={styles.copy}>
+          <AppText variant="eyebrow" style={styles.eyebrow}>
+            Est. Dallas–Fort Worth
+          </AppText>
+
+          <AppText variant="display" accessibilityRole="header" style={styles.headline}>
+            A car, a chauffeur,{'\n'}and nothing else{'\n'}to think about.
+          </AppText>
+
+          <AppText variant="bodyLead" style={styles.body}>
+            Reserve executive transportation across Dallas–Fort Worth and Grapevine, Texas.
+          </AppText>
+
+          <Button label="Continue" haptic onPress={() => void handleContinue()} />
+
+          <Pressable
+            onPress={() => void handleSignIn()}
+            accessibilityRole="button"
+            accessibilityLabel="Already a client? Sign in"
+            style={styles.signIn}
+          >
+            <AppText variant="caption" center>
+              Already a client?{' '}
+              <AppText variant="caption" color={theme.content.accent}>
+                Sign in
+              </AppText>
+            </AppText>
+          </Pressable>
         </View>
       </View>
     </View>
@@ -109,12 +117,14 @@ export default function OnboardingScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.surfaceBlack },
-  slide: { width: SCREEN_WIDTH, flex: 1 },
-  overlay: { backgroundColor: colors.overlay },
-  content: { position: 'absolute', left: 0, right: 0, bottom: 220, paddingHorizontal: spacing.xl },
-  footer: { position: 'absolute', left: 0, right: 0, bottom: 0, padding: spacing.xl, paddingTop: spacing.lg, backgroundColor: colors.surfaceBlack },
-  dots: { flexDirection: 'row', gap: 6, marginBottom: spacing.lg, justifyContent: 'center' },
-  dot: { height: 8, borderRadius: radius.full, backgroundColor: colors.gold },
-  actions: { flexDirection: 'row', gap: spacing.md },
+  screen: { flex: 1, backgroundColor: theme.background.primary },
+  /** Stands in for `saturate(.75)`; RN has no filter primitive. */
+  desaturate: { position: 'absolute', top: 0, bottom: 0, left: 0, right: 0, backgroundColor: 'rgba(28,26,24,0.22)' },
+  content: { flex: 1, paddingHorizontal: 26, justifyContent: 'space-between' },
+  logo: { width: 104, height: 70 },
+  copy: { paddingBottom: space.smd },
+  eyebrow: { marginBottom: 14 },
+  headline: { marginBottom: space.smd },
+  body: { marginBottom: 26, maxWidth: 300 },
+  signIn: { minHeight: 44, alignItems: 'center', justifyContent: 'center', marginTop: space.smd },
 });

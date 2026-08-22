@@ -15,13 +15,23 @@ import { TRIP_STAGE_ORDER, TRIP_STATUS_LABELS, type TripStatus } from '../../src
 const DEMO_STAGES: TripStatus[] = TRIP_STAGE_ORDER.filter((s) => s !== 'pending');
 const STAGE_DURATION_MS = 3200;
 
+/**
+ * A labelled preview of the tracking UI.
+ *
+ * Everything that would identify a real person or car has been removed: the
+ * invented name, the star rating, the "7 years / 2,400+ trips" tenure, the
+ * "Obsidian Black" colour and the "LCT-4471" plate. Plate, colour and tenure do
+ * not exist in the backend at all (BACKEND_FOLLOWUPS.md sections 1 and 2), and
+ * a preview that shows them makes fields look shipped that are not. The rating
+ * is dropped for the separate reason that a star rating on a chauffeur is the
+ * mass-market tell this redesign removes.
+ *
+ * What remains is what the screen is actually for: the status timeline, the
+ * animated route and the ETA.
+ */
 const DEMO_DRIVER = {
-  name: 'Marcus Bennett',
-  rating: 4.9,
-  experience: '7 years · 2,400+ trips',
-  vehicle: 'Mercedes-Benz S-Class',
-  vehicleColor: 'Obsidian Black',
-  plate: 'LCT-4471',
+  name: 'Your chauffeur',
+  vehicle: 'Executive Sedan',
 };
 
 export default function DemoTripScreen() {
@@ -77,7 +87,7 @@ export default function DemoTripScreen() {
               <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 2 }}>
                 <Star size={12} color={colors.gold} strokeWidth={1.5} fill={colors.gold} />
                 <AppText variant="caption" style={{ marginLeft: 4 }}>
-                  {DEMO_DRIVER.rating.toFixed(1)} · {DEMO_DRIVER.experience}
+                  Assigned ahead of pickup
                 </AppText>
               </View>
             </View>
@@ -93,7 +103,7 @@ export default function DemoTripScreen() {
           <View style={styles.vehicleRow}>
             <Car size={16} color={colors.mutedForeground} strokeWidth={1.5} />
             <AppText variant="caption" style={{ marginLeft: spacing.xs }}>
-              {DEMO_DRIVER.vehicle} · {DEMO_DRIVER.vehicleColor} · Plate {DEMO_DRIVER.plate}
+              {DEMO_DRIVER.vehicle}
             </AppText>
           </View>
         </Card>

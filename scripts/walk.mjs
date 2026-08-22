@@ -50,14 +50,16 @@ await clickText('Book a car');                       console.log('  1 pickup    
 await fillVisible(0,'1240 Hillcrest Rd, Beverly Hills');
 await clickText('Confirm Location');                 console.log('  2 destination ', at());
 await fillVisible(0,'LAX Terminal 7');
-await clickText('Confirm Location');                 console.log('  3 vehicle     ', at());
+await clickText('Confirm Location');                 console.log('  3 when & who  ', at());
+await page.screenshot({path:`${OUT}/W-3-details.png`});
+// The REORDER: date and time now come before the car, so the fare quoted on the
+// vehicle screen is computed from the real scheduledAt and is genuinely final.
+await fillVisible(0,'2026-09-15'); await fillVisible(1,'14:30');
+await clickText('Choose your car');                  console.log('  4 vehicle     ', at());
 await page.screenshot({path:`${OUT}/W-1-vehicle.png`});
 await clickText('Executive Sedan');
 await page.screenshot({path:`${OUT}/W-2-vehicle-selected.png`});
-await clickText('Continue ·');                       console.log('  4 details     ', at());
-await page.screenshot({path:`${OUT}/W-3-details.png`});
-await fillVisible(0,'2026-09-15'); await fillVisible(1,'14:30');
-await clickText('Continue');                         console.log('  5 payment     ', at());
+await clickText('Review & pay');                     console.log('  5 payment     ', at());
 await page.screenshot({path:`${OUT}/W-4-payment.png`});
 const payText = await page.evaluate(()=>document.body.innerText);
 console.log('    payment total line:', (payText.match(/Authorise \$[\d.,]+/)||['(none)'])[0]);

@@ -15,6 +15,8 @@ import { TRIP_STAGE_ORDER, TRIP_STATUS_LABELS, isTerminalStatus, stageIndex, typ
 import { useTripSocket } from '../../../src/lib/useTripSocket';
 import { isMapsConfigured } from '../../../src/lib/env';
 import { isExpoGo } from '../../../src/lib/expoEnvironment';
+import { ErrorState } from '../../../src/components/ui/ErrorState';
+import { Skeleton } from '../../../src/components/ui/Skeleton';
 import { servicePolicy, cancellationSentenceFor } from '../../../src/config/servicePolicy';
 
 // Only ever rendered when Maps is configured AND we're not in Expo Go —
@@ -105,11 +107,22 @@ export default function TripDetailScreen() {
   const [driver, setDriver] = useState<TripDriverInfo | null>(null);
   const [vehicle, setVehicle] = useState<TripVehicleInfo | null>(null);
   const [cancelling, setCancelling] = useState(false);
+  const [loadError, setLoadError] = useState<Error | null>(null);
   const live = useTripSocket(bookingId ?? null);
 
   const load = useCallback(() => {
     if (!bookingId) return;
-    bookingsApi.get(bookingId).then(setBooking).catch(() => {});
+    setLoadError(null);
+    // The booking is the screen. A failure here used to be swallowed, leaving
+    // "Loading…" on screen forever with no timeout, no retry and no error —
+    // audit P0-5, and the worst remaining failure in the app.
+    bookingsApi
+      .get(bookingId)
+      .then(setBooking)
+      .catch((cause: unknown) => setLoadError(cause instanceof Error ? cause : new Error(String(cause))));
+    // The trip detail is supplementary: a chauffeur may not be assigned yet, and
+    // that is not a screen failure. Deliberately soft, and it is why this one
+    // does not set loadError.
     tripsApi
       .getByBookingId(bookingId)
       .then((res) => {
@@ -125,7 +138,9 @@ export default function TripDetailScreen() {
   // Re-fetch driver/trip info once the socket reports driver_assigned so
   // the driver card appears without waiting for the next screen focus.
   useEffect(() => {
-    if (live.status === 'driver_assigned' && !driver) load();
+    // Deferred a microtask so the refetch's setState never lands synchronously
+    // inside the effect body — the idiom used elsewhere in this codebase.
+    if (live.status === 'driver_assigned' && !driver) void Promise.resolve().then(load);
   }, [live.status, driver, load]);
 
   async function handleCancel() {
@@ -139,7 +154,25 @@ export default function TripDetailScreen() {
     }
   }
 
-  if (!booking) return <ScreenContainer><AppText variant="body">Loading…</AppText></ScreenContainer>;
+  if (loadError) {
+    return (
+      <ScreenContainer>
+        <ErrorState
+          title="We couldn't load this trip"
+          message="Your reservation is safe — this is our end."
+          onRetry={load}
+        />
+      </ScreenContainer>
+    );
+  }
+
+  if (!booking) {
+    return (
+      <ScreenContainer>
+        <Skeleton.Card />
+      </ScreenContainer>
+    );
+  }
 
   const status = live.status ?? trip?.status ?? booking.status;
   const driverLat = live.location?.lat ?? trip?.driver_current_lat ?? null;

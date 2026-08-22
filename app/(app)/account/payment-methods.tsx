@@ -4,6 +4,7 @@ import { Pressable, View } from 'react-native';
 import { CreditCard, Trash2 } from 'lucide-react-native';
 import { Card } from '../../../src/components/ui/Card';
 import { ScreenContainer } from '../../../src/components/ui/ScreenContainer';
+import { ErrorState } from '../../../src/components/ui/ErrorState';
 import { AppText } from '../../../src/components/ui/Typography';
 import { colors, spacing } from '../../../src/theme/tokens';
 import { profilesApi } from '../../../src/api/profiles';
@@ -16,10 +17,16 @@ import { useAuthStore } from '../../../src/store/authStore';
 export default function PaymentMethodsScreen() {
   const status = useAuthStore((s) => s.status);
   const [methods, setMethods] = useState<PaymentMethodRecord[]>([]);
+  const [loadError, setLoadError] = useState<Error | null>(null);
 
   const load = useCallback(() => {
     if (status !== 'signed-in') return;
-    profilesApi.paymentMethods().then(setMethods).catch(() => {});
+    profilesApi.paymentMethods()
+      .then(setMethods).catch((cause: unknown) =>
+      // Was `.catch(() => {})`: a failed read rendered as an empty list, which
+      // tells the customer they have nothing rather than that we could not ask.
+      setLoadError(cause instanceof Error ? cause : new Error(String(cause))),
+    );
   }, [status]);
 
   useFocusEffect(useCallback(() => { load(); }, [load]));
@@ -36,6 +43,9 @@ export default function PaymentMethodsScreen() {
 
   return (
     <ScreenContainer>
+      {loadError ? (
+        <ErrorState title="We couldn't load your payment methods" message="This is our end, not yours." onRetry={load} />
+      ) : null}
       <AppText variant="title" style={{ marginBottom: spacing.lg }}>
         Payment Methods
       </AppText>

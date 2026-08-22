@@ -15,7 +15,7 @@ import { isDemoMode } from './env';
  */
 export function isQuoteOnly(vehicleType: string): boolean {
   if (!isDemoMode) return false;
-  // eslint-disable-next-line @typescript-eslint/no-require-imports -- src/dev is blocked from non-demo production bundles
+  // eslint-disable-next-line @typescript-eslint/no-require-imports -- lazy so the seed is only touched in demo mode; see metro.config.js
   const { QUOTE_ONLY_VEHICLE_TYPES } = require('../dev/demoData') as typeof import('../dev/demoData');
   return QUOTE_ONLY_VEHICLE_TYPES.includes(vehicleType);
 }

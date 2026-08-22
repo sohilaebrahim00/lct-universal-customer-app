@@ -84,4 +84,11 @@ export const isMapsConfigured = Boolean(env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY);
  * when the bundle is produced — it cannot be toggled at runtime, and a build
  * made before the variable was set has to be redeployed.
  */
-export const isDemoMode = env.EXPO_PUBLIC_DEMO_MODE === 'true';
+/*
+ * Read straight from process.env rather than through the parsed object.
+ * Metro inlines a literal  member expression at
+ * build time; routing it through zod first adds a parse step between the
+ * inlined literal and this comparison for no benefit, and it is the one flag
+ * whose failure mode is silent (the app just quietly is not a demo).
+ */
+export const isDemoMode = process.env.EXPO_PUBLIC_DEMO_MODE === 'true';

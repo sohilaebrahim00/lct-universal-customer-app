@@ -37,16 +37,17 @@ import { PRICING_STATEMENT } from '../../../src/config/servicePolicy';
  * rate card. The chosen breakdown is written to `draft.allInFare` and carried to
  * payment, so the two screens read one object rather than each recomputing.
  *
- * ── Known, accepted rework ──────────────────────────────────────────────────
- * The route reorder that moves date/time BEFORE this screen has not landed yet.
- * Until it does, `scheduledAt` may be unset, and this screen falls back to the
- * earliest bookable slot (one hour out) for the late-night check. That is the
- * one input which can still move the total, and the fallback is stated on screen
- * rather than hidden. When the reorder lands, delete `FALLBACK_LEAD_MS` and read
- * the draft directly.
+ * ── Why the fare here is final ──────────────────────────────────────────────
+ * The route reorder landed: pickup, destination, WHEN & WHO, car, pay. So
+ * `scheduledAt` is known before this screen renders, the late-night surcharge
+ * is already decided, and there is no input left that can move the total. The
+ * placeholder `previewDate = new Date()` is deleted.
+ *
+ * If `scheduledAt` is somehow missing — a deep link straight to this URL — the
+ * screen says so and sends the customer back rather than quoting a number it
+ * cannot stand behind.
  */
 
-const FALLBACK_LEAD_MS = 60 * 60 * 1000;
 /** Card photo width from the artboard; the row's height follows from the content. */
 const PHOTO_WIDTH = 108;
 
@@ -58,9 +59,7 @@ export default function VehicleStep() {
   // synchronously — which is both the lint rule and one fewer render.
   const [state, setState] = useState<AsyncState<Vehicle[]>>(asyncState.loading<Vehicle[]>());
 
-  // Computed once at mount so the fare cannot drift while the screen is open.
-  const [scheduledAt] = useState(() => draft.scheduledAt ?? new Date(Date.now() + FALLBACK_LEAD_MS));
-  const usingFallbackDate = draft.scheduledAt === null;
+  const scheduledAt = draft.scheduledAt;
 
   const load = useCallback(async () => {
     try {
@@ -92,6 +91,10 @@ export default function VehicleStep() {
       // The business will not price these without being asked, so neither does
       // the app. See src/lib/quoteOnly.ts.
       if (isQuoteOnly(vehicle.type)) {
+        map.set(vehicle.id, null);
+        continue;
+      }
+      if (!scheduledAt) {
         map.set(vehicle.id, null);
         continue;
       }
@@ -131,10 +134,36 @@ export default function VehicleStep() {
   const subhead = [
     `${PRICING_STATEMENT} Every price below is final — gratuity and tax included.`,
     draft.distanceMiles ? `${draft.distanceMiles} mi` : null,
-    formatDateTime(scheduledAt.toISOString()),
+    scheduledAt ? formatDateTime(scheduledAt.toISOString()) : null,
   ]
     .filter(Boolean)
     .join(' · ');
+
+  /*
+    No pickup time means no final fare. Rather than quote against a guess, the
+    screen says what is missing and offers the way back. Only reachable by deep
+    link now that the reorder has landed.
+  */
+  if (!scheduledAt) {
+    return (
+      <View style={styles.screen}>
+        <View style={styles.header}>
+          <IconButton
+            icon={isRTL() ? ChevronRight : ChevronLeft}
+            accessibilityLabel="Go back"
+            variant="circular"
+            onPress={() => router.back()}
+          />
+        </View>
+        <ErrorState
+          title="We need your pickup time first"
+          message="Prices here are final, so we set them once we know when your car is needed."
+          action={<Button label="Set date & time" onPress={() => router.replace('/(app)/book/details')} />}
+          style={styles.body}
+        />
+      </View>
+    );
+  }
 
   return (
     <View style={styles.screen}>
@@ -146,7 +175,7 @@ export default function VehicleStep() {
           onPress={() => router.back()}
         />
         <View style={styles.railWrap}>
-          <ProgressRail step={3} total={5} label="Your car" />
+          <ProgressRail step={4} total={5} label="Your car" />
         </View>
       </View>
 
@@ -157,11 +186,7 @@ export default function VehicleStep() {
         <AppText variant="captionSm" style={styles.subhead}>
           {subhead}
         </AppText>
-        {usingFallbackDate ? (
-          <AppText variant="captionSm" color={theme.content.tertiary} style={styles.subhead}>
-            Pickup time is confirmed on the next step.
-          </AppText>
-        ) : null}
+
       </View>
 
       {state.status === 'loading' || state.status === 'idle' ? (
@@ -210,13 +235,13 @@ export default function VehicleStep() {
             selectedIsQuoteOnly
               ? 'Request a quote'
               : selectedFare
-                ? `Continue · ${formatCurrency(selectedFare.totalFare)}`
-                : 'Continue'
+                ? `Review & pay · ${formatCurrency(selectedFare.totalFare)}`
+                : 'Review & pay'
           }
           disabled={!selected || (!selectedFare && !selectedIsQuoteOnly)}
           disabledReason="Pick a car to continue"
           haptic
-          onPress={() => router.push('/(app)/book/details')}
+          onPress={() => router.push('/(app)/book/payment')}
         />
       </LinearGradient>
     </View>
@@ -272,7 +297,7 @@ function VehicleCard({
 
           <View style={styles.cardBody}>
             <View style={styles.titleRow}>
-              <AppText variant="subheading" numberOfLines={1} style={styles.name}>
+              <AppText variant="subheading" numberOfLines={2} style={styles.name}>
                 {vehicle.name}
               </AppText>
               {quoteOnly ? (
@@ -301,7 +326,14 @@ function VehicleCard({
             </View>
 
             {reason ? (
-              <AppText variant="captionSm" color={theme.content.danger} style={styles.reason}>
+              <AppText
+                variant="captionSm"
+                // Only a capacity mismatch is a problem. "We quote this class by
+                // hand" is information, and colouring it danger-red reads as an
+                // error the customer needs to resolve.
+                color={fits ? theme.content.secondary : theme.content.danger}
+                style={styles.reason}
+              >
                 {reason}
               </AppText>
             ) : null}

@@ -11,7 +11,7 @@ import { isDemoMode } from './env';
  */
 export function resetDemo(): void {
   if (!isDemoMode) return;
-  // eslint-disable-next-line @typescript-eslint/no-require-imports -- src/dev is blocked from non-demo production bundles
+  // eslint-disable-next-line @typescript-eslint/no-require-imports -- lazy so the seed is only touched in demo mode; see metro.config.js
   const { resetDemoState } = require('../dev/demoApi') as typeof import('../dev/demoApi');
   resetDemoState();
 }
