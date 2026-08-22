@@ -724,6 +724,138 @@ phase does not touch backend logic or absorb a divergence into the UI.
 
 ---
 
+## 9. Live tracking — what it would take to make it genuinely live
+
+The tracking screen is rebuilt (artboard 2k) and it consumes real data
+correctly. Whether that data is real is a backend question, and the answer is
+**closer than expected: the plumbing exists, and three specific things stop it
+from arriving.**
+
+### What already works, end to end
+
+| Piece | Where | State |
+|---|---|---|
+| Per-booking WebSocket channel | `src/ws/hub.ts`, `src/ws/server.ts` | Built |
+| Driver posts a fix mid-trip | `PATCH /trips/:id/location` | Built, driver-authenticated, ownership-checked |
+| That fix relayed to the customer | `publishTripEvent(booking_id, {type:'location'})` | Built |
+| Status transitions relayed the same way | `PATCH /trips/:id/status` | Built, guarded by the state machine |
+| Client subscribes and reconnects | `src/lib/useTripSocket.ts` | Built |
+
+**So a driver app calling `PATCH /trips/:id/location` on a timer makes this
+screen live today, with no backend change.** That is the headline. What follows
+is what would make it *good*.
+
+### G-1 · The trip socket carries no heading — **the marker's direction is guessed**
+
+*What the screen needs it for.* The chauffeur marker rotates to the vehicle's
+bearing. A pin that does not point anywhere tells a customer nothing about
+whether the car is coming towards them or has just passed the turn.
+
+*What exists.* Heading exists in the system and does not reach this screen:
+
+- `driver_locations.heading` and `.speed` — real columns (migration 0021).
+- `PATCH /drivers/me/location` accepts `heading` and `speed` and stores them.
+- But it publishes a **`FleetEvent`** to the admin channel:
+  `{ type: 'driver_location', driverId, lat, lng }` — and even that drops the
+  heading it was just given.
+- The customer's **`TripEvent`** is `{ type: 'location', lat, lng, etaMinutes }`.
+  No heading, no speed.
+
+*What the app does meanwhile.* `src/lib/geo.ts` derives bearing from consecutive
+fixes. It works, and it has two honest failure modes that no amount of client
+code can fix: a stationary vehicle has no derivable bearing (the app holds the
+last one rather than spinning the marker at a red light), and at low speed GPS
+jitter dominates the real movement, so the derived bearing wobbles.
+
+*What would change.* Add `heading` to `TripEvent` and to
+`PATCH /trips/:id/location`'s schema, and pass it through `publishTripEvent`.
+Roughly four lines, no migration — `driver_locations` already has the column,
+and the driver app is already being asked for the value by the other endpoint.
+
+### G-2 · No update cadence is specified anywhere — **on either side**
+
+*Why it matters.* Smooth motion needs to know how long to spend walking from one
+fix to the next. Too fast and the marker arrives early and freezes; too slow and
+it lags behind a car that has already turned.
+
+*What exists.* Nothing. No documented interval, no rate limit on the endpoint,
+no `expectedIntervalMs` in the payload. `PATCH /drivers/me/location`'s comment
+says drivers call it "on an interval" without saying which.
+
+*What the app does meanwhile.* `useSmoothedLocation` **measures** the gap
+between the last two frames and paces itself to that, clamped to 0.9–8s. Self-
+correcting and needs no shared constant, but it is inferring a contract rather
+than reading one, and it is wrong for exactly one frame after any change in
+cadence.
+
+*What would change.* Decide the interval — 3–5s is the usual trade against
+battery — write it down, and either enforce it with a rate limit or publish it
+in the payload so the client can pace exactly rather than approximately.
+
+### G-3 · `driver_locations` is never written during a trip
+
+*What it means.* The append-only heartbeat log is written **only** by
+`PATCH /drivers/me/location`. The trip-scoped `PATCH /trips/:id/location` writes
+`trips.driver_current_lat/lng` — a single latest point that each update
+overwrites — and publishes to the socket.
+
+*The consequence.* A completed trip has no movement history. "Where was the car
+at 18:42?" is unanswerable, which matters for a disputed wait charge, a
+complaint about a route, or an insurance question. It also means the tracking
+screen cannot draw a travelled path, only a current point.
+
+*What would change.* Have `PATCH /trips/:id/location` also insert into
+`driver_locations` (adding a nullable `trip_id` to that table would make the
+history queryable per trip). One insert; the table and index already exist.
+
+### G-4 · No route line to draw
+
+*What the screen would do with it.* The camera frames the chauffeur and the
+destination. What it cannot show is the road between them, so the customer sees
+two points and infers the rest.
+
+*What exists.* `GET /maps/route` returns a route (`src/modules/maps/routes.ts`,
+with `src/lib/polyline.ts` for encoding). It is a live Google Directions call
+per request, and **nothing persists the result**: `bookings` has no
+`route_polyline` column, and neither does `trips`.
+
+*What would change.* Store the encoded polyline on the booking at creation —
+the route is already computed then for the distance — and return it on the trip
+detail. That also removes a Google Directions call per tracking-screen open,
+which is a real cost on a screen that stays open for the length of a journey.
+
+### G-5 · ETA is whatever the driver app last said
+
+`eta_minutes` is an optional field on `PATCH /trips/:id/location`, supplied by
+the driver's client. Nothing on the server computes or sanity-checks it, and
+nothing prevents it from going up and down between frames.
+
+The progress curve (`src/lib/tripProgress.ts`) is monotonic **given a monotonic
+ETA**; it cannot make a jittery input smooth, and it deliberately does not try —
+smoothing an ETA on the client would mean showing a customer a number the system
+does not actually believe.
+
+*What would change.* Either compute the ETA server-side from the current
+position and the route, or clamp it so it can only decrease except on a
+recalculated route. This is a product decision about which is more honest when
+traffic genuinely worsens.
+
+### Summary for whoever picks this up
+
+| # | Gap | Cost | Blocks |
+|---|---|---|---|
+| G-1 | No heading on the trip socket | ~4 lines, no migration | Accurate marker direction |
+| G-2 | No specified update cadence | A decision, then a line | Exact rather than inferred pacing |
+| G-3 | No per-trip location history | One insert + nullable column | Disputes, travelled path |
+| G-4 | Route polyline not persisted | One column + one return field | Drawing the route; saves a Maps call per open |
+| G-5 | ETA unvalidated, client-supplied | A decision | A progress bar that cannot go backwards |
+
+**None of these blocks shipping the screen.** With a driver app posting
+locations it is live today. G-1 is the one worth doing first: it is the smallest
+change and it removes a guess from the most-watched element on the screen.
+
+---
+
 ## Business inputs still pending
 
 Not engineering work — questions only LCT can answer. Each renders nothing in the

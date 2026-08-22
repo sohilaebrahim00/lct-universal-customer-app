@@ -314,6 +314,43 @@ export const DEMO_PAYMENT_METHODS: PaymentMethodRecord[] = [
   },
 ];
 
+/**
+ * Real DFW coordinates for the addresses this dataset uses.
+ *
+ * One place, keyed by the exact address string, so a booking's address and its
+ * point are the same fact rather than two that can disagree. Matching is on the
+ * leading street portion, which is what every address here differs by.
+ */
+const DEMO_PLACES: { match: string; lat: number; lng: number }[] = [
+  { match: '4820 Maple Ave', lat: 32.8121, lng: -96.8175 },
+  { match: '2100 Ross Ave', lat: 32.7873, lng: -96.7969 },
+  { match: 'DFW Terminal D', lat: 32.8969, lng: -97.0381 },
+  { match: 'DFW Terminal A', lat: 32.9008, lng: -97.0362 },
+  { match: 'Dallas Love Field', lat: 32.8481, lng: -96.8512 },
+  { match: 'Gaylord Texan', lat: 32.9618, lng: -97.0645 },
+  { match: 'Hotel Crescent Court', lat: 32.7969, lng: -96.8036 },
+  { match: 'The Ritz-Carlton', lat: 32.7935, lng: -96.8014 },
+  { match: '1717 McKinney Ave', lat: 32.7896, lng: -96.8027 },
+  { match: '3400 Oak Lawn Ave', lat: 32.8134, lng: -96.8055 },
+  { match: 'Meridian Law', lat: 32.7955, lng: -96.8085 },
+];
+
+function coordsFor(address: string | null): { lat: number; lng: number } | null {
+  if (!address) return null;
+  return DEMO_PLACES.find((p) => address.startsWith(p.match)) ?? null;
+}
+
+/**
+ * Where the chauffeur is when tracking opens: a little south-east of the
+ * pickup, so the marker has somewhere to come from. Derived from the booking
+ * rather than fixed, so every trip's approach is plausible for its own route.
+ */
+function driverStartFor(booking: Booking): { lat: number; lng: number } {
+  const pickup = coordsFor(booking.pickup_address);
+  if (!pickup) return { lat: 32.7767, lng: -96.797 }; // Downtown Dallas
+  return { lat: pickup.lat - 0.018, lng: pickup.lng + 0.021 };
+}
+
 /* ------------------------------------------------------------------ *
  * Bookings — fares COMPUTED, never typed.
  * ------------------------------------------------------------------ */
@@ -364,11 +401,22 @@ function makeBooking(input: {
     service_type: serviceType,
     vehicle_id: vehicle.id,
     pickup_address: pickup,
-    pickup_lat: null,
-    pickup_lng: null,
+    /*
+     * COORDINATES, not nulls.
+     *
+     * These were null, which was invisible until the tracking screen was
+     * rebuilt around a full-bleed map: with no pickup or drop-off point there
+     * is nothing to frame the camera on and nothing to measure the closing
+     * distance against, so the demo's most important screen had no content.
+     *
+     * Resolved from the address against DEMO_PLACES below rather than typed
+     * per booking, so an address and its point cannot drift apart.
+     */
+    pickup_lat: coordsFor(pickup)?.lat ?? null,
+    pickup_lng: coordsFor(pickup)?.lng ?? null,
     dropoff_address: dropoff,
-    dropoff_lat: null,
-    dropoff_lng: null,
+    dropoff_lat: dropoff ? (coordsFor(dropoff)?.lat ?? null) : null,
+    dropoff_lng: dropoff ? (coordsFor(dropoff)?.lng ?? null) : null,
     scheduled_at: scheduledAt.toISOString(),
     hourly_duration_hours: null,
     passenger_count: input.passengers ?? 2,
@@ -545,8 +593,17 @@ export function seedTrip(booking: Booking, driverId: string | null = DEMO_DRIVER
     driver_id: driverId,
     vehicle_id: booking.vehicle_id,
     status: booking.status,
-    driver_current_lat: 34.0736,
-    driver_current_lng: -118.3994,
+    /*
+     * Was 34.0736, -118.3994 — LOS ANGELES, on a Dallas–Fort Worth product.
+     * Nothing surfaced it while the map was a 200pt card framed on the driver
+     * alone; a full-bleed map that frames the chauffeur together with the
+     * pickup put a Californian marker and a Texan one on the same screen.
+     *
+     * Now a point a short drive from the pickup, so the approach reads as an
+     * approach.
+     */
+    driver_current_lat: driverStartFor(booking).lat,
+    driver_current_lng: driverStartFor(booking).lng,
     driver_location_updated_at: new Date().toISOString(),
     eta_minutes: 6,
     picked_up_at: null,

@@ -114,6 +114,21 @@ for things the company has published about itself.
 *(Per-screen entries are compiled in the handover slice. Recorded here as work
 lands.)*
 
+### Demo dataset — two defects the tracking rebuild surfaced
+
+Recorded because both were invisible until a screen actually depended on them.
+
+- **The seeded chauffeur was in Los Angeles** (`34.0736, -118.3994`) on a
+  Dallas–Fort Worth product. Nothing showed it while the map framed the driver
+  alone; a map that frames chauffeur *and* pickup put a Californian marker and a
+  Texan one on one screen.
+- **Seeded bookings carried no coordinates.** With no pickup or drop-off point
+  there is nothing to frame and nothing to measure closing distance against, so
+  the demo's most important screen had no content.
+
+Both fixed by resolving coordinates from the address against one table, so an
+address and its point cannot drift apart.
+
 ### Fleet
 
 - Shows the website's published starting label — "From $95", no cents — in
@@ -135,6 +150,49 @@ lands.)*
   **Why:** quote-only status came from a demo-gated helper, so in production the
   app quoted `$211.61` and `$532.24` for two classes the website marks "Request
   Quote" — committing LCT to a price they have explicitly said they do not give.
+
+### Live tracking (`trips/[id]`) — artboard 2k
+
+- **The map is the screen.** Full bleed, sheet floating over it. It was a 200pt
+  map card inside a scroll view, framed at a fixed `latitudeDelta: 0.02` —
+  which framed a 23-mile airport run exactly as tightly as a one-mile hop, and
+  put the chauffeur off screen on the former.
+- The chauffeur marker **interpolates** coordinate and bearing across the update
+  interval and never jumps. Bearing takes the short way around the compass, so a
+  car crossing north does not pirouette. The interval is *measured* from the gap
+  between the last two frames, because no cadence is specified on either side
+  (`BACKEND_FOLLOWUPS.md` §9 G-2).
+- The camera **eases** rather than snapping, and reframes at
+  `passenger_picked_up`: chauffeur + pickup on approach, chauffeur +
+  destination in trip. Before it, the customer cares how close the car is to
+  them; after it, how close they are to where they are going.
+- **Uber's dynamic progress curve**, copied deliberately: the last 20% of the
+  bar represents the last 2 minutes. A linear bar moves a few pixels during the
+  only two minutes anyone watches it, and stops reading as information. Honest
+  because it reallocates *bar* between time intervals — it stays monotonic and
+  reaches 1 exactly when the ETA reaches 0. It does not invent progress.
+- Chauffeur row shows **tenure, not a rating**. `drivers.hired_at` does not
+  exist (§2), so the line renders nothing today and explicitly does **not** fall
+  back to `driver.rating`, which is populated and available — falling back
+  would quietly restore the thing the design removed.
+- Timeline animates as it advances, with `accessibilityLiveRegion="polite"` on
+  the **active row only**. Marking the whole list live would re-read seven rows
+  on every change.
+- **Nothing is sold on this screen**, and one tap reaches dispatch.
+
+**Verified (demo layer, web build):** status changes made in the chauffeur role
+preview appear on this screen; the sheet, timeline, chauffeur row, addresses and
+dispatch action render; the web placeholder still shows live closing distance;
+no console errors.
+
+**Unverified — native only:** map rendering, marker rotation and interpolation,
+and camera easing. `react-native-maps` has no web implementation. See
+`RUNBOOK_AUTH_VERIFICATION.md` §7.
+
+**Known limitation:** the custom map style applies on Android and not on iOS —
+Apple Maps ignores `customMapStyle` and this app does not select the Google
+provider on iOS. That is a product decision with licensing attached, not a
+styling one.
 
 ### Booking — payment
 
@@ -171,6 +229,7 @@ screen, and live trip tracking.**
 The fare guard is verified against the demo backend only. Its one real test —
 the client's preview against an independent server computation — needs auth.
 
-The agreed route when a named screen requires it: a seed, an env template and an
-exact runbook prepared here, run on the owner's side with credentials that never
-pass through this workspace.
+The route is now written: **RUNBOOK_AUTH_VERIFICATION.md**. It lists the seven
+claims that need auth (A1–A7), the exact commands, and how to force the fare
+guard to fire so a guard that never fires is not mistaken for a verified one.
+Run on the owner's side; credentials never pass through this workspace.
