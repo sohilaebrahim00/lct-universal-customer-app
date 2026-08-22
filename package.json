@@ -66,9 +66,10 @@
     "typecheck": "tsc --noEmit",
     "lint": "eslint app src",
     "test": "jest",
-    "export:web": "expo export --platform web",
-    "export:ios": "expo export --platform ios",
-    "build:dev": "eas build --profile development"
+    "export:web": "expo export --platform web --clear && node scripts/verify-build-mode.mjs dist",
+    "export:ios": "expo export --platform ios --clear",
+    "build:dev": "eas build --profile development",
+    "verify:build-mode": "node scripts/verify-build-mode.mjs"
   },
   "jest": {
     "preset": "ts-jest",

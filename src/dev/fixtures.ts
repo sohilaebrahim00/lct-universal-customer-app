@@ -146,6 +146,12 @@ export const FIXTURE_VEHICLES: Vehicle[] = [
     per_hour_rate: '95.00',
     image_url: null,
     is_active: true,
+    // Null on every real row too: `vehicles` is a fare-class table, so no
+    // physical car and therefore no plate or colour. See BACKEND_FOLLOWUPS.md §1.
+    license_plate: null,
+    color: null,
+    created_at: new Date('2026-01-01T00:00:00Z').toISOString(),
+    updated_at: new Date('2026-01-01T00:00:00Z').toISOString(),
   },
   {
     id: 'fixture-vehicle-suv',
@@ -159,6 +165,12 @@ export const FIXTURE_VEHICLES: Vehicle[] = [
     per_hour_rate: '130.00',
     image_url: null,
     is_active: true,
+    // Null on every real row too: `vehicles` is a fare-class table, so no
+    // physical car and therefore no plate or colour. See BACKEND_FOLLOWUPS.md §1.
+    license_plate: null,
+    color: null,
+    created_at: new Date('2026-01-01T00:00:00Z').toISOString(),
+    updated_at: new Date('2026-01-01T00:00:00Z').toISOString(),
   },
   {
     id: 'fixture-vehicle-sprinter',
@@ -172,6 +184,12 @@ export const FIXTURE_VEHICLES: Vehicle[] = [
     per_hour_rate: '165.00',
     image_url: null,
     is_active: true,
+    // Null on every real row too: `vehicles` is a fare-class table, so no
+    // physical car and therefore no plate or colour. See BACKEND_FOLLOWUPS.md §1.
+    license_plate: null,
+    color: null,
+    created_at: new Date('2026-01-01T00:00:00Z').toISOString(),
+    updated_at: new Date('2026-01-01T00:00:00Z').toISOString(),
   },
 ];
 

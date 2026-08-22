@@ -20,7 +20,7 @@ import { formatCurrency, formatDateTime } from '../../../src/lib/format';
 import { VEHICLE_IMAGES } from '../../../src/lib/vehicleImages';
 import { asyncState, type AsyncState } from '../../../src/lib/asyncState';
 import { isRTL } from '../../../src/i18n/rtl';
-import { isQuoteOnly } from '../../../src/lib/quoteOnly';
+import { isQuoteOnly } from '../../../src/config/publishedFleet';
 import { PRICING_STATEMENT } from '../../../src/config/servicePolicy';
 
 /**

@@ -26,12 +26,19 @@ import { TRIP_STAGE_ORDER, stageIndex } from '../lib/tripStatus';
  * It is NOT invented pricing. The computable rates below are copied from the
  * backend's own `db/seed.sql`, and every fare on screen is produced from them by
  * the real `calculateFarePreview()` — the same function the booking flow uses.
- * The website's published starting prices are recorded separately, verbatim, at
- * the bottom of this file. No figure anywhere is typed into a component.
+ * No figure anywhere is typed into a component.
  *
- * The two sources DISAGREE. See WEBSITE_PUBLISHED_RATES below and
- * BACKEND_FOLLOWUPS.md §6 — not reconciled here, because which one is correct is
- * a business decision.
+ * ── What used to be here and is not any more ────────────────────────────────
+ * The website's published starting prices and its quote-only classes lived at
+ * the bottom of this file. They have moved to `src/config/publishedFleet.ts`,
+ * because they are facts about the BUSINESS rather than demo data, and keeping
+ * them here meant the helpers that read them were gated on `isDemoMode` —
+ * which made both safeguards inert in exactly the build that ships. See that
+ * file's header for what that produced against a live API.
+ *
+ * The website and the backend still DISAGREE about rates. See
+ * BACKEND_FOLLOWUPS.md §6 — not reconciled anywhere, because which one is
+ * correct is a business decision.
  *
  * It is also NOT a set of invented service promises. There is no cancellation
  * window, no complimentary wait time and no dispatch phone here: those live in
@@ -68,6 +75,12 @@ export const DEMO_VEHICLES: Vehicle[] = [
     per_hour_rate: '100.00',
     image_url: null,
     is_active: true,
+    // Null on every real row too: `vehicles` is a fare-class table, so no
+    // physical car and therefore no plate or colour. See BACKEND_FOLLOWUPS.md §1.
+    license_plate: null,
+    color: null,
+    created_at: new Date('2026-01-01T00:00:00Z').toISOString(),
+    updated_at: new Date('2026-01-01T00:00:00Z').toISOString(),
   },
   {
     id: 'demo-vehicle-suv',
@@ -81,6 +94,12 @@ export const DEMO_VEHICLES: Vehicle[] = [
     per_hour_rate: '120.00',
     image_url: null,
     is_active: true,
+    // Null on every real row too: `vehicles` is a fare-class table, so no
+    // physical car and therefore no plate or colour. See BACKEND_FOLLOWUPS.md §1.
+    license_plate: null,
+    color: null,
+    created_at: new Date('2026-01-01T00:00:00Z').toISOString(),
+    updated_at: new Date('2026-01-01T00:00:00Z').toISOString(),
   },
   {
     id: 'demo-vehicle-sprinter',
@@ -94,6 +113,12 @@ export const DEMO_VEHICLES: Vehicle[] = [
     per_hour_rate: '200.00',
     image_url: null,
     is_active: true,
+    // Null on every real row too: `vehicles` is a fare-class table, so no
+    // physical car and therefore no plate or colour. See BACKEND_FOLLOWUPS.md §1.
+    license_plate: null,
+    color: null,
+    created_at: new Date('2026-01-01T00:00:00Z').toISOString(),
+    updated_at: new Date('2026-01-01T00:00:00Z').toISOString(),
   },
 ];
 
@@ -614,18 +639,5 @@ export const DEMO_CONCIERGE: { role: 'user' | 'assistant'; content: string }[] =
  * not price without asking commits LCT to a promise it never made — the same
  * failure as an invented policy figure.
  */
-export const QUOTE_ONLY_VEHICLE_TYPES: readonly string[] = ['sprinter', 'coach'];
 
-export const WEBSITE_PUBLISHED_RATES: Record<string, string> = {
-  // Backend `vehicle_type` → the website's published label, unchanged.
-  executive_sedan: 'From $95',
-  suv: 'From $110',
-  sprinter: 'Request Quote',
-  coach: 'Request Quote',
-};
 
-/** Website classes with no backend equivalent, recorded so the gap is not lost. */
-export const WEBSITE_CLASSES_WITHOUT_BACKEND_EQUIVALENT = [
-  { name: 'Luxury SUV', priceLabel: 'From $130' },
-  { name: 'First Class Sedan', priceLabel: '$150/hour' },
-] as const;

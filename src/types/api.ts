@@ -37,6 +37,21 @@ export interface Vehicle {
   per_hour_rate: string | null;
   image_url: string | null;
   is_active: boolean;
+  /*
+   * Verified against a live `GET /vehicles`, not inferred: the endpoint returns
+   * these four and this interface declared none of them.
+   *
+   * `license_plate` and `color` are migration 0022's columns. They are NULL on
+   * every row today, because `vehicles` is a fare-class table and 0022's own
+   * comment says as much — but a type that cannot see a field it is waiting for
+   * is a trap for whoever eventually populates it. `describeVehicle()` in
+   * `src/lib/vehicleIdentity.ts` starts using them the moment they are non-null,
+   * with no screen changes. See BACKEND_FOLLOWUPS.md §1.
+   */
+  license_plate: string | null;
+  color: string | null;
+  created_at: string;
+  updated_at: string;
 }
 
 export type ServiceType = 'airport' | 'corporate' | 'events' | 'point_to_point' | 'hourly' | 'custom';

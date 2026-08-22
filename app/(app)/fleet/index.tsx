@@ -9,10 +9,9 @@ import { EmptyState } from '../../../src/components/ui/EmptyState';
 import { colors, radius, spacing } from '../../../src/theme/tokens';
 import { vehiclesApi } from '../../../src/api/vehicles';
 import type { Vehicle } from '../../../src/types/api';
-import { formatCurrency } from '../../../src/lib/format';
 import { VEHICLE_DISPLAY_NAME, VEHICLE_IMAGES } from '../../../src/lib/vehicleImages';
 import { VEHICLE_TAGLINE } from '../../../src/lib/vehicleFeatures';
-import { publishedRateFor } from '../../../src/lib/publishedRates';
+import { publishedStartingLabel } from '../../../src/config/publishedFleet';
 
 export default function FleetScreen() {
   const router = useRouter();
@@ -75,22 +74,36 @@ export default function FleetScreen() {
                     </View>
                   </View>
 
-                  <View style={styles.priceRow}>
-                    {/*
-                      The WEBSITE's published starting price, not the backend's
-                      base_rate. Browsing the fleet is exactly where a starting
-                      price belongs, and the website is what the business
-                      actually advertises to customers. The two disagree — the
-                      site says "From $95" where base_rate is $65 — which is
-                      logged in BACKEND_FOLLOWUPS.md §6 rather than reconciled
-                      here. The booking flow still quotes a computed all-in
-                      total; a floor is for browsing, an exact fare is for
-                      committing.
-                    */}
-                    <AppText variant="subheading" color={colors.gold}>
-                      {publishedRateFor(vehicle.type) ?? `From ${formatCurrency(vehicle.base_rate)}`}
-                    </AppText>
-                  </View>
+                  {/*
+                    The WEBSITE's published starting price, in every build, or
+                    NOTHING.
+
+                    It used to fall back to `From ${formatCurrency(base_rate)}`
+                    whenever no published label was available — which, because
+                    the label was gated on demo mode, meant every real build.
+                    Against a live API that printed "From $65.00" for a sedan
+                    that cannot be booked below $102.60, whose theoretical floor
+                    with gratuity and tax is $83.38, and which the company
+                    itself advertises at $95. Four numbers, and the app was
+                    inventing the only one nobody had published.
+
+                    A base rate is a component of a fare, not a price a customer
+                    can pay. So there is no fallback now: an unpublished class
+                    shows no figure at all, on the same null-driven rule as
+                    `servicePolicy`. The booking flow still quotes an exact
+                    all-in total — a floor is for browsing, a fare is for
+                    committing.
+
+                    The website and the backend still disagree; that is
+                    BACKEND_FOLLOWUPS.md §6 and is deliberately not settled here.
+                  */}
+                  {publishedStartingLabel(vehicle.type) ? (
+                    <View style={styles.priceRow}>
+                      <AppText variant="subheading" color={colors.gold}>
+                        {publishedStartingLabel(vehicle.type)}
+                      </AppText>
+                    </View>
+                  ) : null}
                 </View>
               </Pressable>
             </FadeSlideIn>
