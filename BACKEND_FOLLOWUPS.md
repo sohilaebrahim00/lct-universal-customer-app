@@ -611,27 +611,79 @@ reaches the business rather than the customer.
 This is not a theoretical edge. It fires on ordinary bookings, every day, and it
 is currently invisible because nothing compares the two numbers.
 
-### What it needs — a decision, then a change in both repos
+### THE RULING — decided, not open. Build to this.
 
-**Not a presentation-layer fix.** The redesign cannot solve it from the client,
-and the client must not "correct" for it, because a client that adjusts the
-server's price is the same defect wearing a disguise.
+**The late-night surcharge follows the PICKUP'S local time, never the
+machine's.** The published policy says "11 PM–5 AM", and a customer reading that
+means eleven at night where the car is coming to. Any other reading makes the
+price depend on where a server happens to be hosted, which is not something a
+business can defend to a customer.
 
-1. **Name the timezone.** LCT operates in Dallas–Fort Worth. The surcharge window
-   is a *business* rule about Texas evenings, so it should be evaluated in
-   `America/Chicago`, not in whatever zone the executing machine happens to be
-   set to.
-2. Change `isLateNight()` in **both** `pricing.ts` and `pricingPreview.ts` to
-   resolve the hour in a fixed zone — `Intl.DateTimeFormat('en-US', { timeZone:
+**Not a presentation-layer fix.** The client must not "correct" for the server's
+figure: a client that adjusts the server's price is the same defect wearing a
+disguise.
+
+1. **Default to `America/Chicago`**, since LCT operates in Dallas–Fort Worth and
+   Grapevine. If a pickup ever resolves outside that zone, **the pickup
+   location's timezone governs**.
+2. **The zone identifier, never an offset.** `America/Chicago`, not `UTC-6`. A
+   hardcoded offset is wrong for half the year and silently wrong across the DST
+   boundary — and DFW observes it. `Intl.DateTimeFormat('en-US', { timeZone:
    'America/Chicago', hour: 'numeric', hour12: false })` needs no dependency and
-   works in Hermes and Node alike.
-3. Keep `tests/fareParity.test.ts` green under all three `TZ` values. Once the
-   zone is fixed, the cross-zone table above should collapse to one row per
-   instant — and that is the regression test.
+   behaves identically in Hermes and Node.
+3. Change `isLateNight()` in **both** `pricing.ts` and `pricingPreview.ts`.
+   Neither `getHours()` nor a hardcoded offset.
+4. Keep `tests/fareParity.test.ts` green under all three `TZ` values. Once the
+   zone is fixed the cross-zone table above collapses to one row per instant —
+   and that is the regression test, already written.
 
-**Open question for LCT (B6, below):** is the late-night window Dallas local
-time, or the passenger's local time? Dallas is almost certainly right for a
-DFW-only operator, but it is a business decision and it has not been asked.
+The one thing still open is narrower, and is B6 below: does the surcharge apply
+by pickup time, or if any part of the journey falls inside the window? A 04:45
+pickup running to 05:30 is inside at the kerb and outside at the airport.
+
+---
+
+### The third finding: the breakdown does not always add up
+
+**A customer who adds up the itemised lines can land one cent away from the
+"Total" printed above their thumb.** It happens on roughly 14% of the input
+matrix, in both directions.
+
+```
+Executive Sedan, 0.1 mi, no surcharge
+  65.00 + 0.33 + 0.00 + 13.07 + 5.39  =  83.79   <- what the lines say
+  total                               =  83.78   <- what the total says
+```
+
+Ordinary penny rounding: each component is rounded to two decimals
+independently, while the total is computed from the UNROUNDED subtotal and then
+rounded. Six roundings of +/-0.005 against one rounding of the true value.
+
+This is **not** a parity failure. Both implementations are wrong in precisely the
+same way — asserted directly in the suite — which is why 1,611 comparisons pass
+while this does not. That makes it a shared defect belonging to the server,
+because the server's stored columns are what the app displays.
+
+It matters more here than it would elsewhere. The payment screen's entire thesis
+is that the breakdown is expanded by default and nothing is hidden; a breakdown
+that does not reconcile is exactly the kind of surprise that design exists to
+remove.
+
+**The fix:** round the components first and derive the total from the rounded
+parts, so the arithmetic a customer can do by hand is the arithmetic the system
+did. One line in `calculateFare()`, mirrored in `calculateFarePreview()`.
+
+**Not fixed in the app, deliberately.** `PriceBreakdown` renders what the server
+sends. Making it reconcile client-side would hide a backend fault behind a
+correct-looking total, which is this project's oldest anti-pattern.
+
+`tests/fareParity.test.ts` carries this as a single `it.failing` marker: the gate
+stays green today and goes RED the day the rounding is fixed, telling whoever
+fixed it to delete `.failing` so exact reconciliation is enforced from then on.
+The suite also pins the bound — never more than a cent — so a rounding
+discrepancy can never quietly become a pricing one.
+
+---
 
 ### The second finding: three fields the client can never compute
 
@@ -684,7 +736,7 @@ app until it is answered.
 | B3 | **Who owns the rating figure, and how often is it refreshed?** Home shows "4.93 from 55 reviews", read by hand from the Clienity reputation dashboard on 2026-08-22 and frozen in a constant with its source and read-date. It is a SNAPSHOT: there is no reviews endpoint and no integration, so it will silently go stale. Either re-read it before each release, or expose it from the backend and delete the constant. | `src/config/reputation.ts` → `src/components/home/HomeView.tsx` |
 | B4 | **How late is late?** The dispatcher board must surface the problem row, and nothing defines what one is. Same threshold for an airport pickup as for a dinner reservation? Measured from the scheduled time or from the chauffeur's ETA? At what point does it escalate to a call? Until this is answered the board computes it client-side with a five-minute grace the preview invented. See §7 D-2. | the board query, once §7 D-1 exists |
 | B5 | **Is meet-and-greet a service the customer selects, and does it cost anything?** The chauffeur cannot be told to walk into the terminal because no booking says so. This is a pricing and packaging question before it is a column. See §7 C-3. | `bookings.meet_and_greet`, the airport booking flow |
-| B6 | **Which timezone governs the late-night surcharge?** Dallas local time, or the passenger's? Today neither is chosen — both calculators read the executing machine's local hour, so a UTC-hosted backend overcharges $19.24 on ordinary evening bookings and undercharges by the same on genuine late-night ones. Dallas is almost certainly the answer for a DFW-only operator, but it is a business decision and it has not been asked. See §8. | `isLateNight()` in both `pricing.ts` and `pricingPreview.ts` |
+| B6 | **Does the late-night surcharge apply by PICKUP time, or if any part of the journey falls inside the window?** A 04:45 pickup running to 05:30 is inside the window at the kerb and outside it at the airport. This is the only part of the surcharge question still open — the timezone half is answered and specified in §8, not a question. | `isLateNight()` in both `pricing.ts` and `pricingPreview.ts` |
 
 Resolved since the first list: the free-cancellation window (published and
 tiered — 12h sedans and SUVs, 6h airport, 48h hourly and events) and the

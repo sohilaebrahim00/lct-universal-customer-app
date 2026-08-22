@@ -217,6 +217,146 @@ suite(
       }
     });
 
+    /* ------------------------------------------------------------------ *
+     * Does the breakdown add up?
+     * ------------------------------------------------------------------ */
+
+    /**
+     * THE LINES DO NOT ALWAYS SUM TO THE TOTAL. One cent, both directions.
+     *
+     * Found by turning a probe artefact into an assertion, and it is a real
+     * defect rather than an artefact: on roughly 14% of the input matrix, a
+     * customer who adds up the itemised rows on the payment screen gets a
+     * figure one cent away from the "Total" line above their thumb.
+     *
+     * The cause is ordinary penny rounding. Both implementations round each
+     * component to two decimals independently, then compute the total from the
+     * UNROUNDED subtotal and round that. Six roundings of ±0.005 against one
+     * rounding of the true value: the two can disagree by a cent.
+     *
+     *   Executive Sedan, 0.1 mi, no surcharge
+     *     65.00 + 0.33 + 0.00 + 13.07 + 5.39  =  83.79
+     *     total                               =  83.78
+     *
+     * This is NOT a parity failure — the two sides are wrong in exactly the
+     * same way, which is why 1,611 comparisons pass while this does not. It is
+     * a shared defect, and it belongs to the server, because the server's
+     * stored columns are what the app displays.
+     *
+     * ── Why `it.failing` and not a tolerance ────────────────────────────────
+     * A tolerance would encode "one cent of unexplained money is fine", which
+     * is the same category of quiet decision as a tolerance on the fare
+     * comparison, and the answer is the same: not an engineer's to make.
+     *
+     * `it.failing` asserts EXACT reconciliation and expects that assertion to
+     * fail today. So the gate stays green, the defect is documented in
+     * executable form rather than prose, and the day someone fixes the rounding
+     * this test goes RED — telling them to change `.failing` back to a plain
+     * `it`. A test that starts passing is a much better signal than one that
+     * was quietly loosened.
+     *
+     * The fix, when it is taken: round the components first and derive the
+     * total from the rounded parts, so the arithmetic a customer can do by hand
+     * is the arithmetic the system did. See BACKEND_FOLLOWUPS.md §8.
+     *
+     * NOT fixed in the screen. `PriceBreakdown` renders what the server sends;
+     * making it reconcile client-side would hide a backend fault behind a
+     * correct-looking total, which is this project's oldest anti-pattern.
+     */
+    describe('reconciliation — the lines against the total', () => {
+      const RECON_CASES = VEHICLES.flatMap((vehicle) =>
+        [0, 0.1, 7.77, 23.2, 1000].flatMap((distanceMiles) =>
+          [
+            { label: 'ordinary', local: [2026, 5, 14, 13, 15] as const },
+            { label: 'late-night', local: [2026, 5, 14, 23, 30] as const },
+          ].map((time) => ({ vehicle, distanceMiles, time })),
+        ),
+      );
+
+      /** Cents, not dollars — summing floats would fail for an unrelated reason. */
+      const cents = (v: number) => Math.round(v * 100);
+
+      function argsFor({ vehicle, distanceMiles, time }: (typeof RECON_CASES)[number]) {
+        return {
+          vehicle: {
+            baseRate: vehicle.baseRate,
+            perMileRate: vehicle.perMileRate,
+            perHourRate: vehicle.perHourRate,
+          },
+          serviceType: 'airport' as const,
+          distanceMiles,
+          scheduledAt: at([...time.local] as [number, number, number, number, number]),
+        };
+      }
+
+      /** Signed cents by which the itemised lines miss the stated total. */
+      function drift(c: (typeof RECON_CASES)[number]) {
+        const args = argsFor(c);
+        const f = calculateFarePreview(args);
+        const s = be.calculateFare(args);
+        const clientSum =
+          cents(f.baseFare) + cents(f.distanceFare) + cents(f.timeFare) + cents(f.surcharges) + cents(f.gratuity) + cents(f.tax);
+        const serverSum =
+          cents(s.baseFare) +
+          cents(s.distanceFare) +
+          cents(s.timeFare) +
+          cents(s.surcharges) +
+          cents(s.waitingFare) +
+          cents(s.extraStopsFare) -
+          cents(s.discountAmount) +
+          cents(s.gratuity) +
+          cents(s.tax);
+        return { client: clientSum - cents(f.totalFare), server: serverSum - cents(s.totalFare) };
+      }
+
+      /**
+       * THE MARKER. One test, currently failing on purpose.
+       *
+       * `it.failing` passes while the assertion inside fails, so the gate stays
+       * green and the defect is recorded in executable form. The day the
+       * rounding is fixed this test goes RED with "Failing test passed" —
+       * whoever fixed it then deletes `.failing`, and the suite starts
+       * enforcing exact reconciliation forever after.
+       */
+      it.failing('every breakdown sums exactly to its total — NOT TRUE TODAY', () => {
+        const broken = RECON_CASES.filter((c) => {
+          const d = drift(c);
+          return d.client !== 0 || d.server !== 0;
+        });
+        expect(broken).toEqual([]);
+      });
+
+      /**
+       * The bound. A rounding discrepancy, never a pricing one — so if the gap
+       * ever exceeds a cent, something structural has changed and this says so
+       * in the same run.
+       */
+      it('never disagrees by more than one cent, on either side', () => {
+        for (const c of RECON_CASES) {
+          const d = drift(c);
+          expect(Math.abs(d.client)).toBeLessThanOrEqual(1);
+          expect(Math.abs(d.server)).toBeLessThanOrEqual(1);
+        }
+      });
+
+      /**
+       * PARITY HOLDS EVEN INSIDE THE DEFECT.
+       *
+       * The two implementations do not merely both round badly — they round
+       * badly in exactly the same direction on exactly the same inputs. Worth
+       * asserting separately: a shared defect is a backend fix, while a
+       * divergent one would be a parity failure and a far more urgent problem.
+       */
+      it('client and server drift identically, so this is a shared defect and not a divergence', () => {
+        for (const c of RECON_CASES) {
+          const d = drift(c);
+          expect(`${c.vehicle.name}/${c.distanceMiles}/${c.time.label}: ${d.client}`).toBe(
+            `${c.vehicle.name}/${c.distanceMiles}/${c.time.label}: ${d.server}`,
+          );
+        }
+      });
+    });
+
     describe('the error branches', () => {
       const sedan = { baseRate: 65, perMileRate: 3.25, perHourRate: 100 };
       const noon = at([2026, 5, 14, 12, 0]);
