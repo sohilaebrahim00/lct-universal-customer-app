@@ -8,6 +8,7 @@ import {
   Clock,
   CreditCard,
   Info,
+  LayoutGrid,
   LogOut,
   MapPin,
   Navigation,
@@ -155,8 +156,47 @@ export default function AccountScreen() {
       </Surface>
 
       {/*
+        ROLE PREVIEW — demo builds only.
+
+        Three views of one dataset: the client's app (where you already are),
+        the chauffeur's, and the dispatcher's. Switching changes the view, not
+        the data — a ride booked here appears on the board, and a status a
+        chauffeur sets appears on the client's tracking screen.
+
+        A push to a path string rather than an imported component, deliberately:
+        `app/_role/` is stripped from any non-demo build, and a static
+        import would fail to resolve there. Same reason `resetDemo` lazily
+        requires the demo store.
+      */}
+      {isDemoMode ? (
+        <>
+          <SectionHeader title="Role preview" />
+          <Surface level="card" style={styles.block}>
+            <ListRow
+              icon={Car}
+              title="Chauffeur view"
+              subtitle="Today's jobs, kerbside detail, status"
+              onPress={() => router.push('/_role/chauffeur')}
+            />
+            <ListRow
+              icon={LayoutGrid}
+              title="Dispatcher view"
+              subtitle="Today's board and ride assignment"
+              divider={false}
+              onPress={() => router.push('/_role/dispatcher')}
+            />
+          </Surface>
+          <AppText variant="captionSm" style={styles.previewNote}>
+            Previews of two products LCT does not have yet, built from this demo&apos;s data. Not part of the client
+            app.
+          </AppText>
+        </>
+      ) : null}
+
+      {/*
         Demo builds only. Lets whoever is presenting clear the trips a previous
-        viewer booked, so every showing starts from the same place.
+        viewer booked — and now also the chauffeur assignments and statuses set
+        in the role preview — so every showing starts from the same place.
       */}
       {isDemoMode ? (
         <Surface level="card" style={styles.block}>
@@ -189,4 +229,5 @@ const styles = StyleSheet.create({
   profileRow: { flexDirection: 'row', alignItems: 'center' },
   profileText: { flex: 1, marginHorizontal: 13 },
   guestActions: { gap: space.sm },
+  previewNote: { marginTop: -space.smd, marginBottom: space.mdl },
 });

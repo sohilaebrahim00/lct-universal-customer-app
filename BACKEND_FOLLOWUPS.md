@@ -42,6 +42,20 @@ A licence plate belongs to a physical car. **There is no fleet-inventory table i
 this schema at all**, so a plate cannot simply be added to `vehicles` without
 changing what that table means and breaking pricing, which joins on it.
 
+> **Correction, added while building the role preview.** An earlier version of
+> this section said the plate and colour columns did not exist. They do:
+> `db/migrations/0022_vehicle_plate_color.sql` adds `license_plate` and `color`
+> to `vehicles`, nullable, and `listTripsForDriver` already selects them. Make
+> and model still exist nowhere.
+>
+> This does not weaken the recommendation — it strengthens it. 0022's own
+> comment concedes the problem: the columns are nullable because "existing
+> seeded rows represent a fleet *class*, not a specific plated vehicle". So the
+> plate was bolted onto the class table, every row leaves it null, and a fleet
+> with two Escalades cannot represent them. **Option A is now also a cleanup**:
+> move `license_plate` and `color` to `fleet_vehicles`, where one row means one
+> car, and drop them from `vehicles`.
+
 This is therefore not "add three columns". It is one of two decisions:
 
 **Option A — a new `fleet_vehicles` table** (recommended). Physical cars, each
@@ -230,6 +244,305 @@ backwards from a headline figure.
 
 ---
 
+## 7. Role preview — every field the chauffeur and dispatcher views could not get
+
+**This section is the starting specification for two products LCT does not have:
+a chauffeur app and a dispatcher tool.** It was produced by building a working
+preview of both against the real data model and writing down everything the
+screens asked for and could not have.
+
+You do not need to have read anything else in this file, or any conversation, to
+act on it. Each entry says what the screen wanted the field for, what exists
+today, and what would have to change.
+
+Read alongside §1 (vehicle identification), which the chauffeur view hits again
+from the other side.
+
+### Where the preview lives
+
+`app/_role/` (routes) and `src/dev/role/` (screens), reachable only in a demo
+build — Account → Role preview. Absent from any non-demo production bundle; see
+`metro.config.js`. It reads and writes the same in-memory demo store the client
+app uses, which is how a ride booked in the client app appears on the board, and
+how a status the chauffeur sets reaches the client's tracking screen.
+
+### What already exists, and is better than expected
+
+Worth stating first, because it changes the size of the job:
+
+| Already built | Where |
+|---|---|
+| A `driver` role, and a `dispatcher` role | `0012_admin_dispatcher_role.sql` |
+| `GET /drivers/me/trips` — a driver's trips with client name, phone, notes, fares, vehicle name, plate, colour | `src/modules/drivers/repository.ts` → `listTripsForDriver` |
+| `PATCH /trips/:id/status` — driver-authenticated status transitions, guarded by a real state machine | `src/modules/trips/routes.ts` |
+| `POST /admin/trips/:id/assign-driver` — assignment, with the transition to `driver_assigned` applied in the same request, plus notifications to both parties and an audit record | `src/modules/admin/routes.ts` |
+| `GET /admin/bookings`, `GET /admin/trips/active`, `GET /admin/drivers/online` | `src/modules/admin/repository.ts` |
+| Driver location heartbeat, online/offline status, working hours, break mode, document upload and review | `0017`, `0021`, `0023`, `0024` + `drivers/routes.ts` |
+| A trip row is created with every booking, so a booking is assignable from the moment it exists | `bookings/repository.ts` |
+
+Neither product is a greenfield backend project. Both are mostly a client on top
+of endpoints that exist. What follows is the remainder.
+
+---
+
+### Chauffeur view
+
+#### C-1 · Name-sign text — **no field exists**
+
+*What the screen wanted it for.* The job-detail screen shows, in the largest type
+in the preview, the text the chauffeur holds up at arrivals. It is the field that
+makes the screen feel like it was built by someone who understands the business.
+
+*What exists.* `bookings.primary_passenger_name` (nullable) and
+`profiles.full_name`. The preview derives the sign from the first, falling back
+to the second, and uppercases it. That is a rendering of a real field, not a new
+fact — but it is not sufficient.
+
+*Why it is not sufficient.* A client cannot ask for the board to read their
+company name instead of a person's, cannot give a different name to the booker's,
+and cannot supply a spelling or a script the booking form does not accept. Today
+the only way to communicate any of that is free text in `special_requests`, where
+the chauffeur has to notice it.
+
+*What would change.* `bookings.name_sign_text text` — nullable, offered in the
+booking form for airport and event services, defaulting to the passenger name.
+Then a real greeting flag, since a sign is only held when someone is meeting
+inside: see C-3.
+
+#### C-2 · Which physical car — **see §1**
+
+*What the screen wanted it for.* The chauffeur is told to drive "Executive SUV",
+which is a fare class, not a car. In a fleet with more than one SUV that does not
+identify a vehicle.
+
+*What exists.* `vehicles.license_plate` and `vehicles.color` (0022), null on every
+row because `vehicles` is a class table. No make, no model, anywhere.
+
+*What would change.* The `fleet_vehicles` table in §1 Option A, and
+`trips.fleet_vehicle_id`. `GET /drivers/me/trips` already selects the plate and
+colour, so it starts returning real values the day the table is populated.
+
+#### C-3 · Meet-and-greet — **no field exists**
+
+*What the screen wanted it for.* Whether to park and walk into the terminal or
+wait at the kerb. It changes when the chauffeur leaves and what they do on
+arrival, and it is the difference between a service the client paid for and one
+they did not receive.
+
+*What exists.* Nothing. `app/(app)/airport.tsx` markets meet-and-greet, and the
+backend FAQ mentions it, but no booking carries it. In the preview it can only
+appear because a demo booking happens to mention it in its notes.
+
+*What would change.* `bookings.meet_and_greet boolean not null default false`,
+set by the airport booking flow, plus the pricing decision that goes with it
+(included, or a surcharge — `surcharges` exists and is unused for this).
+
+#### C-4 · "Arrived at pickup" — **no status exists.** The largest single gap found
+
+*What the screen wanted it for.* The status screen advances a job one legal step
+at a time. The four steps the brief asked for were *on the way, arrived,
+passenger on board, dropped off*. The second cannot be built.
+
+*What exists.* The `trip_status` enum runs `pending → confirmed →
+driver_assigned → driver_arriving → passenger_picked_up → trip_started →
+completed`. `driver_arriving` means *en route*. There is no state between
+"driving there" and "the passenger is in the car".
+
+*Why it matters more than it looks.* Three things hang off it:
+
+1. **The client's "your car is here" moment.** The tracking screen cannot say the
+   car has arrived, because nothing can tell it.
+2. **Wait-time billing does not work.** `bookings.waiting_minutes` and
+   `waiting_fare` exist (`0015_booking_pricing_extensions.sql`) and default to
+   zero. Nothing can start the clock, because the clock starts when the car
+   arrives. **These columns are currently unfillable.**
+3. **The complimentary-wait policy is unenforceable.** See the Business inputs
+   table below — even once LCT answers what the free wait period is, there is no
+   event to measure it from.
+
+*What would change.* Add `driver_arrived` to the `trip_status` enum between
+`driver_arriving` and `passenger_picked_up`, and the corresponding edge in
+`ALLOWED_TRANSITIONS` (`src/modules/trips/state-machine.ts`). Stamp
+`trips.arrived_at`. Derive `waiting_minutes` from `arrived_at → picked_up_at`.
+This is a small change with a large payoff and should be near the front of the
+queue.
+
+#### C-5 · Messaging the client — **no system exists**
+
+*What the screen wanted it for.* "I'm in the third lane by column C" is the most
+common thing a chauffeur needs to send, and a phone call is the wrong channel for
+it while the client is at a baggage carousel.
+
+*What exists.* Phone numbers only. The preview's Message button opens the
+device's SMS app via `sms:`, which is honest but sends from the chauffeur's
+personal number — a privacy problem in both directions and unlogged.
+
+*What would change.* Either a masked-number relay (Twilio Proxy or equivalent) or
+a trip-scoped message thread. This is a product decision with a running cost, not
+just a schema change. **Do not build the naive version**: a chauffeur's real
+mobile number reaching clients is very hard to walk back.
+
+#### C-6 · "Today" — **no date-scoped query exists**
+
+*What the screen wanted it for.* The chauffeur's list is today's work.
+
+*What exists.* `listTripsForDriver` returns every trip the driver has ever had,
+`order by b.scheduled_at desc`, unbounded. The preview filters client-side, in
+local time.
+
+*What would change.* `GET /drivers/me/trips?date=YYYY-MM-DD` (or `from`/`to`),
+filtered in SQL. Also decide **whose timezone** defines the day — the fleet
+operates in one metro area, so America/Chicago is almost certainly the answer,
+but it should be written down rather than inherited from whatever device is
+asking.
+
+#### C-7 · Fields `GET /drivers/me/trips` omits but `bookings` already has
+
+Not a schema change — a `select` list. Each is on the row the chauffeur reads at
+the kerb:
+
+| Missing from the endpoint | Exists on | Wanted for |
+|---|---|---|
+| `flight_number` | `bookings` | Knowing which flight to track and when to leave |
+| `luggage_count` | `bookings` | Whether the boot will hold it; whether to fold a seat |
+| `service_type` | `bookings` | An hourly charter and an airport run are different jobs |
+| `scheduled_at` timezone handling | — | Currently returned raw |
+
+Note also that `src/types/api.ts`'s `DriverTripRow` in **this** repo is narrower
+than what the backend actually returns — it omits `vehicle_name`,
+`vehicle_license_plate`, `vehicle_color`, `special_requests`, the lat/lng pairs
+and most fare components. It is unused today. Anyone starting the chauffeur app
+should regenerate it from the query rather than trusting it.
+
+#### C-8 · Deliberately not built, and why
+
+`GET /drivers/me/earnings` and `/me/today` exist and return real figures, and the
+brief excluded earnings — correctly. Showing money to a chauffeur raises
+questions this project cannot answer: what the commission split is, whether
+gratuity passes through in full, whether the figure is gross or net, and when it
+is paid. The endpoint returning a number is not the same as the business having
+an answer. Same reasoning for accept/decline (`POST /trips/:id/accept` exists,
+but whether LCT chauffeurs may decline an assigned job is a policy question),
+navigation, document upload, and shift management.
+
+---
+
+### Dispatcher view
+
+#### D-1 · There is no "today's board" query
+
+*What the screen wanted it for.* One table: time, client, pickup, destination,
+class, assigned chauffeur, status, for every ride today.
+
+*What exists.* Two endpoints, neither of which can produce that table:
+
+- `GET /admin/bookings` — has the client name and the times, but **no vehicle
+  name and no assigned driver**, and no date filter (`order by scheduled_at desc
+  limit 200`).
+- `GET /admin/trips/active` — has `driver_name` and `vehicle_name`, but
+  `where t.status not in ('completed','cancelled')`, so a completed ride vanishes
+  from the board mid-shift, and again no date filter.
+
+*What would change.* `GET /admin/bookings?date=…` with `left join trips t`,
+`left join profiles drv on drv.id = t.driver_id` and `join vehicles v`, returning
+driver name and vehicle name per row. The two existing queries are 90% of it;
+this is one new query, not a new subsystem.
+
+#### D-2 · "Late" is not modelled anywhere — **and needs a business answer**
+
+*What the screen wanted it for.* Finding the problem row is the dispatcher's
+actual job. A board that does not surface it is decoration.
+
+*What exists.* Nothing. Not a column, not a flag, not a computed field. The
+preview derives it: pickup time has passed and the status has not moved beyond
+`driver_assigned`, with a five-minute grace period **that the preview invented
+for rendering purposes and that LCT has not agreed to**.
+
+*What would change.* Two things, in this order:
+
+1. **A definition.** How late is late? Is it the same for an airport pickup as
+   for a dinner reservation? Does it start from the scheduled time or from the
+   chauffeur's ETA? Nobody has been asked.
+2. Then a computed field on the board query, so every client agrees, plus a
+   threshold for escalation.
+
+Note this depends on C-4: without an "arrived" status, "the car is there but the
+passenger has not come out" is indistinguishable from "the car is not there".
+
+#### D-3 · Chauffeur availability at the moment of assigning
+
+*What the screen wanted it for.* The assign control lists three names with
+nothing to choose between them. A dispatcher picking a chauffeur needs to know
+who is free, who is nearby, and who is already on a job.
+
+*What exists.* More than the app can see. `drivers.status`
+(`offline`/`available`/`on_trip`), `current_lat`/`current_lng`,
+`location_updated_at`, `working_hours_start`/`_end`, `break_mode`, and
+`GET /admin/drivers/online` which returns most of it. **The gap is on the client
+side**: `src/types/api.ts` has no driver type beyond `TripDriverInfo`
+(`{ id, full_name, avatar_url, rating }`), which is a display shape for the
+customer's trip screen.
+
+*What would change.* Mirror the `AdminOnlineDriverRow` shape into
+`src/types/api.ts` and call `GET /admin/drivers/online`. Then add the thing that
+is genuinely missing: **whether this chauffeur is already assigned to another
+ride at this time**. Nothing today answers that; it needs an overlap query
+against `trips` joined to `bookings.scheduled_at`, and a decision about how long
+a ride is assumed to occupy someone.
+
+#### D-4 · No phone number for a chauffeur
+
+*What the screen wanted it for.* The single most common dispatcher action after
+assigning is calling the chauffeur about the job.
+
+*What exists.* `profiles.phone` exists and drivers are profiles — so the data is
+there, but no admin endpoint returns it. `TripDriverInfo` does not carry it, and
+`listOnlineDrivers` does not select it.
+
+*What would change.* Add `p.phone` to `listOnlineDrivers` and to any
+dispatcher-facing driver query. Trivial, and gated on the same access-control
+review as any other exposure of staff contact details.
+
+#### D-5 · Assignment is keyed on the trip, not the booking
+
+Not a gap — a note for whoever builds this, because it is the kind of thing that
+costs an afternoon. `POST /admin/trips/:id/assign-driver` takes a **trip** id.
+The board naturally lists bookings. A trip row is created inside the same
+transaction as its booking (`bookings/repository.ts`), so one always exists — but
+the board query must carry `trips.id` per row or every assignment costs an extra
+lookup. The preview stores assignments keyed by booking id and maps them, which
+is a demo shortcut, not a model to copy.
+
+#### D-6 · Deliberately not built, and why
+
+Invoicing, rate management, driver records and reporting were excluded by the
+brief, and the exclusions hold up: `corporate_invoices` (`0011`), promo codes
+(`0014`), driver documents (`0024`) and `GET /admin/analytics` all exist, and
+every one of them is a screen where a wrong number is a commercial problem
+rather than a cosmetic one. Cancel, reprice and change-vehicle were also left
+out of the ride detail despite having working endpoints, for the same reason: a
+preview that can cancel a real customer's car is not a preview.
+
+---
+
+### What the preview shows that is invented, and fenced
+
+For completeness, since the rule elsewhere in this project is that nothing on
+screen is invented:
+
+- The three chauffeurs, the four customers, and the four extra rides on today's
+  board are seeded demo data in `src/dev/demoData.ts`, in the same fenced file as
+  the rest of the demo dataset. They are not claims about real people.
+- **No rating, tenure, trip count, earnings figure or performance metric appears
+  anywhere in either view**, for anyone, invented or otherwise.
+- **No plate, colour, make or model appears anywhere**, per C-2.
+- Fares shown to the dispatcher come from the same `calculateFarePreview()` the
+  client app uses, on the backend's own seeded rate card.
+- Every field is null-guarded: an absent value renders no row at all, never a
+  dash and never a placeholder.
+
+---
+
 ## Business inputs still pending
 
 Not engineering work — questions only LCT can answer. Each renders nothing in the
@@ -240,6 +553,8 @@ app until it is answered.
 | B1 | **What is the complimentary waiting time**, per service type (standard vs airport)? | `servicePolicy.complimentaryWaitMinutes` — the destination sheet's airport note and the confirmation screen |
 | B2 | **Does the Airport page's existing claim match it?** That page markets "Complimentary Waiting Time" with no figure. The copy has been left exactly as written — it is LCT's own marketing, and a benefit stated without a number is not a fabricated number. But it should not stay unquantified once B1 is answered. | `app/(app)/airport.tsx` |
 | B3 | **Who owns the rating figure, and how often is it refreshed?** Home shows "4.93 from 55 reviews", read by hand from the Clienity reputation dashboard on 2026-08-22 and frozen in a constant with its source and read-date. It is a SNAPSHOT: there is no reviews endpoint and no integration, so it will silently go stale. Either re-read it before each release, or expose it from the backend and delete the constant. | `src/config/reputation.ts` → `src/components/home/HomeView.tsx` |
+| B4 | **How late is late?** The dispatcher board must surface the problem row, and nothing defines what one is. Same threshold for an airport pickup as for a dinner reservation? Measured from the scheduled time or from the chauffeur's ETA? At what point does it escalate to a call? Until this is answered the board computes it client-side with a five-minute grace the preview invented. See §7 D-2. | the board query, once §7 D-1 exists |
+| B5 | **Is meet-and-greet a service the customer selects, and does it cost anything?** The chauffeur cannot be told to walk into the terminal because no booking says so. This is a pricing and packaging question before it is a column. See §7 C-3. | `bookings.meet_and_greet`, the airport booking flow |
 
 Resolved since the first list: the free-cancellation window (published and
 tiered — 12h sedans and SUVs, 6h airport, 48h hourly and events) and the

@@ -12,6 +12,7 @@ import type {
   Vehicle,
 } from '../types/api';
 import { calculateFarePreview } from '../lib/pricingPreview';
+import { TRIP_STAGE_ORDER, stageIndex } from '../lib/tripStatus';
 
 /**
  * DEMO DATA — the seeded dataset behind `EXPO_PUBLIC_DEMO_MODE`.
@@ -38,10 +39,19 @@ import { calculateFarePreview } from '../lib/pricingPreview';
  * nothing. Same for testimonials — `ReviewsSection` stays deleted.
  *
  * ── Where the licence plate is ──────────────────────────────────────────────
- * Nowhere, deliberately. `TripVehicleInfo` is `{ name, type }` and the backend's
- * `vehicles` table is a fare-class table with no plate, colour or make/model
- * (BACKEND_FOLLOWUPS.md §1). Seeding one here would make a field that does not
- * exist look shipped.
+ * Nowhere, deliberately — but the reason is narrower than this comment used to
+ * claim, and the correction matters.
+ *
+ * `vehicles.license_plate` and `vehicles.color` DO exist: migration 0022 adds
+ * them. What does not exist is a physical vehicle. The `vehicles` table is a
+ * fare-class table — three rows, one per class — and 0022's own comment says
+ * the new columns are nullable because "existing seeded rows represent a fleet
+ * *class*, not a specific plated vehicle". Every row leaves them null. Make and
+ * model exist nowhere at all. `TripVehicleInfo`, what this app actually
+ * receives, is still `{ name, type }`.
+ *
+ * So seeding a plate here would not be filling in a missing column; it would be
+ * inventing a physical car the fleet does not model. See BACKEND_FOLLOWUPS.md §1.
  */
 
 /** Rates copied verbatim from lct-universal-backend/db/seed.sql. */
@@ -170,6 +180,83 @@ export const DEMO_DRIVER: TripDriverInfo = {
 };
 
 /**
+ * The chauffeurs the dispatcher preview can assign a ride to.
+ *
+ * `rating` is null on all but Daniel, whose figure predates this work and is
+ * already on the client's trip screen. No rating, tenure, trip count or
+ * earnings figure is invented for the other two, and the role preview does not
+ * display any of those fields for anyone — see the role-preview section of
+ * BACKEND_FOLLOWUPS.md.
+ *
+ * `TripDriverInfo` is the only chauffeur shape this app has, and it carries no
+ * phone number, so the dispatcher preview cannot offer "call the chauffeur".
+ * That is a gap, recorded, not a feature that was skipped.
+ */
+export const DEMO_CHAUFFEURS: TripDriverInfo[] = [
+  DEMO_DRIVER,
+  { id: 'demo-chauffeur-2', full_name: 'Renata Silva', avatar_url: null, rating: null },
+  { id: 'demo-chauffeur-3', full_name: 'Curtis Boone', avatar_url: null, rating: null },
+];
+
+export function chauffeurById(id: string | null): TripDriverInfo | null {
+  if (!id) return null;
+  return DEMO_CHAUFFEURS.find((c) => c.id === id) ?? null;
+}
+
+/**
+ * Other people with rides on today's board.
+ *
+ * The dispatcher and chauffeur views look at the whole day's work, not one
+ * customer's, so the seed needs customers besides the persona. `profiles` is a
+ * real table and `full_name` a real column — the dispatcher board resolves the
+ * client name through `booking.profile_id`, exactly as the backend's own
+ * `listAllBookings` does with `join profiles p on p.id = b.profile_id`.
+ */
+export const DEMO_CUSTOMERS: Profile[] = [
+  DEMO_PROFILE,
+  {
+    id: 'demo-customer-2',
+    role: 'customer',
+    full_name: 'Alice Kwan',
+    email: 'a.kwan@meridianlaw.com',
+    phone: '+1 (214) 555-0164',
+    avatar_url: null,
+    corporate_account_id: null,
+    corporate_role: null,
+    created_at: new Date('2026-02-18T10:00:00Z').toISOString(),
+    updated_at: new Date('2026-08-01T10:00:00Z').toISOString(),
+  },
+  {
+    id: 'demo-customer-3',
+    role: 'customer',
+    full_name: 'Hendrik de Vries',
+    email: 'h.devries@arclightenergy.com',
+    phone: '+1 (469) 555-0133',
+    avatar_url: null,
+    corporate_account_id: null,
+    corporate_role: null,
+    created_at: new Date('2025-09-30T10:00:00Z').toISOString(),
+    updated_at: new Date('2026-08-01T10:00:00Z').toISOString(),
+  },
+  {
+    id: 'demo-customer-4',
+    role: 'customer',
+    full_name: 'Yolanda Pierce',
+    email: 'y.pierce@northline.co',
+    phone: '+1 (817) 555-0109',
+    avatar_url: null,
+    corporate_account_id: 'demo-corporate',
+    corporate_role: 'employee',
+    created_at: new Date('2026-05-06T10:00:00Z').toISOString(),
+    updated_at: new Date('2026-08-01T10:00:00Z').toISOString(),
+  },
+];
+
+export function customerById(id: string): Profile | null {
+  return DEMO_CUSTOMERS.find((c) => c.id === id) ?? null;
+}
+
+/**
  * DALLAS-FORT WORTH. LCT Universal operates in DFW and Grapevine, Texas — the
  * app's own copy says so on About, Airport and Corporate. Every seeded place
  * here is a real DFW location with its real coordinates.
@@ -218,6 +305,16 @@ function makeBooking(input: {
   dropoff: string | null;
   serviceType?: Booking['service_type'];
   passengers?: number;
+  /** Defaults to the demo persona. Set for the other customers on today's board. */
+  profileId?: string;
+  luggage?: number;
+  /** `bookings.flight_number` — a real, existing column. */
+  flightNumber?: string | null;
+  /** `bookings.special_requests` — a real, existing column. */
+  specialRequests?: string | null;
+  /** `bookings.primary_passenger_name` — real, and nullable, which is the point. */
+  passengerName?: string | null;
+  passengerPhone?: string | null;
 }): Booking {
   const { id, vehicle, status, scheduledAt, distanceMiles, pickup, dropoff } = input;
   const serviceType = input.serviceType ?? 'airport';
@@ -237,7 +334,7 @@ function makeBooking(input: {
 
   return {
     id,
-    profile_id: DEMO_PROFILE.id,
+    profile_id: input.profileId ?? DEMO_PROFILE.id,
     corporate_account_id: null,
     service_type: serviceType,
     vehicle_id: vehicle.id,
@@ -250,11 +347,11 @@ function makeBooking(input: {
     scheduled_at: scheduledAt.toISOString(),
     hourly_duration_hours: null,
     passenger_count: input.passengers ?? 2,
-    luggage_count: 2,
-    primary_passenger_name: null,
-    primary_passenger_phone: null,
-    special_requests: null,
-    flight_number: null,
+    luggage_count: input.luggage ?? 2,
+    primary_passenger_name: input.passengerName ?? null,
+    primary_passenger_phone: input.passengerPhone ?? null,
+    special_requests: input.specialRequests ?? null,
+    flight_number: input.flightNumber ?? null,
     status,
     approval_status: 'auto_approved',
     base_fare: fare.baseFare.toFixed(2),
@@ -271,6 +368,97 @@ function makeBooking(input: {
 
 const sedan = DEMO_VEHICLES[0] as Vehicle;
 const suv = DEMO_VEHICLES[1] as Vehicle;
+
+/**
+ * The rest of today's work — rides belonging to other customers.
+ *
+ * These exist so the dispatcher board and the chauffeur's Today list have a
+ * DAY in them rather than one ride, and so the board has the two rows a
+ * dispatcher actually looks for: one nobody is assigned to, and one that is
+ * running late. Both of those states are computed from the data (no chauffeur
+ * assigned; scheduled time passed with the status not advanced) rather than
+ * flagged, because the backend models neither — see BACKEND_FOLLOWUPS.md.
+ *
+ * They are NEVER returned to the client app. `GET /bookings` in demoApi scopes
+ * to the signed-in persona, the way the real endpoint scopes to the
+ * authenticated profile, so the client's Trips list is unchanged by any of this.
+ */
+function fleetBookings(now: Date): Booking[] {
+  const MIN = 60_000;
+  return [
+    // Running late: pickup was 25 minutes ago and the chauffeur has not moved
+    // off "assigned". This is the row the board has to surface.
+    makeBooking({
+      id: 'demo-fleet-late',
+      vehicle: suv,
+      status: 'driver_assigned',
+      scheduledAt: new Date(now.getTime() - 25 * MIN),
+      distanceMiles: 18.6,
+      pickup: 'Hotel Crescent Court, 400 Crescent Ct, Dallas, TX',
+      dropoff: 'Dallas Love Field, 8008 Herb Kelleher Way, Dallas, TX',
+      serviceType: 'airport',
+      profileId: 'demo-customer-3',
+      passengers: 3,
+      luggage: 4,
+      flightNumber: 'WN 1184',
+      passengerName: 'Hendrik de Vries',
+      passengerPhone: '+1 (469) 555-0133',
+      specialRequests: 'Two golf bags. Kerbside at the Crescent Court main entrance.',
+    }),
+    // Mid-trip, so the board is not all one status.
+    makeBooking({
+      id: 'demo-fleet-inprogress',
+      vehicle: sedan,
+      status: 'trip_started',
+      scheduledAt: new Date(now.getTime() - 70 * MIN),
+      distanceMiles: 12.1,
+      pickup: '1717 McKinney Ave, Dallas, TX',
+      dropoff: 'Gaylord Texan, 1501 Gaylord Trail, Grapevine, TX',
+      serviceType: 'corporate',
+      profileId: 'demo-customer-4',
+      passengers: 2,
+      luggage: 1,
+      passengerName: 'Yolanda Pierce',
+      passengerPhone: '+1 (817) 555-0109',
+    }),
+    // Nobody assigned. The other row a dispatcher is looking for.
+    makeBooking({
+      id: 'demo-fleet-unassigned',
+      vehicle: sedan,
+      status: 'confirmed',
+      scheduledAt: new Date(now.getTime() + 95 * MIN),
+      distanceMiles: 9.4,
+      pickup: 'Meridian Law, 2101 Cedar Springs Rd, Dallas, TX',
+      dropoff: 'The Ritz-Carlton, 2121 McKinney Ave, Dallas, TX',
+      serviceType: 'point_to_point',
+      profileId: 'demo-customer-2',
+      passengers: 1,
+      luggage: 0,
+      passengerName: 'Alice Kwan',
+      passengerPhone: '+1 (214) 555-0164',
+      specialRequests: 'Quiet ride — call ahead rather than ringing the office.',
+    }),
+    // Later today, assigned, with a flight number and a meet-and-greet note —
+    // the ride the chauffeur's job detail is worth reading before.
+    makeBooking({
+      id: 'demo-fleet-evening',
+      vehicle: suv,
+      status: 'driver_assigned',
+      scheduledAt: new Date(now.getTime() + 5.5 * HOURS),
+      distanceMiles: 22.8,
+      pickup: 'DFW Terminal A, 2337 S International Pkwy, DFW Airport, TX',
+      dropoff: '3400 Oak Lawn Ave, Dallas, TX',
+      serviceType: 'airport',
+      profileId: 'demo-customer-2',
+      passengers: 2,
+      luggage: 3,
+      flightNumber: 'AA 2317',
+      passengerName: 'Alice Kwan',
+      passengerPhone: '+1 (214) 555-0164',
+      specialRequests: 'Meet inside baggage claim. Second passenger joining at the kerb.',
+    }),
+  ];
+}
 
 /** Built at module load so "a few hours out" is relative to whenever the demo is opened. */
 export function seedBookings(now: Date): Booking[] {
@@ -304,14 +492,18 @@ export function seedBookings(now: Date): Booking[] {
       serviceType: 'corporate',
       passengers: 4,
     }),
+    // The persona's own rides come FIRST: demoApi uses bookings[0] as the shape
+    // template for a new booking, and the client's Home reads the soonest of
+    // their own. Fleet rides are appended, never prepended.
+    ...fleetBookings(now),
   ];
 }
 
-export function seedTrip(booking: Booking): Trip {
+export function seedTrip(booking: Booking, driverId: string | null = DEMO_DRIVER.id): Trip {
   return {
     id: `demo-trip-${booking.id}`,
     booking_id: booking.id,
-    driver_id: DEMO_DRIVER.id,
+    driver_id: driverId,
     vehicle_id: booking.vehicle_id,
     status: booking.status,
     driver_current_lat: 34.0736,
@@ -325,13 +517,33 @@ export function seedTrip(booking: Booking): Trip {
   };
 }
 
+/**
+ * The timeline, derived from the booking's ACTUAL status.
+ *
+ * It used to return a fixed pair — confirmed, then driver_assigned — which was
+ * right for the one seeded booking and wrong for everything else. With a
+ * dispatcher in the picture a ride genuinely starts unassigned, so a timeline
+ * that always claimed a chauffeur had been assigned would contradict the board
+ * the ride was sitting on, and would contradict the chauffeur's own status
+ * screen the moment they advanced it.
+ *
+ * Now it walks `TRIP_STAGE_ORDER` up to wherever the booking has reached. Times
+ * are spaced backwards from the pickup, so an early stage reads as older.
+ */
 export function seedTripEvents(booking: Booking): TripStatusEvent[] {
-  const at = (offsetMinutes: number) =>
-    new Date(new Date(booking.scheduled_at).getTime() - offsetMinutes * 60_000).toISOString();
-  return [
-    { status: 'confirmed', note: null, created_at: at(240) },
-    { status: 'driver_assigned', note: null, created_at: at(60) },
-  ];
+  const reached = stageIndex(booking.status);
+  if (reached < 0) return [];
+
+  const pickup = new Date(booking.scheduled_at).getTime();
+  const stages = TRIP_STAGE_ORDER.slice(0, reached + 1).filter((s) => s !== 'pending');
+
+  return stages.map((status, i) => ({
+    status,
+    note: null,
+    // Evenly spaced across the four hours before pickup — enough to order the
+    // list correctly without implying a precision the demo does not have.
+    created_at: new Date(pickup - (stages.length - i) * 48 * 60_000).toISOString(),
+  }));
 }
 
 export function tripVehicleFor(booking: Booking): TripVehicleInfo {

@@ -34,6 +34,11 @@ export function formatPickupWhen(iso: string, now: Date): string {
   return `${format(date, 'EEE, MMM d')}, ${time}`;
 }
 
+/** "1:15 PM". The time alone, for a screen where the day is already established. */
+export function formatTimeOfDay(date: Date): string {
+  return isValid(date) ? format(date, 'h:mm a') : '';
+}
+
 export function formatDateShort(iso: string): string {
   const date = parseISO(iso);
   if (!isValid(date)) return iso;
