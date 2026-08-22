@@ -17,7 +17,7 @@ import { formatCurrency, formatDateTime, formatServiceType } from '../../../src/
 import { isStripeConfigured } from '../../../src/lib/env';
 import { useStripeCheckout } from '../../../src/lib/useStripeCheckout';
 import { AuthGate } from '../../../src/components/AuthGate';
-import { cancellationSentenceFor } from '../../../src/config/servicePolicy';
+import { cancellationSentenceFor, complimentaryWaitSentenceFor } from '../../../src/config/servicePolicy';
 import { isRTL } from '../../../src/i18n/rtl';
 
 /**
@@ -46,10 +46,19 @@ import { isRTL } from '../../../src/i18n/rtl';
  * was checking for exactly this was comparing the client's preview against the
  * client's own recomputation.
  *
- * ── The cancellation line ───────────────────────────────────────────────────
- * Renders only when `servicePolicy.freeCancellationWindowHours` is set. It is
- * null — a blocked business input — so nothing renders there. A cancellation
- * promise printed above a pay button is a commitment the business has not made.
+ * ── The policy lines ────────────────────────────────────────────────────────
+ * Two of them now, both resolved per service type: the free-cancellation window
+ * and the complimentary wait. This comment used to say they rendered nothing
+ * because the figures were blocked business inputs — they are answered, and
+ * they render.
+ *
+ * The rule that produced that blank is unchanged and still the right one: a
+ * promise printed above a pay button is a commitment, so it appears only when
+ * the business has actually made it. What changed is that they have.
+ *
+ * The wait line belongs beside a price because it IS part of the price — it is
+ * the span in which waiting costs nothing. Note that the app can STATE it and
+ * cannot BILL against it; see `servicePolicy` and BACKEND_FOLLOWUPS.md C-4.
  */
 export default function PaymentStep() {
   const router = useRouter();
@@ -348,6 +357,21 @@ export default function PaymentStep() {
           {cancellationSentenceFor(draft.serviceType) ? (
             <AppText variant="captionSm" center style={styles.policy}>
               {cancellationSentenceFor(draft.serviceType)}
+            </AppText>
+          ) : null}
+          {/*
+            The complimentary wait, resolved by service — 60 minutes on an
+            airport transfer, 30 otherwise. This slot rendered nothing for the
+            whole project because the figure was a blocked business input; it
+            now has a confirmed answer and states it.
+
+            It belongs beside a price the customer is about to authorise
+            because it IS part of the price: it is the span in which waiting
+            costs nothing.
+          */}
+          {complimentaryWaitSentenceFor(draft.serviceType) ? (
+            <AppText variant="captionSm" center style={styles.policy}>
+              {complimentaryWaitSentenceFor(draft.serviceType)}
             </AppText>
           ) : null}
         </AuthGate>

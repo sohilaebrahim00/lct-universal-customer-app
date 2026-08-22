@@ -356,9 +356,29 @@ completed`. `driver_arriving` means *en route*. There is no state between
    `waiting_fare` exist (`0015_booking_pricing_extensions.sql`) and default to
    zero. Nothing can start the clock, because the clock starts when the car
    arrives. **These columns are currently unfillable.**
-3. **The complimentary-wait policy is unenforceable.** See the Business inputs
-   table below — even once LCT answers what the free wait period is, there is no
-   event to measure it from.
+3. **THE BUSINESS HAS A WAITING POLICY IT CANNOT BILL AGAINST.** This is now the
+   strongest argument for building C-4, and it changed while this document was
+   being written.
+
+   The complimentary wait is no longer an open question. It is confirmed
+   published policy — **30 minutes on standard pickups, 60 on airport** — and
+   the app states it on the payment screen, the confirmation screen and the
+   airport page, resolved per service type.
+
+   So the promise is on screen and the mechanism behind it does not exist. The
+   app can **display** the policy because it is real; it can never **enforce**
+   it, because nothing marks the moment the clock starts. Concretely:
+
+   - a chauffeur who waits 90 minutes at DFW has 30 chargeable minutes, and
+     there is no way to record that a single one of them happened;
+   - `waiting_minutes` and `waiting_fare` stay zero on every booking forever;
+   - a customer disputing a wait charge cannot be shown when the car arrived,
+     because nobody can say.
+
+   Until C-4 lands, every minute of paid waiting time in the business is either
+   uncharged or charged outside the system. That is a revenue argument, not an
+   engineering preference, and it is a stronger case than the accessibility one
+   above.
 
 *What would change.* Add `driver_arrived` to the `trip_status` enum between
 `driver_arriving` and `passenger_picked_up`, and the corresponding edge in
@@ -886,16 +906,27 @@ app until it is answered.
 
 | # | Question | Where it lands |
 |---|---|---|
-| B1 | **What is the complimentary waiting time**, per service type (standard vs airport)? | `servicePolicy.complimentaryWaitMinutes` — the destination sheet's airport note and the confirmation screen |
-| B2 | **Does the Airport page's existing claim match it?** That page markets "Complimentary Waiting Time" with no figure. The copy has been left exactly as written — it is LCT's own marketing, and a benefit stated without a number is not a fabricated number. But it should not stay unquantified once B1 is answered. | `app/(app)/airport.tsx` |
 | B3 | **Who owns the rating figure, and how often is it refreshed?** Home shows "4.93 from 55 reviews", read by hand from the Clienity reputation dashboard on 2026-08-22 and frozen in a constant with its source and read-date. It is a SNAPSHOT: there is no reviews endpoint and no integration, so it will silently go stale. Either re-read it before each release, or expose it from the backend and delete the constant. | `src/config/reputation.ts` → `src/components/home/HomeView.tsx` |
 | B4 | **How late is late?** The dispatcher board must surface the problem row, and nothing defines what one is. Same threshold for an airport pickup as for a dinner reservation? Measured from the scheduled time or from the chauffeur's ETA? At what point does it escalate to a call? Until this is answered the board computes it client-side with a five-minute grace the preview invented. See §7 D-2. | the board query, once §7 D-1 exists |
 | B5 | **Is meet-and-greet a service the customer selects, and does it cost anything?** The chauffeur cannot be told to walk into the terminal because no booking says so. This is a pricing and packaging question before it is a column. See §7 C-3. | `bookings.meet_and_greet`, the airport booking flow |
 | B6 | **Does the late-night surcharge apply by PICKUP time, or if any part of the journey falls inside the window?** A 04:45 pickup running to 05:30 is inside the window at the kerb and outside it at the airport. This is the only part of the surcharge question still open — the timezone half is answered and specified in §8, not a question. | `isLateNight()` in both `pricing.ts` and `pricingPreview.ts` |
 
-Resolved since the first list: the free-cancellation window (published and
-tiered — 12h sedans and SUVs, 6h airport, 48h hourly and events) and the
-dispatch phone (+1 888 615-4065). Both now render.
+**All three of the originally blocked inputs are now answered**, and every one
+of them renders:
+
+- the free-cancellation window — published and tiered: 12h sedans and SUVs,
+  6h airport, 48h hourly and events
+- the dispatch phone — +1 888 615-4065
+- the complimentary wait — **30 minutes standard, 60 minutes airport**
+
+The questions remaining below are ones this project raised later, from the role
+preview and the fare-parity work. They are open, not blocked: nothing is waiting
+on them to render.
+
+> **The wait time is DISPLAYABLE but not ENFORCEABLE.** The app states the
+> policy because it is real; it cannot bill against it, because nothing marks
+> when the clock starts. See C-4 — that pairing is now the strongest argument
+> for building it.
 
 ---
 

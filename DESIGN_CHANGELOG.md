@@ -155,6 +155,44 @@ bug**: reverting that fix turns the suite red on exactly that endpoint.
 `ScreenContainer` and `AnimatedRoutePreview`. **Outstanding:** ~25 files, listed
 by the lint rule's own inverse — anything not in `MIGRATED_OFF_THE_SHIM`.
 
+## Service policy — all three blocked inputs are answered
+
+`freeCancellationHours`, `dispatchPhone` and now `complimentaryWaitMinutes`
+(**30 standard, 60 airport**) are real published policy. Every slot built for
+them and left rendering nothing now renders.
+
+The rule that produced those blanks is unchanged and was the right one: a
+promise printed above a pay button is a commitment, so it appears only when the
+business has actually made it. What changed is that they have.
+
+- The payment and confirmation screens state both windows, **resolved by service
+  type** — 60 minutes on an airport transfer, 30 on a point-to-point. The wait
+  line sits beside the price because it *is* part of the price: it is the span
+  in which waiting costs nothing.
+- `airport.tsx` markets "Complimentary Waiting Time". That claim was
+  deliberately left unquantified while the figure was unknown — a benefit stated
+  without a number is not a fabricated number, and rewriting a client's
+  marketing on our own judgement would have been the overreach. The number now
+  exists, so the claim is **completed rather than removed**, reads the figure
+  from `servicePolicy` so the page cannot drift out of step with the booking
+  flow, and names *airport pickups* explicitly so nobody carries 60 minutes away
+  as a general promise.
+
+### Displayable is not enforceable
+
+The honest half, and it should not get lost in the good news.
+
+The app can **state** the waiting policy, because it is real. It can never
+**enforce** it, because `BACKEND_FOLLOWUPS.md` C-4 still stands: there is no
+"arrived at pickup" status, so nothing marks when the clock starts,
+`bookings.waiting_minutes` and `waiting_fare` stay unfillable, and no waiting
+charge can be computed correctly.
+
+**The business now has a waiting policy it cannot bill against.** Every minute
+of paid waiting time is either uncharged or charged outside the system. That is
+recorded under C-4 as the strongest argument for building it — a revenue
+argument rather than an engineering preference.
+
 ## Screens
 
 *(Per-screen entries are compiled in the handover slice. Recorded here as work

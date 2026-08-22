@@ -20,7 +20,7 @@ import { bookingsApi } from '../../../src/api/bookings';
 import type { Booking } from '../../../src/types/api';
 import { formatCurrency, formatDateTime } from '../../../src/lib/format';
 import { useMotion } from '../../../src/lib/useMotion';
-import { cancellationSentenceFor } from '../../../src/config/servicePolicy';
+import { cancellationSentenceFor, complimentaryWaitSentenceFor } from '../../../src/config/servicePolicy';
 
 /**
  * CONFIRMED — the emotional peak, and previously the least designed screen in
@@ -206,6 +206,11 @@ export default function ConfirmedStep() {
         {cancellationSentenceFor(draft.serviceType) ? (
           <AppText variant="captionSm" center style={styles.policy}>
             {cancellationSentenceFor(draft.serviceType)}
+          </AppText>
+        ) : null}
+        {complimentaryWaitSentenceFor(draft.serviceType) ? (
+          <AppText variant="captionSm" center style={styles.policy}>
+            {complimentaryWaitSentenceFor(draft.serviceType)}
           </AppText>
         ) : null}
 

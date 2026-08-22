@@ -8,13 +8,35 @@ import { AppText } from '../../src/components/ui/Typography';
 import { FadeSlideIn } from '../../src/components/ui/FadeSlideIn';
 import { colors, spacing } from '../../src/theme/tokens';
 import { useBookingFormStore } from '../../src/store/bookingFormStore';
+import { servicePolicy } from '../../src/config/servicePolicy';
 
 const FEATURES = [
   { icon: Plane, title: 'Flight Monitoring', desc: 'We track your flight in real time and adjust for delays automatically.' },
   { icon: User, title: 'Professional Chauffeur', desc: 'A licensed, uniformed chauffeur meets you at every pickup.' },
   { icon: Footprints, title: 'Meet & Greet Service', desc: 'Your chauffeur waits inside arrivals with a name sign.' },
   { icon: Briefcase, title: 'Luggage Assistance', desc: 'Every bag handled from curb to vehicle and back.' },
-  { icon: Clock, title: 'Complimentary Waiting Time', desc: 'Extra time built in so a slow deplaning never costs you.' },
+  {
+    icon: Clock,
+    title: 'Complimentary Waiting Time',
+    /*
+     * THE FIGURE, read from the policy rather than typed.
+     *
+     * This said "Extra time built in so a slow deplaning never costs you" —
+     * the company's own marketing, carrying a benefit with no number. It was
+     * deliberately left alone while the figure was an unanswered business
+     * input, because a benefit stated without a number is not a fabricated
+     * number, and rewriting a client's marketing on our own judgement would
+     * have been the overreach.
+     *
+     * The business has now confirmed it, so the claim gets completed rather
+     * than removed. It reads from `servicePolicy` so the page cannot drift
+     * out of step with the payment and confirmation screens, and it names
+     * AIRPORT PICKUPS explicitly — the window is double the standard one, and
+     * a reader on this page should not carry 60 minutes away as a
+     * general promise.
+     */
+    desc: `${servicePolicy.complimentaryWaitMinutes.airport} minutes free on airport pickups, so a slow deplaning never costs you.`,
+  },
 ];
 
 export default function AirportScreen() {

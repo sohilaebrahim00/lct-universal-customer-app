@@ -65,6 +65,28 @@ export function cancellationSentenceFor(serviceType: ServiceType | null): string
   return `Free cancellation until ${hours} ${hours === 1 ? 'hour' : 'hours'} before pickup.`;
 }
 
+/**
+ * The complimentary wait for the service actually being booked.
+ *
+ * Airport transfers get the longer window; everything else gets the standard
+ * one. Same shape as `freeCancellationHoursFor` — resolved per service rather
+ * than stated generically, because telling an airport customer "30 minutes"
+ * would be wrong by half.
+ */
+export function complimentaryWaitMinutesFor(serviceType: ServiceType | null): number | null {
+  if (serviceType === 'airport') return servicePolicy.complimentaryWaitMinutes.airport;
+  // 'custom' is quote-routed and has no published window of its own.
+  if (serviceType === null || serviceType === 'custom') return null;
+  return servicePolicy.complimentaryWaitMinutes.standard;
+}
+
+/** "60 minutes of complimentary wait time are included." Null renders nothing. */
+export function complimentaryWaitSentenceFor(serviceType: ServiceType | null): string | null {
+  const minutes = complimentaryWaitMinutesFor(serviceType);
+  if (minutes === null) return null;
+  return `${minutes} minutes of complimentary wait time are included.`;
+}
+
 export const servicePolicy = {
   freeCancellationHours,
 
@@ -83,29 +105,27 @@ export const servicePolicy = {
   dispatchPhone: '+1 (888) 615-4065' as string | null,
 
   /**
-   * STILL BLOCKED. Complimentary wait time included in the fare, in minutes.
+   * Complimentary wait time included in the fare, in minutes.
    *
-   * Searched the website source: it is not on the fleet page, the rates page,
-   * the cancellation policy or the FAQ. The FAQ covers flight monitoring and
-   * meet-and-greet but states no wait-time figure, and nothing else on the site
-   * mentions one.
+   * Confirmed by the business. The airport figure is double the standard one
+   * for the obvious reason: a delayed bag or a slow immigration queue is not
+   * something a passenger controls, and a chauffeur service that starts
+   * charging at the carousel is not one.
    *
-   * So it stays null and its slots render nothing.
+   * ── This is DISPLAYABLE, not ENFORCEABLE ────────────────────────────────
+   * The app can now STATE the policy, because it is real. It cannot BILL
+   * against it, because nothing marks the moment the clock starts: there is no
+   * "arrived at pickup" status in the trip enum, so `bookings.waiting_minutes`
+   * and `waiting_fare` — which exist, from migration 0015 — can never be
+   * filled correctly.
    *
-   * NOTE — `app/(app)/airport.tsx` markets "Complimentary Waiting Time" without
-   * a figure. That copy is LEFT AS IS, deliberately: it is the company's own
-   * pre-existing marketing, and a benefit stated without a number is not a
-   * fabricated number. Rewriting a client's marketing claim on our own judgement
-   * would be the overreach, not the restraint.
-   *
-   * The right response is to ask, not edit. Two questions, both on the
-   * business-inputs list in BACKEND_FOLLOWUPS.md:
-   *   1. What IS the complimentary waiting time, per service type?
-   *   2. Does the airport page's existing claim match it?
+   * So the business has a waiting policy it cannot charge for. That is now the
+   * strongest argument for gap C-4 in BACKEND_FOLLOWUPS.md, and it is recorded
+   * there rather than left as an inconsistency for someone to trip over.
    */
   complimentaryWaitMinutes: {
-    standard: null as number | null,
-    airport: null as number | null,
+    standard: 30 as number | null,
+    airport: 60 as number | null,
   },
 
   /**
