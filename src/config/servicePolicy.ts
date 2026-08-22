@@ -90,9 +90,18 @@ export const servicePolicy = {
    * meet-and-greet but states no wait-time figure, and nothing else on the site
    * mentions one.
    *
-   * So it stays null and its slots render nothing. Note that
-   * `app/(app)/airport.tsx` still MARKETS "Complimentary Waiting Time" without
-   * a figure — pre-existing copy, flagged rather than silently rewritten.
+   * So it stays null and its slots render nothing.
+   *
+   * NOTE — `app/(app)/airport.tsx` markets "Complimentary Waiting Time" without
+   * a figure. That copy is LEFT AS IS, deliberately: it is the company's own
+   * pre-existing marketing, and a benefit stated without a number is not a
+   * fabricated number. Rewriting a client's marketing claim on our own judgement
+   * would be the overreach, not the restraint.
+   *
+   * The right response is to ask, not edit. Two questions, both on the
+   * business-inputs list in BACKEND_FOLLOWUPS.md:
+   *   1. What IS the complimentary waiting time, per service type?
+   *   2. Does the airport page's existing claim match it?
    */
   complimentaryWaitMinutes: {
     standard: null as number | null,

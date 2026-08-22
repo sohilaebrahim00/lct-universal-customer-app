@@ -189,7 +189,14 @@ charges. They do not agree.
 1. **The advertised floor is not enforced.** The site promises "From $95" for a
    Sedan. The backend's minimum possible charge is base $65 plus 20% gratuity and
    8.25% tax = **$83.36** — below the advertised floor. A short trip is quoted
-   under what the site says it starts at.
+   under what the site says it starts at. (Executive SUV is the same shape:
+   $109.01 minimum against a published "From $110".)
+
+   **Deliberately not patched in the app.** A minimum clamped in the client while
+   the backend still computes below it would make the screens agree with the
+   website while the invoice did not — hiding the gap rather than closing it.
+   Whichever number is right, the fix belongs in the rate card or the pricing
+   function, not in a display rule.
 2. **The one explicit hourly rate on the site exists nowhere in the backend.**
    "First Class Sedan $150/hour" has no backend class at all, and the backend's
    sedan hourly rate is $100.
@@ -220,6 +227,22 @@ published starting price, because a floor is the right thing when browsing. The
 booking flow shows a computed all-in total from the backend rates, because those
 are the only rates that define a computation. No per-mile rate has been derived
 backwards from a headline figure.
+
+---
+
+## Business inputs still pending
+
+Not engineering work — questions only LCT can answer. Each renders nothing in the
+app until it is answered.
+
+| # | Question | Where it lands |
+|---|---|---|
+| B1 | **What is the complimentary waiting time**, per service type (standard vs airport)? | `servicePolicy.complimentaryWaitMinutes` — the destination sheet's airport note and the confirmation screen |
+| B2 | **Does the Airport page's existing claim match it?** That page markets "Complimentary Waiting Time" with no figure. The copy has been left exactly as written — it is LCT's own marketing, and a benefit stated without a number is not a fabricated number. But it should not stay unquantified once B1 is answered. | `app/(app)/airport.tsx` |
+
+Resolved since the first list: the free-cancellation window (published and
+tiered — 12h sedans and SUVs, 6h airport, 48h hourly and events) and the
+dispatch phone (+1 888 615-4065). Both now render.
 
 ---
 

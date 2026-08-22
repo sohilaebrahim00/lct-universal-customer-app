@@ -79,7 +79,8 @@ Honest about the edges, so nothing surprises you:
 - **One service detail is still blank on purpose.** Complimentary waiting time
   is not shown anywhere, because it is not published on your website and has not
   been confirmed. Rather than print a number that might be wrong, the app prints
-  nothing. Tell us the figure and it appears everywhere it belongs.
+  nothing. Tell us the figure and it appears everywhere it belongs — including
+  on the Airport page, which currently mentions the benefit without a number.
 - **Customer reviews have been removed.** The earlier version showed testimonials
   that were written as placeholders. They are gone until there are real ones.
 

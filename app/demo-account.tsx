@@ -27,7 +27,11 @@ const DEMO_LOCATIONS = [
 ];
 
 const DEMO_NOTIFICATIONS = [
-  { title: 'Driver Assigned', body: 'Marcus Bennett will be your chauffeur tomorrow at 8:00 AM.', when: '2 hours ago' },
+  // No chauffeur name. The rest of this screen is labelled sample data and says
+  // so, but naming a chauffeur implies a real employee in a way that naming a
+  // sample customer does not — and the app refuses to invent chauffeur identity
+  // everywhere else (see BACKEND_FOLLOWUPS.md sections 1 and 2).
+  { title: 'Chauffeur assigned', body: 'Your chauffeur has been assigned for tomorrow at 8:00 AM.', when: '2 hours ago' },
   { title: 'Trip Completed', body: 'Your Corporate Travel trip on Aug 12 is complete. Thanks for riding with us.', when: '5 days ago' },
 ];
 
