@@ -256,6 +256,60 @@ cover them:
 `RUNBOOK_AUTH_VERIFICATION.md` is the model for closing these when a device is
 available.
 
+## Performance and RTL — two lists, same split
+
+### Structurally verified — measured, not felt
+
+| Claim | Measurement |
+|---|---|
+| Source images downscaled | **4.60 MB → 2.79 MB** (−39%). The six `assets/services` photos alone: **2.1 MB → 796 KB** |
+| Service images no longer load at module scope | `SERVICES[n].image` is a getter — resolved on first read, not on import |
+| `expo-image` everywhere, with a placeholder and a reserved box | one `AppImage`; 10 call sites converted; `aspectRatio` or an explicit height required |
+| `FlatList` rows memoised | `TripCard` and `Bubble`, each with a stable `useCallback` handler |
+| `keyExtractor` on every list | both lists already had one |
+| Styles hoisted | no inline style objects remain in the converted screens |
+| Physical → logical properties | 33 occurrences across 15 files |
+| No physical properties can return | ESLint `no-restricted-syntax`, app-wide |
+| `textAlign` stated explicitly | `auto` on every `AppText` |
+| Token shim retired | **zero importers**; the rule is now inverted to cover everything by default |
+
+**The JS bundle went UP**, and that is the honest number: **5.28 MB → 5.32 MB**,
+about 40 KB, which is `expo-image`. The win is in the assets and in the work
+avoided, not in the JS. Stated plainly because a performance report that only
+lists improvements is not a measurement.
+
+**What the lazy require does and does not buy.** Metro still resolves the paths
+statically, so the *assets ship either way*. The getter removes decode work and
+memory from the path a customer takes; it does not remove bytes from the
+download. The downscale is what removes bytes.
+
+### NOT verified here — needs a device
+
+- **Frame rates.** Nothing in this pass measured a single frame.
+- **Scroll smoothness on a mid-range Android device.** The memoisation is
+  correct by construction; whether it is *perceptible* is unmeasured.
+- **The `expo-blur` cost.** Still unmeasured — and worth noting that
+  `expo-blur` is **not installed**, so there is currently nothing to measure.
+- **Cold start**, before and after `expo-image`.
+- **Whether any of it feels fast.** The only claim that matters to a customer,
+  and the one nothing here touches.
+- **The Google Maps iOS SDK's binary weight**, still pending a first EAS build.
+
+### RTL — converted and enforced, not validated
+
+**Verified:** every physical property converted, a lint rule that fails the
+build if one returns, `textAlign: 'auto'` stated rather than inherited, and one
+documented exception — the tracking marker's nose is a **border triangle**,
+which is geometry rather than reading direction, and carries an inline disable
+saying so. The rule caught that exception itself, which is how it earned its
+place.
+
+**Not verified:** whether an Arabic layout actually reads correctly. There are
+**no Arabic fonts loaded** and no RTL dev build to run, so nothing here has been
+seen in RTL. The conversion is a precondition for correctness, not a
+demonstration of it — mirrored icons, bidirectional text runs, and whether a
+right-aligned booking flow reads naturally are all open.
+
 ## Screens
 
 *(Per-screen entries are compiled in the handover slice. Recorded here as work

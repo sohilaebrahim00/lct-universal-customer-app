@@ -73,12 +73,26 @@ export function AppText({ variant = 'body', color, center, style, ...rest }: Pro
 
   return (
     <Text
-      style={[scaled, { color: color ?? defaultColor }, center ? styles.center : null, style]}
+      style={[scaled, styles.align, { color: color ?? defaultColor }, center ? styles.center : null, style]}
       {...rest}
     />
   );
 }
 
 const styles = StyleSheet.create({
+  /**
+   * `auto`, stated rather than assumed.
+   *
+   * React Native's default already IS `auto`, and `auto` is the RTL-correct
+   * value: it follows the writing direction, so Arabic aligns right and English
+   * aligns left with no branching.
+   *
+   * It is written down anyway for two reasons. The wrong "fix" here is
+   * seductive — someone reading "set textAlign explicitly" reaches for `left`,
+   * which pins Arabic to the wrong edge and looks fine in every English
+   * screenshot. And RN has no `start`/`end` for textAlign, so `auto` is the
+   * logical value; a reader looking for one needs to find it named.
+   */
+  align: { textAlign: 'auto' },
   center: { textAlign: 'center' },
 });

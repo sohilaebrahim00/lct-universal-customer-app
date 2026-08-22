@@ -1,9 +1,9 @@
 import { Stack } from 'expo-router';
-import { colors } from '../../../src/theme/tokens';
+import { theme } from '../../../src/theme';
 
 export default function BookLayout() {
   return (
-    <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.surfaceBlack } }}>
+    <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: theme.background.primary } }}>
       <Stack.Screen name="index" />
       <Stack.Screen name="pickup" />
       <Stack.Screen name="destination" />

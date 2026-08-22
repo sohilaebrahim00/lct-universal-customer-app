@@ -1,14 +1,15 @@
 import { useRouter } from 'expo-router';
-import { Image, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { Plane, User, Footprints, Briefcase, Clock } from 'lucide-react-native';
 import { Button } from '../../src/components/ui/Button';
 import { Card } from '../../src/components/ui/Card';
 import { ScreenContainer } from '../../src/components/ui/ScreenContainer';
 import { AppText } from '../../src/components/ui/Typography';
 import { FadeSlideIn } from '../../src/components/ui/FadeSlideIn';
-import { colors, spacing } from '../../src/theme/tokens';
+import { space, theme } from '../../src/theme';
 import { useBookingFormStore } from '../../src/store/bookingFormStore';
 import { servicePolicy } from '../../src/config/servicePolicy';
+import { AppImage } from '../../src/components/ui/AppImage';
 
 const FEATURES = [
   { icon: Plane, title: 'Flight Monitoring', desc: 'We track your flight in real time and adjust for delays automatically.' },
@@ -52,29 +53,29 @@ export default function AirportScreen() {
 
   return (
     <ScreenContainer padded={false}>
-      <Image source={require('../../assets/airport/hero.jpg')} style={styles.hero} resizeMode="cover" />
+      <AppImage source={require('../../assets/airport/hero.jpg')} style={styles.hero} priority="high" />
       <View style={styles.heroOverlay} />
       <View style={styles.heroContent}>
-        <AppText variant="eyebrow" style={{ marginBottom: spacing.xs }}>
+        <AppText variant="eyebrow" style={{ marginBottom: space.xs }}>
           Airport Transfers
         </AppText>
         <AppText variant="display">Airport Transfers Made Effortless</AppText>
       </View>
 
-      <View style={{ padding: spacing.lg }}>
+      <View style={{ padding: space.lg }}>
         <FadeSlideIn>
-          <AppText variant="bodyMuted" style={{ marginBottom: spacing.xl }}>
+          <AppText variant="bodyMuted" style={{ marginBottom: space.xl }}>
             From DFW to Dallas Love Field and beyond — a seamless, flight-aware pickup every time, so travel days
             start and end without friction.
           </AppText>
         </FadeSlideIn>
 
-        <View style={{ marginBottom: spacing.xl }}>
+        <View style={{ marginBottom: space.xl }}>
           {FEATURES.map((feature, i) => (
             <FadeSlideIn key={feature.title} delay={i * 60}>
-              <Card row align="flex-start" style={{ marginBottom: spacing.sm }}>
-                <feature.icon size={22} color={colors.gold} strokeWidth={1.5} style={{ marginTop: 2 }} />
-                <View style={{ marginLeft: spacing.md, flex: 1 }}>
+              <Card row align="flex-start" style={{ marginBottom: space.sm }}>
+                <feature.icon size={22} color={theme.content.accent} strokeWidth={1.5} style={{ marginTop: 2 }} />
+                <View style={{ marginStart: space.md, flex: 1 }}>
                   <AppText variant="subheading">{feature.title}</AppText>
                   <AppText variant="caption" style={{ marginTop: 2 }}>
                     {feature.desc}
@@ -96,5 +97,5 @@ export default function AirportScreen() {
 const styles = StyleSheet.create({
   hero: { width: '100%', height: 220 },
   heroOverlay: { position: 'absolute', top: 0, left: 0, right: 0, height: 220, backgroundColor: 'rgba(2,2,1,0.5)' },
-  heroContent: { position: 'absolute', top: 0, left: 0, right: 0, padding: spacing.lg, paddingTop: spacing.xxl },
+  heroContent: { position: 'absolute', top: 0, left: 0, right: 0, padding: space.lg, paddingTop: space.xxl },
 });

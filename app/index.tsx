@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Redirect } from 'expo-router';
 import { ActivityIndicator, View } from 'react-native';
-import { colors } from '../src/theme/tokens';
+import { theme } from '../src/theme';
 import { useAuthStore } from '../src/store/authStore';
 import { hasSeenOnboarding } from '../src/lib/onboarding';
 
@@ -21,8 +21,8 @@ export default function Index() {
 
   if (status === 'loading' || !onboardingChecked || !guestModeChecked) {
     return (
-      <View style={{ flex: 1, backgroundColor: colors.surfaceBlack, alignItems: 'center', justifyContent: 'center' }}>
-        <ActivityIndicator color={colors.gold} size="large" />
+      <View style={{ flex: 1, backgroundColor: theme.background.primary, alignItems: 'center', justifyContent: 'center' }}>
+        <ActivityIndicator color={theme.content.accent} size="large" />
       </View>
     );
   }

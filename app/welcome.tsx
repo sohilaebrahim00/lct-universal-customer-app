@@ -4,8 +4,9 @@ import { Image, StyleSheet, View } from 'react-native';
 import { Button } from '../src/components/ui/Button';
 import { AppText } from '../src/components/ui/Typography';
 import { FadeSlideIn } from '../src/components/ui/FadeSlideIn';
-import { colors, spacing } from '../src/theme/tokens';
+import { space, theme } from '../src/theme';
 import { useAuthStore } from '../src/store/authStore';
+import { AppImage } from '../src/components/ui/AppImage';
 
 export default function WelcomeScreen() {
   const router = useRouter();
@@ -20,7 +21,7 @@ export default function WelcomeScreen() {
 
   return (
     <View style={styles.container}>
-      <Image source={require('../assets/onboarding/book.jpg')} style={StyleSheet.absoluteFill} resizeMode="cover" />
+      <AppImage source={require('../assets/onboarding/book.jpg')} style={StyleSheet.absoluteFill} priority="high" />
       <View style={[StyleSheet.absoluteFill, styles.overlay]} />
 
       <View style={styles.content}>
@@ -56,11 +57,11 @@ export default function WelcomeScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.surfaceBlack },
+  container: { flex: 1, backgroundColor: theme.background.primary },
   overlay: { backgroundColor: 'rgba(2,2,1,0.78)' },
-  content: { flex: 1, justifyContent: 'flex-end', padding: spacing.xl, paddingBottom: spacing.xxl },
-  logo: { width: 120, height: 82, alignSelf: 'center', marginBottom: spacing.xl },
-  headline: { marginTop: spacing.sm, marginBottom: spacing.sm },
-  subhead: { marginBottom: spacing.xl, maxWidth: 320, alignSelf: 'center' },
-  actions: { gap: spacing.sm },
+  content: { flex: 1, justifyContent: 'flex-end', padding: space.xl, paddingBottom: space.xxl },
+  logo: { width: 120, height: 82, alignSelf: 'center', marginBottom: space.xl },
+  headline: { marginTop: space.sm, marginBottom: space.sm },
+  subhead: { marginBottom: space.xl, maxWidth: 320, alignSelf: 'center' },
+  actions: { gap: space.sm },
 });

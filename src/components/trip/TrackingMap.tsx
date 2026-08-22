@@ -146,6 +146,23 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'flex-start',
   },
+  /*
+   * PHYSICAL properties on purpose — this is a SHAPE, not a layout.
+   *
+   * The nose is the classic zero-size-box border triangle. `borderLeftWidth`
+   * and `borderRightWidth` here are describing geometry, not "the side the
+   * reading direction starts from", and the RTL sweep converted them to
+   * `borderStartWidth`/`borderEndWidth` before this note was added.
+   *
+   * It happens to be harmless — both sides are 5px and both transparent, so the
+   * triangle is symmetric and flips to itself. It is reverted anyway, because
+   * the next person to read `borderStartWidth` on a triangle will reasonably
+   * assume it was meant to flip and "fix" something that was never broken.
+   *
+   * The marker's direction comes from `rotation={bearing}`, which is a real
+   * compass bearing and must NOT flip under RTL. North is north in Arabic.
+   */
+  /* eslint-disable no-restricted-syntax -- a border triangle is geometry, not layout direction. See above. */
   puckNose: {
     width: 0,
     height: 0,
@@ -157,4 +174,5 @@ const styles = StyleSheet.create({
     borderRightColor: 'transparent',
     borderBottomColor: theme.content.accent,
   },
+  /* eslint-enable no-restricted-syntax */
 });

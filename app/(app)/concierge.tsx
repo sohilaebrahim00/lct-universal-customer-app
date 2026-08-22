@@ -105,14 +105,27 @@ export default function ConciergeScreen() {
     void send(message, transcript);
   }
 
-  function handleRetry(message: ChatMessage) {
-    if (sending) return;
-    // Same id, so the message keeps its position rather than jumping to the end
-    // of a conversation it was part of.
-    setMessages((prev) => prev.map((m) => (m.id === message.id ? { ...m, state: 'sending' as const } : m)));
-    const transcript = transcriptOf(messages.filter((m) => m.id !== message.id));
-    void send(message, transcript);
-  }
+  /**
+   * Retry by id, so the memo on `Bubble` holds.
+   *
+   * An inline `onRetry={() => handleRetry(item)}` is a new identity on every
+   * render, which re-renders every bubble in the transcript on every keystroke
+   * in the composer. Taking the id and looking the message up keeps the prop
+   * stable across exactly those renders — `messages` does not change while
+   * typing.
+   */
+  const retryById = useCallback(
+    (id: string) => {
+      if (sending) return;
+      const message = messages.find((m) => m.id === id);
+      if (!message) return;
+      // Same id, so the message keeps its position rather than jumping to the
+      // end of a conversation it was part of.
+      setMessages((prev) => prev.map((m) => (m.id === id ? { ...m, state: 'sending' as const } : m)));
+      void send(message, transcriptOf(messages.filter((m) => m.id !== id)));
+    },
+    [sending, messages, send, transcriptOf],
+  );
 
   function startBookingFromIntent() {
     if (!intent) return;
@@ -151,7 +164,7 @@ export default function ConciergeScreen() {
         data={messages}
         keyExtractor={(m) => m.id}
         renderItem={({ item }) => (
-          <Bubble role={item.role} content={item.content} state={item.state} onRetry={() => handleRetry(item)} />
+          <Bubble role={item.role} content={item.content} state={item.state} id={item.id} onRetryId={retryById} />
         )}
         contentContainerStyle={styles.list}
         showsVerticalScrollIndicator={false}

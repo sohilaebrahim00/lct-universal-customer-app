@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'expo-router';
-import { Image, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { hapticSelection } from '../../../src/lib/haptics';
 import { Button } from '../../../src/components/ui/Button';
@@ -22,6 +22,7 @@ import { asyncState, type AsyncState } from '../../../src/lib/asyncState';
 import { isRTL } from '../../../src/i18n/rtl';
 import { isQuoteOnly } from '../../../src/config/publishedFleet';
 import { PRICING_STATEMENT } from '../../../src/config/servicePolicy';
+import { AppImage } from '../../../src/components/ui/AppImage';
 
 /**
  * STEP 4 — CHOOSE YOUR CAR.
@@ -293,7 +294,7 @@ function VehicleCard({
     >
       <Surface level="card" cornerRadius={radius.lg} style={[styles.card, disabled ? styles.cardDisabled : null]}>
         <View style={styles.cardRow}>
-          {photo ? <Image source={photo} style={styles.photo} resizeMode="cover" /> : null}
+          {photo ? <AppImage source={photo} style={styles.photo} /> : null}
 
           <View style={styles.cardBody}>
             <View style={styles.titleRow}>

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useRouter } from 'expo-router';
-import { ActivityIndicator, Image, Pressable, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
 import { User, Camera } from 'lucide-react-native';
 import { Button } from '../../../src/components/ui/Button';
 import { ScreenContainer } from '../../../src/components/ui/ScreenContainer';
@@ -11,6 +11,7 @@ import { useAuthStore } from '../../../src/store/authStore';
 import { profilesApi } from '../../../src/api/profiles';
 import { pickAndUploadAvatar } from '../../../src/lib/avatarUpload';
 import { radius, space, theme } from '../../../src/theme';
+import { AppImage } from '../../../src/components/ui/AppImage';
 
 export default function EditProfileScreen() {
   const router = useRouter();
@@ -74,7 +75,7 @@ export default function EditProfileScreen() {
         accessibilityState={{ disabled: uploadingAvatar }}
       >
         {avatarUrl ? (
-          <Image source={{ uri: avatarUrl }} style={styles.avatar} />
+          <AppImage source={{ uri: avatarUrl }} style={styles.avatar} />
         ) : (
           <View style={[styles.avatar, styles.avatarPlaceholder]}>
             <User size={32} color={theme.content.accent} strokeWidth={1.5} />

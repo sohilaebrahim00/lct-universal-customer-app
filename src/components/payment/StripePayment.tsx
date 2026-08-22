@@ -3,7 +3,7 @@ import { View } from 'react-native';
 import { Eye } from 'lucide-react-native';
 import { Button } from '../ui/Button';
 import { AppText } from '../ui/Typography';
-import { colors, radius, spacing } from '../../theme/tokens';
+import { radius, space, theme } from '../../theme';
 import { isExpoGo } from '../../lib/expoEnvironment';
 
 interface Props {
@@ -47,19 +47,19 @@ function NativeCardEntry({ onAddCard }: Props) {
     <>
       <CardField
         postalCodeEnabled
-        style={{ height: 50, marginBottom: spacing.md }}
+        style={{ height: 50, marginBottom: space.md }}
         cardStyle={{
-          backgroundColor: colors.onyx,
-          textColor: colors.offWhite,
-          placeholderColor: colors.mutedForeground,
-          borderColor: colors.border,
+          backgroundColor: theme.background.secondary,
+          textColor: theme.content.primary,
+          placeholderColor: theme.content.secondary,
+          borderColor: theme.border.hairline,
           borderWidth: 1,
           borderRadius: radius.sm,
         }}
         onCardChange={(details) => setCardComplete(details.complete)}
       />
       {error ? (
-        <AppText variant="caption" color={colors.destructiveText} accessibilityLiveRegion="assertive" style={{ marginBottom: spacing.md }}>
+        <AppText variant="caption" color={theme.content.danger} accessibilityLiveRegion="assertive" style={{ marginBottom: space.md }}>
           {error}
         </AppText>
       ) : null}
@@ -72,11 +72,11 @@ function NativeCardEntry({ onAddCard }: Props) {
 function ExpoGoPreview() {
   return (
     <View style={styles.container}>
-      <Eye size={26} color={colors.gold} strokeWidth={1.5} style={{ marginBottom: spacing.sm }} />
+      <Eye size={26} color={theme.content.accent} strokeWidth={1.5} style={{ marginBottom: space.sm }} />
       <AppText variant="subheading" center>
         Card entry preview
       </AppText>
-      <AppText variant="bodyMuted" center style={{ marginTop: spacing.xs }}>
+      <AppText variant="bodyMuted" center style={{ marginTop: space.xs }}>
         Stripe&apos;s native card form doesn&apos;t run inside Expo Go. Open this build with the LCT Universal
         development client (or a production build) to add a real card.
       </AppText>
@@ -92,10 +92,10 @@ export function StripePayment({ onAddCard }: Props) {
 const styles = {
   container: {
     alignItems: 'center' as const,
-    padding: spacing.lg,
+    padding: space.lg,
     borderRadius: radius.md,
     borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.onyx,
+    borderColor: theme.border.hairline,
+    backgroundColor: theme.background.secondary,
   },
 };

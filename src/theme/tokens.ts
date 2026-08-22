@@ -1,5 +1,20 @@
 /**
- * @deprecated COMPATIBILITY LAYER — do not import this in new code.
+ * @deprecated COMPATIBILITY LAYER — and now DEAD. Zero files import it.
+ *
+ * ── This file can be deleted ────────────────────────────────────────────────
+ * The migration is finished. `git grep "theme/tokens"` returns one hit, in a
+ * comment in `app/_layout.tsx`, and nothing else. An ESLint rule in
+ * `eslint.config.js` forbids importing it from anywhere under `app/` or `src/`,
+ * so it cannot come back by accident.
+ *
+ * It is left in place rather than deleted because deletion was not in the scope
+ * that finished the migration, and a dead file behind a lint rule is harmless
+ * where an unasked-for deletion is not. Delete it whenever you like: remove
+ * this file, and the `STILL_ON_THE_SHIM` list and its rule in the ESLint config.
+ *
+ * The last symbol keeping anything here was `shadows.card`, which had no
+ * three-layer equivalent. `app/(app)/book/index.tsx` now takes the shadow half
+ * of `elevation.card` directly.
  *
  * New and rebuilt code imports from `src/theme` (which resolves to index.ts):
  *

@@ -359,7 +359,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: '50%',
     left: '50%',
-    marginLeft: -20,
+    marginStart: -20,
     marginTop: -40,
     alignItems: 'center',
   },

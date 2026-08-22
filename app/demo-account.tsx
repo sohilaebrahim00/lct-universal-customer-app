@@ -8,7 +8,7 @@ import { ScreenContainer } from '../src/components/ui/ScreenContainer';
 import { StatusPill } from '../src/components/ui/StatusPill';
 import { AppText } from '../src/components/ui/Typography';
 import { FadeSlideIn } from '../src/components/ui/FadeSlideIn';
-import { colors, radius, spacing } from '../src/theme/tokens';
+import { radius, space, theme } from '../src/theme';
 
 const DEMO_PROFILE = { name: 'Alexandra Bennett', email: 'alexandra.bennett@example.com', phone: '+1 (214) 555-0148' };
 
@@ -41,25 +41,25 @@ export default function DemoAccountScreen() {
   return (
     <ScreenContainer>
       <View style={styles.badge}>
-        <Sparkles size={14} color={colors.surfaceBlack} strokeWidth={1.5} />
-        <AppText variant="caption" color={colors.surfaceBlack} style={{ marginLeft: spacing.xs, fontWeight: '700' as const }}>
+        <Sparkles size={14} color={theme.background.primary} strokeWidth={1.5} />
+        <AppText variant="caption" color={theme.background.primary} style={{ marginStart: space.xs, fontWeight: '700' as const }}>
           DEMO ACCOUNT
         </AppText>
       </View>
 
-      <AppText variant="display" style={{ marginBottom: spacing.xs }}>
+      <AppText variant="display" style={{ marginBottom: space.xs }}>
         Customer Dashboard
       </AppText>
-      <AppText variant="bodyMuted" style={{ marginBottom: spacing.xl }}>
+      <AppText variant="bodyMuted" style={{ marginBottom: space.xl }}>
         A preview of the dashboard a signed-in client sees. No real account is created and nothing here is saved.
       </AppText>
 
       <FadeSlideIn>
-        <Card row style={{ marginBottom: spacing.lg }}>
+        <Card row style={{ marginBottom: space.lg }}>
           <View style={styles.avatar}>
-            <User size={22} color={colors.gold} strokeWidth={1.5} />
+            <User size={22} color={theme.content.accent} strokeWidth={1.5} />
           </View>
-          <View style={{ marginLeft: spacing.md, flex: 1 }}>
+          <View style={{ marginStart: space.md, flex: 1 }}>
             <AppText variant="subheading">{DEMO_PROFILE.name}</AppText>
             <AppText variant="bodyMuted">{DEMO_PROFILE.email}</AppText>
             <AppText variant="bodyMuted">{DEMO_PROFILE.phone}</AppText>
@@ -68,19 +68,19 @@ export default function DemoAccountScreen() {
       </FadeSlideIn>
 
       <FadeSlideIn delay={60}>
-        <AppText variant="heading" style={{ marginBottom: spacing.sm }}>
+        <AppText variant="heading" style={{ marginBottom: space.sm }}>
           Upcoming Trip
         </AppText>
-        <Card style={{ marginBottom: spacing.lg }}>
-          <AppText variant="subheading" style={{ marginBottom: spacing.xs }}>
+        <Card style={{ marginBottom: space.lg }}>
+          <AppText variant="subheading" style={{ marginBottom: space.xs }}>
             {DEMO_UPCOMING.service}
           </AppText>
-          <AppText variant="caption" style={{ marginBottom: spacing.sm }}>
+          <AppText variant="caption" style={{ marginBottom: space.sm }}>
             {DEMO_UPCOMING.when} · {DEMO_UPCOMING.vehicle}
           </AppText>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
             <StatusPill status="driver_assigned" />
-            <AppText variant="subheading" color={colors.gold}>
+            <AppText variant="subheading" color={theme.content.accent}>
               {DEMO_UPCOMING.fare}
             </AppText>
           </View>
@@ -88,19 +88,19 @@ export default function DemoAccountScreen() {
       </FadeSlideIn>
 
       <FadeSlideIn delay={100}>
-        <AppText variant="heading" style={{ marginBottom: spacing.sm }}>
+        <AppText variant="heading" style={{ marginBottom: space.sm }}>
           Trip History
         </AppText>
-        <Card style={{ marginBottom: spacing.lg }}>
+        <Card style={{ marginBottom: space.lg }}>
           {DEMO_HISTORY.map((trip, i) => (
             <View key={trip.service + trip.when}>
               {i > 0 ? <Divider /> : null}
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: spacing.xs }}>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: space.xs }}>
                 <View>
                   <AppText variant="body">{trip.service}</AppText>
                   <AppText variant="caption">{trip.when}</AppText>
                 </View>
-                <AppText variant="body" color={colors.gold}>
+                <AppText variant="body" color={theme.content.accent}>
                   {trip.fare}
                 </AppText>
               </View>
@@ -110,16 +110,16 @@ export default function DemoAccountScreen() {
       </FadeSlideIn>
 
       <FadeSlideIn delay={140}>
-        <AppText variant="heading" style={{ marginBottom: spacing.sm }}>
+        <AppText variant="heading" style={{ marginBottom: space.sm }}>
           Saved Locations
         </AppText>
-        <Card style={{ marginBottom: spacing.lg }}>
+        <Card style={{ marginBottom: space.lg }}>
           {DEMO_LOCATIONS.map((loc, i) => (
             <View key={loc.label}>
               {i > 0 ? <Divider /> : null}
-              <View style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: spacing.xs }}>
-                <loc.icon size={18} color={colors.gold} strokeWidth={1.5} />
-                <View style={{ marginLeft: spacing.sm, flex: 1 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: space.xs }}>
+                <loc.icon size={18} color={theme.content.accent} strokeWidth={1.5} />
+                <View style={{ marginStart: space.sm, flex: 1 }}>
                   <AppText variant="body">{loc.label}</AppText>
                   <AppText variant="caption">{loc.address}</AppText>
                 </View>
@@ -130,14 +130,14 @@ export default function DemoAccountScreen() {
       </FadeSlideIn>
 
       <FadeSlideIn delay={180}>
-        <AppText variant="heading" style={{ marginBottom: spacing.sm }}>
+        <AppText variant="heading" style={{ marginBottom: space.sm }}>
           Notifications
         </AppText>
-        <Card style={{ marginBottom: spacing.xl }}>
+        <Card style={{ marginBottom: space.xl }}>
           {DEMO_NOTIFICATIONS.map((n, i) => (
             <View key={n.title}>
               {i > 0 ? <Divider /> : null}
-              <View style={{ paddingVertical: spacing.xs }}>
+              <View style={{ paddingVertical: space.xs }}>
                 <AppText variant="subheading">{n.title}</AppText>
                 <AppText variant="bodyMuted" style={{ marginVertical: 2 }}>
                   {n.body}
@@ -149,7 +149,7 @@ export default function DemoAccountScreen() {
         </Card>
       </FadeSlideIn>
 
-      <Button label="Create a Real Account" onPress={() => router.push('/(auth)/signup')} style={{ marginBottom: spacing.sm }} />
+      <Button label="Create a Real Account" onPress={() => router.push('/(auth)/signup')} style={{ marginBottom: space.sm }} />
       <Button label="Exit Demo" variant="ghost" onPress={() => router.replace('/welcome')} />
     </ScreenContainer>
   );
@@ -160,17 +160,17 @@ const styles = {
     flexDirection: 'row' as const,
     alignItems: 'center' as const,
     alignSelf: 'flex-start' as const,
-    backgroundColor: colors.gold,
+    backgroundColor: theme.content.accent,
     borderRadius: radius.full,
-    paddingHorizontal: spacing.md,
+    paddingHorizontal: space.md,
     paddingVertical: 6,
-    marginBottom: spacing.lg,
+    marginBottom: space.lg,
   },
   avatar: {
     width: 52,
     height: 52,
     borderRadius: radius.full,
-    backgroundColor: colors.charcoal,
+    backgroundColor: theme.background.tertiary,
     alignItems: 'center' as const,
     justifyContent: 'center' as const,
   },

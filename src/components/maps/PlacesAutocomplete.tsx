@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
 import { MapPin } from 'lucide-react-native';
-import { colors, fonts, fontSizes, radius, spacing } from '../../theme/tokens';
+import { radius, resolveType, space, theme } from '../../theme';
 import { AppText } from '../ui/Typography';
 import {
   autocompletePlaces,
@@ -75,7 +75,7 @@ export function PlacesAutocomplete({ placeholder, bias, onSelect }: Props) {
         style={{ marginBottom: 0 }}
       />
       {(searching || resolving) && (
-        <ActivityIndicator color={colors.gold} style={styles.spinner} size="small" />
+        <ActivityIndicator color={theme.content.accent} style={styles.spinner} size="small" />
       )}
       {suggestions.length > 0 ? (
         <View style={styles.dropdown}>
@@ -87,8 +87,8 @@ export function PlacesAutocomplete({ placeholder, bias, onSelect }: Props) {
               accessibilityRole="button"
               accessibilityLabel={`${s.primaryText}, ${s.secondaryText}`}
             >
-              <MapPin size={16} color={colors.gold} strokeWidth={1.5} />
-              <View style={{ flex: 1, marginLeft: spacing.sm }}>
+              <MapPin size={16} color={theme.content.accent} strokeWidth={1.5} />
+              <View style={{ flex: 1, marginStart: space.sm }}>
                 <AppText style={styles.primaryText}>{s.primaryText}</AppText>
                 {s.secondaryText ? (
                   <AppText variant="caption">{s.secondaryText}</AppText>
@@ -103,22 +103,31 @@ export function PlacesAutocomplete({ placeholder, bias, onSelect }: Props) {
 }
 
 const styles = StyleSheet.create({
-  spinner: { position: 'absolute', right: spacing.md, top: 16 },
+  spinner: { position: 'absolute', right: space.md, top: 16 },
   dropdown: {
-    backgroundColor: colors.onyx,
+    backgroundColor: theme.background.secondary,
     borderRadius: radius.md,
     borderWidth: 1,
-    borderColor: colors.border,
-    marginTop: -spacing.sm,
-    marginBottom: spacing.md,
+    borderColor: theme.border.hairline,
+    marginTop: -space.sm,
+    marginBottom: space.md,
     overflow: 'hidden',
   },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: spacing.sm,
+    padding: space.sm,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.border,
+    borderBottomColor: theme.border.hairline,
   },
-  primaryText: { fontFamily: fonts.sansMedium, fontSize: fontSizes.sm, color: colors.offWhite },
+  /*
+   * A TYPE ROLE, not a hand-assembled family and size.
+   *
+   * This was `fonts.sansMedium` + `fontSizes.sm` — the last place in the app
+   * setting type by hand, and the only reason this file still needed the shim.
+   * `resolveType` also carries the line height and the per-script axis, so an
+   * Arabic suggestion row now gets Arabic metrics rather than Latin ones at the
+   * same pixel size.
+   */
+  primaryText: { ...resolveType('caption'), color: theme.content.primary },
 });

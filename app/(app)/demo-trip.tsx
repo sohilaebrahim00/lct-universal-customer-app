@@ -9,7 +9,7 @@ import { StatusPill } from '../../src/components/ui/StatusPill';
 import { AppText } from '../../src/components/ui/Typography';
 import { FadeSlideIn } from '../../src/components/ui/FadeSlideIn';
 import { AnimatedRoutePreview } from '../../src/components/trip/AnimatedRoutePreview';
-import { colors, radius, spacing } from '../../src/theme/tokens';
+import { radius, space, theme } from '../../src/theme';
 import { TRIP_STAGE_ORDER, TRIP_STATUS_LABELS, type TripStatus } from '../../src/lib/tripStatus';
 
 const DEMO_STAGES: TripStatus[] = TRIP_STAGE_ORDER.filter((s) => s !== 'pending');
@@ -66,29 +66,29 @@ export default function DemoTripScreen() {
 
   return (
     <ScreenContainer>
-      <AppText variant="eyebrow" style={{ marginBottom: spacing.xs }}>
+      <AppText variant="eyebrow" style={{ marginBottom: space.xs }}>
         Live Tracking Demo
       </AppText>
-      <AppText variant="title" style={{ marginBottom: spacing.xs }}>
+      <AppText variant="title" style={{ marginBottom: space.xs }}>
         Airport Transfer Preview
       </AppText>
-      <View style={{ marginBottom: spacing.md }}>
+      <View style={{ marginBottom: space.md }}>
         <StatusPill status={status} />
       </View>
 
       <FadeSlideIn>
-        <Card style={{ marginBottom: spacing.md }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md }}>
+        <Card style={{ marginBottom: space.md }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.md }}>
             <View style={styles.avatarPlaceholder}>
-              <AppText variant="heading" color={colors.gold}>
+              <AppText variant="heading" color={theme.content.accent}>
                 {DEMO_DRIVER.name.charAt(0)}
               </AppText>
             </View>
             <View style={{ flex: 1 }}>
               <AppText variant="subheading">{DEMO_DRIVER.name}</AppText>
               <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 2 }}>
-                <Star size={12} color={colors.gold} strokeWidth={1.5} fill={colors.gold} />
-                <AppText variant="caption" style={{ marginLeft: 4 }}>
+                <Star size={12} color={theme.content.accent} strokeWidth={1.5} fill={theme.content.accent} />
+                <AppText variant="caption" style={{ marginStart: 4 }}>
                   Assigned ahead of pickup
                 </AppText>
               </View>
@@ -96,15 +96,15 @@ export default function DemoTripScreen() {
             {!isComplete ? (
               <View style={{ alignItems: 'flex-end' }}>
                 <AppText variant="caption">ETA</AppText>
-                <AppText variant="subheading" color={colors.gold}>
+                <AppText variant="subheading" color={theme.content.accent}>
                   {etaMinutes} min
                 </AppText>
               </View>
             ) : null}
           </View>
           <View style={styles.vehicleRow}>
-            <Car size={16} color={colors.mutedForeground} strokeWidth={1.5} />
-            <AppText variant="caption" style={{ marginLeft: spacing.xs }}>
+            <Car size={16} color={theme.content.secondary} strokeWidth={1.5} />
+            <AppText variant="caption" style={{ marginStart: space.xs }}>
               {DEMO_DRIVER.vehicle}
             </AppText>
           </View>
@@ -112,13 +112,13 @@ export default function DemoTripScreen() {
       </FadeSlideIn>
 
       <FadeSlideIn delay={80}>
-        <Card style={{ marginBottom: spacing.md, padding: 0, overflow: 'hidden' }}>
+        <Card style={{ marginBottom: space.md, padding: 0, overflow: 'hidden' }}>
           <AnimatedRoutePreview />
         </Card>
       </FadeSlideIn>
 
       <FadeSlideIn delay={140}>
-        <Card style={{ marginBottom: spacing.md }}>
+        <Card style={{ marginBottom: space.md }}>
           {DEMO_STAGES.map((stage, i) => {
             const done = i < stageIndex || (i === stageIndex && stage === 'completed');
             const active = i === stageIndex && stage !== 'completed';
@@ -127,7 +127,7 @@ export default function DemoTripScreen() {
                 <View style={[styles.dot, done || active ? styles.dotActive : null]} />
                 <AppText
                   variant={active ? 'subheading' : 'body'}
-                  color={done || active ? colors.offWhite : colors.mutedForeground}
+                  color={done || active ? theme.content.primary : theme.content.secondary}
                   style={{ flex: 1 }}
                 >
                   {TRIP_STATUS_LABELS[stage]}
@@ -140,16 +140,16 @@ export default function DemoTripScreen() {
 
       <FadeSlideIn delay={200}>
         <View style={styles.noticeRow}>
-          <Info size={16} color={colors.mutedForeground} strokeWidth={1.5} />
-          <AppText variant="caption" style={{ marginLeft: spacing.xs, flex: 1 }}>
+          <Info size={16} color={theme.content.secondary} strokeWidth={1.5} />
+          <AppText variant="caption" style={{ marginStart: space.xs, flex: 1 }}>
             This is a simulated preview. Your real trips are tracked live once you book.
           </AppText>
         </View>
 
         {isComplete ? (
-          <Button label="Restart Demo" variant="secondary" onPress={handleRestart} style={{ marginTop: spacing.md }} />
+          <Button label="Restart Demo" variant="secondary" onPress={handleRestart} style={{ marginTop: space.md }} />
         ) : null}
-        <Button label="Book a Real Trip" onPress={() => router.push('/(app)/book')} style={{ marginTop: spacing.sm }} />
+        <Button label="Book a Real Trip" onPress={() => router.push('/(app)/book')} style={{ marginTop: space.sm }} />
       </FadeSlideIn>
     </ScreenContainer>
   );
@@ -160,20 +160,20 @@ const styles = {
     width: 56,
     height: 56,
     borderRadius: radius.full,
-    backgroundColor: colors.charcoal,
+    backgroundColor: theme.background.tertiary,
     alignItems: 'center' as const,
     justifyContent: 'center' as const,
   },
   vehicleRow: {
     flexDirection: 'row' as const,
     alignItems: 'center' as const,
-    marginTop: spacing.sm,
-    paddingTop: spacing.sm,
+    marginTop: space.sm,
+    paddingTop: space.sm,
     borderTopWidth: 1,
-    borderTopColor: colors.border,
+    borderTopColor: theme.border.hairline,
   },
-  stageRow: { flexDirection: 'row' as const, alignItems: 'center' as const, gap: spacing.sm, marginBottom: spacing.sm },
-  dot: { width: 10, height: 10, borderRadius: radius.full, backgroundColor: colors.charcoal },
-  dotActive: { backgroundColor: colors.gold },
-  noticeRow: { flexDirection: 'row' as const, alignItems: 'center' as const, marginBottom: spacing.sm },
+  stageRow: { flexDirection: 'row' as const, alignItems: 'center' as const, gap: space.sm, marginBottom: space.sm },
+  dot: { width: 10, height: 10, borderRadius: radius.full, backgroundColor: theme.background.tertiary },
+  dotActive: { backgroundColor: theme.content.accent },
+  noticeRow: { flexDirection: 'row' as const, alignItems: 'center' as const, marginBottom: space.sm },
 };

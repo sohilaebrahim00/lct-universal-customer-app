@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { StyleSheet, View } from 'react-native';
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withRepeat, withSequence, withTiming } from 'react-native-reanimated';
-import { colors } from '../theme/tokens';
+import { theme } from '../theme';
 
 /**
  * Shown while fonts and the Supabase session are still resolving, before
@@ -39,6 +39,6 @@ export function AppLoadingScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.surfaceBlack, alignItems: 'center', justifyContent: 'center' },
+  container: { flex: 1, backgroundColor: theme.background.primary, alignItems: 'center', justifyContent: 'center' },
   logo: { width: 160, height: 110 },
 });

@@ -7,7 +7,7 @@ import { Button } from '../../src/components/ui/Button';
 import { ScreenContainer } from '../../src/components/ui/ScreenContainer';
 import { TextField } from '../../src/components/ui/TextField';
 import { AppText } from '../../src/components/ui/Typography';
-import { colors, spacing } from '../../src/theme/tokens';
+import { space, theme } from '../../src/theme';
 import { supabase } from '../../src/lib/supabase';
 
 export default function SignupScreen() {
@@ -69,7 +69,7 @@ export default function SignupScreen() {
         <AppText variant="body" center>
           We sent a confirmation link to {email.trim()}. Confirm your email, then sign in.
         </AppText>
-        <View style={{ marginTop: spacing.xl }}>
+        <View style={{ marginTop: space.xl }}>
           <Button label="Back to Sign In" onPress={() => router.replace('/(auth)/login')} variant="secondary" />
         </View>
       </ScreenContainer>
@@ -86,7 +86,7 @@ export default function SignupScreen() {
 
       {/* Non-blocking: informational only — every field and the button below stay fully interactive either way. */}
       {!configured ? (
-        <AppText variant="bodyMuted" center style={{ marginBottom: spacing.md }}>
+        <AppText variant="bodyMuted" center style={{ marginBottom: space.md }}>
           Preview mode: EXPO_PUBLIC_SUPABASE_URL / EXPO_PUBLIC_SUPABASE_ANON_KEY aren&apos;t set on this build, so
           sign-up can&apos;t reach a real backend yet — you can still explore the UI below.
         </AppText>
@@ -106,7 +106,7 @@ export default function SignupScreen() {
       <TextField label="Confirm Password" value={confirmPassword} onChangeText={setConfirmPassword} secureTextEntry />
 
       {error ? (
-        <AppText variant="caption" color={colors.destructiveText} accessibilityLiveRegion="assertive" style={{ marginBottom: spacing.md }}>
+        <AppText variant="caption" color={theme.content.danger} accessibilityLiveRegion="assertive" style={{ marginBottom: space.md }}>
           {error}
         </AppText>
       ) : null}
@@ -119,7 +119,7 @@ export default function SignupScreen() {
         <AppText variant="bodyMuted">Already have an account?</AppText>
         <Link href="/(auth)/login" asChild>
           <Pressable accessibilityRole="link" accessible style={styles.link} hitSlop={8}>
-            <AppText variant="body" color={colors.gold}>
+            <AppText variant="body" color={theme.content.accent}>
               Sign in
             </AppText>
           </Pressable>
@@ -130,7 +130,7 @@ export default function SignupScreen() {
 }
 
 const styles = StyleSheet.create({
-  row: { marginTop: spacing.xl, alignItems: 'center' },
+  row: { marginTop: space.xl, alignItems: 'center' },
   /** 44 tall. A bare <Link> around text is a ~16pt target. */
-  link: { minHeight: 44, justifyContent: 'center', paddingHorizontal: spacing.sm },
+  link: { minHeight: 44, justifyContent: 'center', paddingHorizontal: space.sm },
 });

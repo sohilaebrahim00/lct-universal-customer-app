@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'expo-router';
-import { Image, Linking, StyleSheet, View } from 'react-native';
+import { Linking, StyleSheet, View } from 'react-native';
 import { Building2, Users, Briefcase, FileText, Headphones } from 'lucide-react-native';
 import { Button } from '../../src/components/ui/Button';
 import { Card } from '../../src/components/ui/Card';
@@ -16,6 +16,7 @@ import { Skeleton } from '../../src/components/ui/Skeleton';
 import { asyncState, type AsyncState } from '../../src/lib/asyncState';
 import type { Vehicle } from '../../src/types/api';
 import { VEHICLE_DISPLAY_NAME } from '../../src/lib/vehicleImages';
+import { AppImage } from '../../src/components/ui/AppImage';
 
 const FEATURES = [
   { icon: Building2, title: 'Corporate Transportation', desc: 'A dedicated account for your company, with centralized billing and reporting.' },
@@ -61,7 +62,7 @@ export default function CorporateInfoScreen() {
 
   return (
     <ScreenContainer padded={false}>
-      <Image source={require('../../assets/corporate/hero.jpg')} style={styles.hero} resizeMode="cover" />
+      <AppImage source={require('../../assets/corporate/hero.jpg')} style={styles.hero} priority="high" />
       <View style={styles.heroOverlay} />
       <View style={styles.heroContent}>
         <AppText variant="eyebrow" style={{ marginBottom: space.xs }}>
@@ -218,7 +219,7 @@ const styles = StyleSheet.create({
   featureRow: { flexDirection: 'row', alignItems: 'flex-start' },
   featureIcon: { marginTop: 2, flexShrink: 0 },
   featureDesc: { marginTop: 2 },
-  featureText: { marginLeft: space.md, flex: 1, minWidth: 0 },
+  featureText: { marginStart: space.md, flex: 1, minWidth: 0 },
   hero: { width: '100%', height: 220 },
   heroOverlay: { position: 'absolute', top: 0, left: 0, right: 0, height: 220, backgroundColor: 'rgba(2,2,1,0.5)' },
   heroContent: { position: 'absolute', top: 0, left: 0, right: 0, padding: space.lg, paddingTop: space.xxl },

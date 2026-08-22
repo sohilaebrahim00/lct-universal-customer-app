@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { memo, type ReactNode } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { Card } from './Card';
 import { StatusPill } from './StatusPill';
@@ -19,6 +19,16 @@ interface Props {
   /** Actions on a hairline-topped row: "Track live", "Receipt". */
   actions?: ReactNode;
   onPress?: () => void;
+  /**
+   * The stable alternative to `onPress` for list rows.
+   *
+   * A memoised row is only memoised if its props hold their identity between
+   * renders, and an inline `onPress={() => open(item.id)}` never does. Passing
+   * the id alongside a `useCallback`'d `onOpen` keeps both stable, so a list
+   * re-render touches only the rows whose data actually changed.
+   */
+  id?: string;
+  onOpen?: (id: string) => void;
 }
 
 /**
@@ -36,7 +46,7 @@ interface Props {
  * five separate fragments — status, date, route, fare, meta — with no indication
  * they describe the same trip.
  */
-export function TripCard({
+function TripCardBase({
   route,
   scheduledAt,
   status,
@@ -45,6 +55,8 @@ export function TripCard({
   meta,
   actions,
   onPress,
+  id,
+  onOpen,
 }: Props) {
   const live = !isTerminalStatus(status) && status !== 'pending';
   const fare = formatCurrency(totalFare, currency);
@@ -72,11 +84,12 @@ export function TripCard({
     </Card>
   );
 
-  if (!onPress) return body;
+  const handlePress = onOpen && id ? () => onOpen(id) : onPress;
+  if (!handlePress) return body;
 
   return (
     <Pressable
-      onPress={onPress}
+      onPress={handlePress}
       accessibilityRole="button"
       accessibilityLabel={[route, when, [meta, fare].filter(Boolean).join(', ')].join('. ')}
     >
@@ -108,3 +121,17 @@ const styles = StyleSheet.create({
     borderTopColor: theme.border.hairline,
   },
 });
+
+/**
+ * MEMOISED.
+ *
+ * A trip list re-renders on every pull-to-refresh and on every socket status
+ * change. Without this, each one rebuilds every row in the list rather than the
+ * one row whose status actually moved.
+ *
+ * Memo only pays if the props are stable, which is why the list passes a
+ * `useCallback`'d handler rather than an inline arrow — an inline
+ * `onPress={() => ...}` is a new function identity per render and defeats this
+ * entirely. The two changes only work together.
+ */
+export const TripCard = memo(TripCardBase);

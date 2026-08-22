@@ -3,7 +3,7 @@ import { Platform, StyleSheet, View } from 'react-native';
 import { Map, Navigation, Clock } from 'lucide-react-native';
 import { Card } from '../ui/Card';
 import { AppText } from '../ui/Typography';
-import { colors, radius, spacing } from '../../theme/tokens';
+import { radius, space, theme } from '../../theme';
 import { decodePolyline } from '../../lib/googlePlaces';
 import { isExpoGo } from '../../lib/expoEnvironment';
 
@@ -40,9 +40,9 @@ function NativeRouteMap({ pickup, dropoff, points }: MapProps) {
       pointerEvents="none"
       initialRegion={{ latitude: midLat, longitude: midLng, latitudeDelta: latDelta, longitudeDelta: lngDelta }}
     >
-      <Marker coordinate={{ latitude: pickup.lat, longitude: pickup.lng }} pinColor={colors.gold} title="Pickup" />
-      <Marker coordinate={{ latitude: dropoff.lat, longitude: dropoff.lng }} pinColor={colors.champagne} title="Drop-off" />
-      {points.length > 1 ? <Polyline coordinates={points} strokeColor={colors.gold} strokeWidth={3} /> : null}
+      <Marker coordinate={{ latitude: pickup.lat, longitude: pickup.lng }} pinColor={theme.content.accent} title="Pickup" />
+      <Marker coordinate={{ latitude: dropoff.lat, longitude: dropoff.lng }} pinColor={theme.content.accentSoft} title="Drop-off" />
+      {points.length > 1 ? <Polyline coordinates={points} strokeColor={theme.content.accent} strokeWidth={3} /> : null}
     </MapView>
   );
 }
@@ -52,11 +52,11 @@ export function RoutePreviewCard({ pickup, dropoff, distanceMiles, durationMinut
   const points = useMemo(() => (polyline ? decodePolyline(polyline) : []), [polyline]);
 
   return (
-    <Card style={{ padding: 0, overflow: 'hidden', marginBottom: spacing.md }}>
+    <Card style={{ padding: 0, overflow: 'hidden', marginBottom: space.md }}>
       {isExpoGo || Platform.OS === 'web' ? (
         <View style={styles.expoGoPreview}>
-          <Map size={22} color={colors.gold} strokeWidth={1.5} />
-          <AppText variant="caption" center style={{ marginTop: spacing.xs }}>
+          <Map size={22} color={theme.content.accent} strokeWidth={1.5} />
+          <AppText variant="caption" center style={{ marginTop: space.xs }}>
             {Platform.OS === 'web' ? 'Route map preview — full map available in the iOS/Android app' : "Route map preview isn't available in Expo Go"}
           </AppText>
         </View>
@@ -65,14 +65,14 @@ export function RoutePreviewCard({ pickup, dropoff, distanceMiles, durationMinut
       )}
       <View style={styles.footer}>
         <View style={styles.metaItem}>
-          <Navigation size={16} color={colors.gold} strokeWidth={1.5} />
-          <AppText variant="body" style={{ marginLeft: 6 }}>
+          <Navigation size={16} color={theme.content.accent} strokeWidth={1.5} />
+          <AppText variant="body" style={{ marginStart: 6 }}>
             {distanceMiles != null ? `${distanceMiles} mi` : '—'}
           </AppText>
         </View>
         <View style={styles.metaItem}>
-          <Clock size={16} color={colors.gold} strokeWidth={1.5} />
-          <AppText variant="body" style={{ marginLeft: 6 }}>
+          <Clock size={16} color={theme.content.accent} strokeWidth={1.5} />
+          <AppText variant="body" style={{ marginStart: 6 }}>
             {durationMinutes != null ? `${durationMinutes} min` : '—'}
           </AppText>
         </View>
@@ -88,15 +88,15 @@ const styles = StyleSheet.create({
     height: 160,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.onyx,
-    paddingHorizontal: spacing.lg,
+    backgroundColor: theme.background.secondary,
+    paddingHorizontal: space.lg,
   },
   footer: {
     flexDirection: 'row',
-    gap: spacing.lg,
-    padding: spacing.md,
+    gap: space.lg,
+    padding: space.md,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: colors.border,
+    borderTopColor: theme.border.hairline,
   },
   metaItem: { flexDirection: 'row', alignItems: 'center', borderRadius: radius.sm },
 });

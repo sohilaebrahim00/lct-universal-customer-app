@@ -17,7 +17,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { colors } from '../src/theme/tokens';
+import { theme } from '../src/theme';
 import { useAuthStore } from '../src/store/authStore';
 import { useLocaleStore } from '../src/i18n';
 import { AppLoadingScreen } from '../src/components/AppLoadingScreen';
@@ -76,12 +76,12 @@ export default function RootLayout() {
   const ready = (fontsLoaded || fontsError) && localeHydrated;
 
   return (
-    <GestureHandlerRootView style={{ flex: 1, backgroundColor: colors.surfaceBlack }}>
+    <GestureHandlerRootView style={{ flex: 1, backgroundColor: theme.background.primary }}>
       <SafeAreaProvider>
         <AppShell>
           <StatusBar style="light" />
           {ready ? (
-            <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.surfaceBlack } }}>
+            <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: theme.background.primary } }}>
               <Stack.Screen name="onboarding" />
               <Stack.Screen name="welcome" />
               <Stack.Screen name="demo-account" />

@@ -8,7 +8,7 @@ import { Button } from '../../src/components/ui/Button';
 import { ScreenContainer } from '../../src/components/ui/ScreenContainer';
 import { TextField } from '../../src/components/ui/TextField';
 import { AppText } from '../../src/components/ui/Typography';
-import { colors, spacing } from '../../src/theme/tokens';
+import { space, theme } from '../../src/theme';
 import { supabase } from '../../src/lib/supabase';
 
 export default function LoginScreen() {
@@ -53,7 +53,7 @@ export default function LoginScreen() {
         guard reports clearly instead of silently doing nothing.
       */}
       {!configured ? (
-        <AppText variant="bodyMuted" center style={{ marginBottom: spacing.md }}>
+        <AppText variant="bodyMuted" center style={{ marginBottom: space.md }}>
           Preview mode: EXPO_PUBLIC_SUPABASE_URL / EXPO_PUBLIC_SUPABASE_ANON_KEY aren&apos;t set on this build, so
           sign-in can&apos;t reach a real backend yet — you can still explore the UI below.
         </AppText>
@@ -76,7 +76,7 @@ export default function LoginScreen() {
       />
 
       {error ? (
-        <AppText variant="caption" color={colors.destructiveText} accessibilityLiveRegion="assertive" style={{ marginBottom: spacing.md }}>
+        <AppText variant="caption" color={theme.content.danger} accessibilityLiveRegion="assertive" style={{ marginBottom: space.md }}>
           {error}
         </AppText>
       ) : null}
@@ -87,11 +87,11 @@ export default function LoginScreen() {
         label="Try Demo Experience"
         variant="ghost"
         onPress={() => router.push('/demo-account')}
-        style={{ marginTop: spacing.sm }}
+        style={{ marginTop: space.sm }}
       />
-      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginTop: -spacing.xs }}>
-        <Sparkles size={12} color={colors.mutedForeground} strokeWidth={1.5} />
-        <AppText variant="caption" style={{ marginLeft: 4 }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginTop: -space.xs }}>
+        <Sparkles size={12} color={theme.content.secondary} strokeWidth={1.5} />
+        <AppText variant="caption" style={{ marginStart: 4 }}>
           Preview the app with sample data — no account needed
         </AppText>
       </View>
@@ -106,7 +106,7 @@ export default function LoginScreen() {
       <View style={styles.linkRow}>
         <Link href="/(auth)/forgot-password" asChild>
           <Pressable accessibilityRole="link" accessible style={styles.link} hitSlop={8}>
-            <AppText variant="caption" color={colors.gold}>
+            <AppText variant="caption" color={theme.content.accent}>
               Forgot password?
             </AppText>
           </Pressable>
@@ -117,7 +117,7 @@ export default function LoginScreen() {
         <AppText variant="bodyMuted">New to LCT Universal?</AppText>
         <Link href="/(auth)/signup" asChild>
           <Pressable accessibilityRole="link" accessible style={styles.link} hitSlop={8}>
-            <AppText variant="body" color={colors.gold}>
+            <AppText variant="body" color={theme.content.accent}>
               Create an account
             </AppText>
           </Pressable>
@@ -128,8 +128,8 @@ export default function LoginScreen() {
 }
 
 const styles = StyleSheet.create({
-  linkRow: { marginTop: spacing.md, alignItems: 'center' },
-  signupRow: { marginTop: spacing.xl, alignItems: 'center' },
+  linkRow: { marginTop: space.md, alignItems: 'center' },
+  signupRow: { marginTop: space.xl, alignItems: 'center' },
   /** The row grows to a real target; the type stays where it was. */
-  link: { minHeight: 44, justifyContent: 'center', paddingHorizontal: spacing.sm },
+  link: { minHeight: 44, justifyContent: 'center', paddingHorizontal: space.sm },
 });

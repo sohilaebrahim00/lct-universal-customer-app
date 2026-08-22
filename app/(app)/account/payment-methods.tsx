@@ -57,7 +57,7 @@ export default function PaymentMethodsScreen() {
       >
         {methods.map((m) => (
           <Card key={m.id} row style={{ marginBottom: space.sm }}>
-            <CreditCard size={20} color={theme.content.accent} strokeWidth={1.5} style={{ marginRight: space.md }} />
+            <CreditCard size={20} color={theme.content.accent} strokeWidth={1.5} style={{ marginEnd: space.md }} />
             <View style={{ flex: 1 }}>
               <AppText variant="subheading">
                 {m.brand ? `${m.brand.toUpperCase()} •••• ${m.last4}` : 'Card on file'}

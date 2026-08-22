@@ -5,7 +5,7 @@ import { Lock } from 'lucide-react-native';
 import { Button } from './ui/Button';
 import { Card } from './ui/Card';
 import { AppText } from './ui/Typography';
-import { colors, spacing } from '../theme/tokens';
+import { space, theme } from '../theme';
 import { useAuthStore } from '../store/authStore';
 
 interface Props {
@@ -33,24 +33,24 @@ export function AuthGate({ title, message, children, onContinueLater }: Props) {
   if (status === 'signed-in') return <>{children}</>;
 
   return (
-    <Card style={{ alignItems: 'center', padding: spacing.xl }}>
-      <Lock size={26} color={colors.gold} strokeWidth={1.5} style={{ marginBottom: spacing.sm }} />
-      <AppText variant="subheading" center style={{ marginBottom: spacing.xs }}>
+    <Card style={{ alignItems: 'center', padding: space.xl }}>
+      <Lock size={26} color={theme.content.accent} strokeWidth={1.5} style={{ marginBottom: space.sm }} />
+      <AppText variant="subheading" center style={{ marginBottom: space.xs }}>
         {title}
       </AppText>
       {message ? (
-        <AppText variant="bodyMuted" center style={{ marginBottom: spacing.lg }}>
+        <AppText variant="bodyMuted" center style={{ marginBottom: space.lg }}>
           {message}
         </AppText>
       ) : (
-        <View style={{ marginBottom: spacing.lg }} />
+        <View style={{ marginBottom: space.lg }} />
       )}
-      <Button label="Sign In" onPress={() => router.push('/(auth)/login')} style={{ width: '100%', marginBottom: spacing.sm }} />
+      <Button label="Sign In" onPress={() => router.push('/(auth)/login')} style={{ width: '100%', marginBottom: space.sm }} />
       <Button
         label="Create Account"
         variant="secondary"
         onPress={() => router.push('/(auth)/signup')}
-        style={{ width: '100%', marginBottom: onContinueLater ? spacing.sm : 0 }}
+        style={{ width: '100%', marginBottom: onContinueLater ? space.sm : 0 }}
       />
       {onContinueLater ? <Button label="Continue Later" variant="ghost" onPress={onContinueLater} style={{ width: '100%' }} /> : null}
     </Card>

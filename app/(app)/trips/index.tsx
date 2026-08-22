@@ -36,6 +36,8 @@ type Tab = 'upcoming' | 'past';
  */
 export default function TripsScreen() {
   const router = useRouter();
+  /** Stable across renders — see the note at the FlatList's renderItem. */
+  const openTrip = useCallback((id: string) => router.push(`/(app)/trips/${id}`), [router]);
   const status = useAuthStore((s) => s.status);
   const [tab, setTab] = useState<Tab>('upcoming');
   const [state, setState] = useState<AsyncState<Booking[]>>(asyncState.idle<Booking[]>());
@@ -117,6 +119,16 @@ export default function TripsScreen() {
             refreshControl={
               <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.content.accent} />
             }
+            /*
+              A STABLE handler, so the memo on TripCard is not defeated.
+
+              `onPress={() => router.push(...)}` is a new function identity on
+              every render, which makes every row's props change and re-renders
+              the whole list on each pull-to-refresh. `openTrip` is
+              `useCallback`'d and takes the id, so the row's props are stable
+              between renders and only a row whose data actually changed
+              re-renders. The memo and this are one change, not two.
+            */
             renderItem={({ item }) => (
               <TripCard
                 route={routeOf(item)}
@@ -124,7 +136,8 @@ export default function TripsScreen() {
                 status={item.status}
                 totalFare={item.total_fare}
                 currency={item.currency}
-                onPress={() => router.push(`/(app)/trips/${item.id}`)}
+                id={item.id}
+                onOpen={openTrip}
               />
             )}
             ListEmptyComponent={

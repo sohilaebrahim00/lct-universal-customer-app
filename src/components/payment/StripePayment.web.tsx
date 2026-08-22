@@ -1,7 +1,7 @@
 import { View } from 'react-native';
 import { Smartphone } from 'lucide-react-native';
 import { AppText } from '../ui/Typography';
-import { colors, radius, spacing } from '../../theme/tokens';
+import { radius, space, theme } from '../../theme';
 
 /**
  * Web fallback — `@stripe/stripe-react-native` (CardField, useStripe) is a
@@ -12,11 +12,11 @@ import { colors, radius, spacing } from '../../theme/tokens';
 export function StripePayment() {
   return (
     <View style={styles.container}>
-      <Smartphone size={28} color={colors.gold} strokeWidth={1.5} style={{ marginBottom: spacing.sm }} />
+      <Smartphone size={28} color={theme.content.accent} strokeWidth={1.5} style={{ marginBottom: space.sm }} />
       <AppText variant="subheading" center>
         Payment methods are available in the mobile app
       </AppText>
-      <AppText variant="bodyMuted" center style={{ marginTop: spacing.xs }}>
+      <AppText variant="bodyMuted" center style={{ marginTop: space.xs }}>
         Adding a card requires a secure on-device payment form supported on iOS and Android — install the LCT
         Universal app to add or manage saved cards.
       </AppText>
@@ -27,10 +27,10 @@ export function StripePayment() {
 const styles = {
   container: {
     alignItems: 'center' as const,
-    padding: spacing.lg,
+    padding: space.lg,
     borderRadius: radius.md,
     borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.onyx,
+    borderColor: theme.border.hairline,
+    backgroundColor: theme.background.secondary,
   },
 };

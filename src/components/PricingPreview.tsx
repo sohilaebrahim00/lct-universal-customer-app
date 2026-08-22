@@ -3,7 +3,7 @@ import { Car, Truck, Bus } from 'lucide-react-native';
 import { Card } from './ui/Card';
 import { Divider } from './ui/Divider';
 import { AppText } from './ui/Typography';
-import { colors, spacing } from '../theme/tokens';
+import { space, theme } from '../theme';
 
 const DEMO_RATES = [
   { icon: Car, name: 'Mercedes Sedan', rate: '$100/hr' },
@@ -24,18 +24,18 @@ export function PricingPreview() {
       {DEMO_RATES.map((vehicle, i) => (
         <View key={vehicle.name}>
           {i > 0 ? <Divider /> : null}
-          <View style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: spacing.xs }}>
-            <vehicle.icon size={20} color={colors.gold} strokeWidth={1.5} />
-            <AppText variant="body" style={{ marginLeft: spacing.sm, flex: 1 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: space.xs }}>
+            <vehicle.icon size={20} color={theme.content.accent} strokeWidth={1.5} />
+            <AppText variant="body" style={{ marginStart: space.sm, flex: 1 }}>
               {vehicle.name}
             </AppText>
-            <AppText variant="subheading" color={colors.gold}>
+            <AppText variant="subheading" color={theme.content.accent}>
               {vehicle.rate}
             </AppText>
           </View>
         </View>
       ))}
-      <AppText variant="caption" style={{ marginTop: spacing.sm }}>
+      <AppText variant="caption" style={{ marginTop: space.sm }}>
         Starting rates shown. Final pricing depends on trip details.
       </AppText>
     </Card>

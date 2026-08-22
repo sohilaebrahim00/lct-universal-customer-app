@@ -1,7 +1,7 @@
 import { StyleSheet, View } from 'react-native';
 import { User, Car, Plane, Building2, Clock } from 'lucide-react-native';
 import { AppText } from './ui/Typography';
-import { colors, radius, spacing } from '../theme/tokens';
+import { radius, space, theme } from '../theme';
 
 const REASONS = [
   { icon: User, title: 'Professional Chauffeurs', desc: 'Vetted, trained, and dressed for the occasion.' },
@@ -17,9 +17,9 @@ export function WhyChooseLct() {
       {REASONS.map((reason) => (
         <View key={reason.title} style={styles.row}>
           <View style={styles.iconWrap}>
-            <reason.icon size={22} color={colors.gold} strokeWidth={1.5} />
+            <reason.icon size={22} color={theme.content.accent} strokeWidth={1.5} />
           </View>
-          <View style={{ marginLeft: spacing.md, flex: 1 }}>
+          <View style={{ marginStart: space.md, flex: 1 }}>
             <AppText variant="subheading">{reason.title}</AppText>
             <AppText variant="caption" style={{ marginTop: 2 }}>
               {reason.desc}
@@ -32,7 +32,7 @@ export function WhyChooseLct() {
 }
 
 const styles = StyleSheet.create({
-  row: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: spacing.md },
+  row: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: space.md },
   iconWrap: {
     width: 44,
     height: 44,

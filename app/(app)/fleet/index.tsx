@@ -1,17 +1,18 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'expo-router';
-import { ActivityIndicator, Image, Pressable, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
 import { AlertCircle, Car, ChevronRight, Users, Briefcase } from 'lucide-react-native';
 import { ScreenContainer } from '../../../src/components/ui/ScreenContainer';
 import { AppText } from '../../../src/components/ui/Typography';
 import { FadeSlideIn } from '../../../src/components/ui/FadeSlideIn';
 import { EmptyState } from '../../../src/components/ui/EmptyState';
-import { colors, radius, spacing } from '../../../src/theme/tokens';
+import { radius, space, theme } from '../../../src/theme';
 import { vehiclesApi } from '../../../src/api/vehicles';
 import type { Vehicle } from '../../../src/types/api';
 import { VEHICLE_DISPLAY_NAME, VEHICLE_IMAGES } from '../../../src/lib/vehicleImages';
 import { VEHICLE_TAGLINE } from '../../../src/lib/vehicleFeatures';
 import { publishedStartingLabel } from '../../../src/config/publishedFleet';
+import { AppImage } from '../../../src/components/ui/AppImage';
 
 export default function FleetScreen() {
   const router = useRouter();
@@ -27,14 +28,14 @@ export default function FleetScreen() {
 
   return (
     <ScreenContainer>
-      <AppText variant="eyebrow" style={{ marginBottom: spacing.xs }}>
+      <AppText variant="eyebrow" style={{ marginBottom: space.xs }}>
         Our Fleet
       </AppText>
-      <AppText variant="display" style={{ marginBottom: spacing.lg }}>
+      <AppText variant="display" style={{ marginBottom: space.lg }}>
         Every Journey, The Right Vehicle
       </AppText>
 
-      {!vehicles && !error ? <ActivityIndicator color={colors.gold} style={{ marginTop: spacing.xl }} /> : null}
+      {!vehicles && !error ? <ActivityIndicator color={theme.content.accent} style={{ marginTop: space.xl }} /> : null}
       {error ? (
         <EmptyState icon={AlertCircle} title="Couldn't load the fleet" message={error} />
       ) : null}
@@ -42,7 +43,7 @@ export default function FleetScreen() {
         <EmptyState icon={Car} title="Fleet unavailable" message="The fleet listing isn't available right now — please check back shortly." />
       ) : null}
 
-      <View style={{ gap: spacing.md }}>
+      <View style={{ gap: space.md }}>
         {vehicles?.map((vehicle, i) => {
           const image = VEHICLE_IMAGES[vehicle.type];
           const displayName = VEHICLE_DISPLAY_NAME[vehicle.type] ?? vehicle.name;
@@ -56,7 +57,7 @@ export default function FleetScreen() {
                 accessibilityRole="button"
                 accessibilityLabel={`${displayName}, ${vehicle.capacity_passengers} passengers, ${vehicle.capacity_luggage} bags`}
               >
-                {image ? <Image source={image} style={styles.image} resizeMode="cover" /> : null}
+                {image ? <AppImage source={image} style={styles.image} /> : null}
                 <View style={styles.body}>
                   <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                     <View style={{ flex: 1 }}>
@@ -65,16 +66,16 @@ export default function FleetScreen() {
                         {tagline}
                       </AppText>
                     </View>
-                    <ChevronRight size={18} color={colors.mutedForeground} strokeWidth={1.5} />
+                    <ChevronRight size={18} color={theme.content.secondary} strokeWidth={1.5} />
                   </View>
 
                   <View style={styles.metaRow}>
                     <View style={styles.metaItem}>
-                      <Users size={14} color={colors.mutedForeground} strokeWidth={1.5} />
+                      <Users size={14} color={theme.content.secondary} strokeWidth={1.5} />
                       <AppText variant="caption"> {vehicle.capacity_passengers} passengers</AppText>
                     </View>
                     <View style={styles.metaItem}>
-                      <Briefcase size={14} color={colors.mutedForeground} strokeWidth={1.5} />
+                      <Briefcase size={14} color={theme.content.secondary} strokeWidth={1.5} />
                       <AppText variant="caption"> {vehicle.capacity_luggage} bags</AppText>
                     </View>
                   </View>
@@ -104,7 +105,7 @@ export default function FleetScreen() {
                   */}
                   {publishedStartingLabel(vehicle.type) ? (
                     <View style={styles.priceRow}>
-                      <AppText variant="subheading" color={colors.gold}>
+                      <AppText variant="subheading" color={theme.content.accent}>
                         {publishedStartingLabel(vehicle.type)}
                       </AppText>
                     </View>
@@ -123,13 +124,13 @@ const styles = StyleSheet.create({
   card: {
     borderRadius: radius.lg,
     borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.onyx,
+    borderColor: theme.border.hairline,
+    backgroundColor: theme.background.secondary,
     overflow: 'hidden',
   },
   image: { width: '100%', height: 180 },
-  body: { padding: spacing.md },
-  metaRow: { flexDirection: 'row', gap: spacing.md, marginTop: spacing.sm },
+  body: { padding: space.md },
+  metaRow: { flexDirection: 'row', gap: space.md, marginTop: space.sm },
   metaItem: { flexDirection: 'row', alignItems: 'center' },
-  priceRow: { marginTop: spacing.sm, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border, paddingTop: spacing.sm },
+  priceRow: { marginTop: space.sm, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.border.hairline, paddingTop: space.sm },
 });

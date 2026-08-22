@@ -1,5 +1,5 @@
 import { Image, StyleSheet, View } from 'react-native';
-import { spacing } from '../theme/tokens';
+import { space } from '../theme';
 import { AppText } from './ui/Typography';
 import { Divider } from './ui/Divider';
 
@@ -27,8 +27,8 @@ export function AuthBrandHeader({ eyebrow, title, subtitle }: { eyebrow: string;
 }
 
 const styles = StyleSheet.create({
-  wrapper: { alignItems: 'center', marginBottom: spacing.xl },
-  logo: { width: 120, height: 80, marginBottom: spacing.md },
-  title: { marginTop: spacing.xs },
+  wrapper: { alignItems: 'center', marginBottom: space.xl },
+  logo: { width: 120, height: 80, marginBottom: space.md },
+  title: { marginTop: space.xs },
   divider: { width: 64 },
 });

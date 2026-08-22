@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { memo, useEffect } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import Animated, {
   Easing,
@@ -30,9 +30,13 @@ export interface BubbleProps {
   state?: BubbleState;
   /** Rendered only on a failed user bubble. */
   onRetry?: () => void;
+  /** The stable pair, for list rows — see TripCard for the same reasoning. */
+  id?: string;
+  onRetryId?: (id: string) => void;
 }
 
-export function Bubble({ role, content, state = 'sent', onRetry }: BubbleProps) {
+function BubbleBase({ role, content, state = 'sent', onRetry, id, onRetryId }: BubbleProps) {
+  const handleRetry = onRetryId && id ? () => onRetryId(id) : onRetry;
   const isUser = role === 'user';
   const failed = isUser && state === 'failed';
 
@@ -68,7 +72,7 @@ export function Bubble({ role, content, state = 'sent', onRetry }: BubbleProps) 
       */}
       {failed ? (
         <Pressable
-          onPress={onRetry}
+          onPress={handleRetry}
           accessibilityRole="button"
           accessibilityLabel={`Message not sent. Retry: ${content}`}
           style={({ pressed }) => [styles.retry, pressed ? styles.retryPressed : null]}
@@ -131,6 +135,13 @@ function Dot({ index, reduced }: { index: number; reduced: boolean }) {
 
   return <Animated.View style={[styles.dot, style]} />;
 }
+
+/**
+ * MEMOISED, for the same reason as TripCard: a transcript re-renders on every
+ * keystroke in the composer, and without this every bubble in the conversation
+ * re-renders with it.
+ */
+export const Bubble = memo(BubbleBase);
 
 const styles = StyleSheet.create({
   row: { marginBottom: space.smd, alignItems: 'flex-start' },
