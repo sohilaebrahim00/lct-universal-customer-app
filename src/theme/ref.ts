@@ -250,7 +250,18 @@ export const minTouchTarget = 44;
 
 /** Named control heights, so no screen writes `height: 52`. */
 export const controlHeight = {
-  sm: 40,
+  /*
+   * 44, not 40.
+   *
+   * The small button is still the SMALLEST button — it is smaller than `md` in
+   * horizontal padding and type — but its height was below the 2.5.5 floor, so
+   * every `size="sm"` control in the app was an undersized target. Measured at
+   * 80x40 on the Account screen's Edit button, which is a real control a real
+   * customer taps.
+   *
+   * "Small" is a visual weight, not a licence to be hard to hit.
+   */
+  sm: 44,
   md: 46,
   lg: 52,
   field: 54,

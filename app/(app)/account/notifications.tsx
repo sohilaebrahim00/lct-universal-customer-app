@@ -45,7 +45,12 @@ export default function NotificationsScreen() {
       {notifications.length === 0 ? <AppText variant="bodyMuted">You&apos;re all caught up.</AppText> : null}
 
       {notifications.map((n) => (
-        <Pressable key={n.id} onPress={() => handlePress(n)}>
+        <Pressable
+          key={n.id}
+          onPress={() => handlePress(n)}
+          accessibilityRole="button"
+          accessibilityLabel={`${n.title}. ${n.body}`}
+        >
           <Card style={{ marginBottom: space.sm, opacity: n.read_at ? 0.6 : 1 }}>
             <AppText variant="subheading">{n.title}</AppText>
             <AppText variant="bodyMuted" style={{ marginVertical: space.xs }}>

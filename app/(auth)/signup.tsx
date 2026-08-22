@@ -118,7 +118,7 @@ export default function SignupScreen() {
       <View style={styles.row}>
         <AppText variant="bodyMuted">Already have an account?</AppText>
         <Link href="/(auth)/login" asChild>
-          <Pressable accessibilityRole="link" style={styles.link} hitSlop={8}>
+          <Pressable accessibilityRole="link" accessible style={styles.link} hitSlop={8}>
             <AppText variant="body" color={colors.gold}>
               Sign in
             </AppText>

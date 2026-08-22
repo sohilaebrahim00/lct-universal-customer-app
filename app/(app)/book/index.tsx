@@ -33,6 +33,9 @@ export default function ServiceStep() {
             <FadeSlideIn key={service.type} delay={i * 60}>
               <Pressable
                 onPress={() => update({ serviceType: service.type })}
+                accessibilityRole="radio"
+                accessibilityLabel={service.label}
+                accessibilityState={{ selected }}
                 style={[styles.card, shadows.card, selected ? styles.cardSelected : null]}
               >
                 <Image source={service.image} style={styles.image} resizeMode="cover" />

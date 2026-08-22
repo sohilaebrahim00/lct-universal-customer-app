@@ -65,7 +65,14 @@ export default function EditProfileScreen() {
         Edit Profile
       </AppText>
 
-      <Pressable onPress={handlePickAvatar} style={styles.avatarWrap} disabled={uploadingAvatar}>
+      <Pressable
+        onPress={handlePickAvatar}
+        style={styles.avatarWrap}
+        disabled={uploadingAvatar}
+        accessibilityRole="button"
+        accessibilityLabel="Change your profile photo"
+        accessibilityState={{ disabled: uploadingAvatar }}
+      >
         {avatarUrl ? (
           <Image source={{ uri: avatarUrl }} style={styles.avatar} />
         ) : (

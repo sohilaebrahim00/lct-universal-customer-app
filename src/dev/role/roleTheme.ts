@@ -1,5 +1,6 @@
 import { StyleSheet } from 'react-native';
-import { fontFamily, gold, neutral, radius, space, state } from '../../theme/ref';
+import { fontFamily, radius, space } from '../../theme/ref';
+import { roleColor } from './rolePalette';
 
 /**
  * THE ROLE PREVIEW'S OWN VISUAL LANGUAGE.
@@ -47,24 +48,7 @@ import { fontFamily, gold, neutral, radius, space, state } from '../../theme/ref
  */
 export const ROLE_PREVIEW_MARKER = 'LCT_ROLE_PREVIEW_ONLY_a7f2c1';
 
-export const roleColor = {
-  page: neutral[0],
-  surface: neutral[100],
-  surfaceRaised: neutral[200],
-  /** Full-strength off-white. The default for anything a chauffeur reads. */
-  text: neutral[900],
-  /** Labels only — never a value, never an address, never a name. */
-  label: neutral[500],
-  /** One step down from `text`, for supporting lines the eye can skip. */
-  textSoft: neutral[600],
-  accent: gold[500],
-  accentSoft: gold[300],
-  onAccent: gold.onAccent,
-  hairline: 'rgba(244, 242, 234, 0.14)',
-  danger: state.dangerText,
-  warning: state.warning,
-  success: state.success,
-} as const;
+export { roleColor } from './rolePalette';
 
 /**
  * 56, not 44.

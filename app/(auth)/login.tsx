@@ -105,7 +105,7 @@ export default function LoginScreen() {
       */}
       <View style={styles.linkRow}>
         <Link href="/(auth)/forgot-password" asChild>
-          <Pressable accessibilityRole="link" style={styles.link} hitSlop={8}>
+          <Pressable accessibilityRole="link" accessible style={styles.link} hitSlop={8}>
             <AppText variant="caption" color={colors.gold}>
               Forgot password?
             </AppText>
@@ -116,7 +116,7 @@ export default function LoginScreen() {
       <View style={styles.signupRow}>
         <AppText variant="bodyMuted">New to LCT Universal?</AppText>
         <Link href="/(auth)/signup" asChild>
-          <Pressable accessibilityRole="link" style={styles.link} hitSlop={8}>
+          <Pressable accessibilityRole="link" accessible style={styles.link} hitSlop={8}>
             <AppText variant="body" color={colors.gold}>
               Create an account
             </AppText>

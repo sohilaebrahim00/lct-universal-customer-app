@@ -193,6 +193,69 @@ of paid waiting time is either uncharged or charged outside the system. That is
 recorded under C-4 as the strongest argument for building it — a revenue
 argument rather than an engineering preference.
 
+## Accessibility — two lists, kept separate
+
+The distinction this whole file is built on, applied to the one pass most
+likely to blur it. **An accessibility sweep that reports the first list as
+though it covered the second is the same error as a fixture proving a branch
+renders and being read as proving it is reached.**
+
+### Structurally verified — assertions, and they stay true
+
+| Claim | How |
+|---|---|
+| Every `Pressable` declares a role | `tests/a11yStatic.test.ts`, per file |
+| Every `Pressable` is labelled | same — `accessibilityLabel`, or `accessible` with text children |
+| No touch target under 44×44 | **measured in the built app**, 13 screens, every focusable box |
+| Font scaling is never capped | no `allowFontScaling={false}`, no `maxFontSizeMultiplier` |
+| No horizontal overflow or clipped text at scale 1.0 / 1.3 / 1.6 / 2.0 | measured in the built app, 9 screens |
+| Live regions where content changes unprompted | asserted per file, with the reason named |
+| Every colour pair clears its WCAG threshold | `tests/contrast.test.ts`, now covering the role palette and the map |
+| Vehicle identity is one utterance and degrades honestly | `tests/vehicleIdentity.test.ts` |
+
+**14 real role/label gaps fixed.** The worst were icon-only *destructive*
+buttons — remove-a-saved-card, remove-a-passenger — which announced as nothing
+at all.
+
+**Three measured size defects fixed**, none of which a source scan would have
+caught:
+- Segmented controls were **36pt** tall. The style said
+  `minTouchTarget - space.sm` — a deliberate inset that put every segmented
+  control in the app under the floor.
+- `Button size="sm"` was **40pt**. "Small" is a visual weight, not a licence to
+  be hard to hit.
+- The remove-icon buttons measured **20×20**. I had "fixed" them with
+  `hitSlop={10}` first, which gets to 40 — *still* under the floor, and
+  invisible to anything that measures what is rendered. They now have real
+  44×44 boxes.
+
+**One contrast failure found by extending the gate**, not by looking: map water
+labels at **2.87:1**. `neutral[400]` is documented as being for the "optional"
+qualifier in a field label and nothing else; it was reached for so a lake name
+would recede, and it receded past legibility. A map label is text, and being
+cartographic exempts it from nothing.
+
+### NOT verified here — needs a screen reader on a device
+
+These are not covered by anything above, and no assertion in this repo can
+cover them:
+
+- **Focus order.** Whether tabbing or swiping through a screen reaches things in
+  an order that makes sense.
+- **Whether an announcement is coherent when spoken.** `accessibilityLabel="button"`
+  passes every assertion in this repo and helps nobody. The labels added this
+  slice read well on the page; none has been heard.
+- **Whether the app is navigable by someone who cannot see it.** Completing a
+  booking end to end with the screen off is a different question from every
+  element having a role.
+- **Whether the layout at AX5 is usable rather than merely un-clipped.** The
+  reflow check proves nothing is cut off. It says nothing about whether the
+  important thing is still reachable, or whether the reading order survives.
+- **VoiceOver vs TalkBack differences**, which are real and not simulable here.
+
+`RUNBOOK_AUTH_VERIFICATION.md` is the model for closing these when a device is
+available.
+
 ## Screens
 
 *(Per-screen entries are compiled in the handover slice. Recorded here as work

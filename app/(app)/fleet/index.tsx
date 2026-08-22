@@ -50,7 +50,12 @@ export default function FleetScreen() {
 
           return (
             <FadeSlideIn key={vehicle.id} delay={i * 80}>
-              <Pressable onPress={() => router.push(`/(app)/fleet/${vehicle.id}`)} style={styles.card}>
+              <Pressable
+                onPress={() => router.push(`/(app)/fleet/${vehicle.id}`)}
+                style={styles.card}
+                accessibilityRole="button"
+                accessibilityLabel={`${displayName}, ${vehicle.capacity_passengers} passengers, ${vehicle.capacity_luggage} bags`}
+              >
                 {image ? <Image source={image} style={styles.image} resizeMode="cover" /> : null}
                 <View style={styles.body}>
                   <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>

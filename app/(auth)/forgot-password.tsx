@@ -79,7 +79,7 @@ export default function ForgotPasswordScreen() {
 
       <View style={styles.row}>
         <Link href="/(auth)/login" asChild>
-          <Pressable accessibilityRole="link" style={styles.link} hitSlop={8}>
+          <Pressable accessibilityRole="link" accessible style={styles.link} hitSlop={8}>
             <AppText variant="body" color={colors.gold}>
               Back to Sign In
             </AppText>

@@ -5,7 +5,7 @@ import { colors, radius, spacing } from '../theme/tokens';
 
 function SocialButton({ icon: Icon, label, onPress }: { icon: LucideIcon; label: string; onPress: () => void }) {
   return (
-    <Pressable onPress={onPress} style={styles.button}>
+    <Pressable onPress={onPress} style={styles.button} accessibilityRole="button" accessible>
       <Icon size={18} color={colors.offWhite} strokeWidth={1.5} />
       <AppText variant="body" style={{ marginLeft: spacing.sm }}>
         {label}

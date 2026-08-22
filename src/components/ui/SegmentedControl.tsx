@@ -1,6 +1,6 @@
 import { Pressable, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 import { AppText } from './Typography';
-import { elevation, minTouchTarget, radius, space, theme } from '../../theme';
+import { elevation, minTouchTarget, radius, theme } from '../../theme';
 
 export interface Segment<T extends string> {
   value: T;
@@ -71,7 +71,18 @@ const styles = StyleSheet.create({
   },
   segment: {
     flex: 1,
-    minHeight: minTouchTarget - space.sm,
+    /*
+     * 44, not 36.
+     *
+     * This was `minTouchTarget - space.sm` — a deliberate inset to keep the
+     * thumb clear of the track's edge, which produced a 36pt row and put every
+     * segmented control in the app under the 2.5.5 floor. MEASURED at 204x36
+     * on the Trips screen, not inferred.
+     *
+     * The visual inset is preserved by padding the TRACK instead, so the
+     * control looks the same and the target is real.
+     */
+    minHeight: minTouchTarget,
     paddingVertical: 9,
     borderRadius: radius.sm,
     alignItems: 'center',

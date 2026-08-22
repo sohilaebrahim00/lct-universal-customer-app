@@ -80,7 +80,13 @@ export function PlacesAutocomplete({ placeholder, bias, onSelect }: Props) {
       {suggestions.length > 0 ? (
         <View style={styles.dropdown}>
           {suggestions.map((s) => (
-            <Pressable key={s.placeId} style={styles.row} onPress={() => handleSelect(s)}>
+            <Pressable
+              key={s.placeId}
+              style={styles.row}
+              onPress={() => handleSelect(s)}
+              accessibilityRole="button"
+              accessibilityLabel={`${s.primaryText}, ${s.secondaryText}`}
+            >
               <MapPin size={16} color={colors.gold} strokeWidth={1.5} />
               <View style={{ flex: 1, marginLeft: spacing.sm }}>
                 <AppText style={styles.primaryText}>{s.primaryText}</AppText>

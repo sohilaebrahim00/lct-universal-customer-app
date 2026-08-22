@@ -12,6 +12,8 @@
  */
 
 import { describe, expect, it } from '@jest/globals';
+import { roleColor } from '../src/dev/role/rolePalette';
+import { ref as mapRef } from '../src/theme/mapPalette';
 import { WCAG, composite, contrast, lightness } from '../src/theme/contrast';
 import { sys } from '../src/theme/sys';
 
@@ -158,5 +160,82 @@ describe('documented exemptions from 1.4.11', () => {
 
   it('content.quaternary is only ever the "optional" qualifier beside a legible label', () => {
     expect(contrast(t.content.quaternary, t.background.secondary)).toBeLessThan(WCAG.bodyAA);
+  });
+});
+
+/* ------------------------------------------------------------------ *
+ * Tokens added after this gate was first written.
+ *
+ * The gate is only as good as its coverage, and three sets of colours have
+ * landed since: the role preview's own palette, the map's, and the route glow.
+ * Each is measured against the surface it is actually drawn on.
+ * ------------------------------------------------------------------ */
+
+describe('role preview palette — chauffeur and dispatcher', () => {
+  /*
+   * The chauffeur view's whole premise is that it is read one-handed, in a
+   * moving vehicle, in Texas daylight. Its type is deliberately at FULL
+   * strength rather than the client app's softer body step, and these
+   * assertions are what stop that claim eroding.
+   */
+  it('chauffeur body text is at full strength on the page — AAA, not merely AA', () => {
+    expect(contrast(roleColor.text, roleColor.page)).toBeGreaterThanOrEqual(7);
+  });
+
+  it('chauffeur body text clears AAA on a raised card too', () => {
+    expect(contrast(roleColor.text, roleColor.surface)).toBeGreaterThanOrEqual(7);
+  });
+
+  it('the softer supporting step still clears AA', () => {
+    expect(contrast(roleColor.textSoft, roleColor.page)).toBeGreaterThanOrEqual(4.5);
+    expect(contrast(roleColor.textSoft, roleColor.surface)).toBeGreaterThanOrEqual(4.5);
+  });
+
+  it('field labels — the dimmest role — clear AA on both surfaces', () => {
+    expect(contrast(roleColor.label, roleColor.page)).toBeGreaterThanOrEqual(4.5);
+    expect(contrast(roleColor.label, roleColor.surface)).toBeGreaterThanOrEqual(4.5);
+  });
+
+  it('the primary action label is legible on its gold fill', () => {
+    // The 72pt "On the way" button — the one control whose misfire tells a
+    // waiting customer something untrue.
+    expect(contrast(roleColor.onAccent, roleColor.accent)).toBeGreaterThanOrEqual(4.5);
+  });
+
+  it('the dispatcher board flags clear AA on the page they are read from', () => {
+    // Finding the problem row IS the dispatcher's job. These two carry it.
+    expect(contrast(roleColor.danger, roleColor.page)).toBeGreaterThanOrEqual(4.5);
+    expect(contrast(roleColor.warning, roleColor.page)).toBeGreaterThanOrEqual(4.5);
+  });
+});
+
+describe('map palette', () => {
+  /*
+   * A map label is text on a map, and WCAG does not exempt it for being
+   * cartographic. Measured against the land colour it sits on.
+   */
+  it('map labels clear AA against the land they sit on', () => {
+    expect(contrast(mapRef.label, mapRef.land)).toBeGreaterThanOrEqual(4.5);
+  });
+
+  it('road labels clear AA against the road fill', () => {
+    expect(contrast(mapRef.roadLabel, mapRef.road)).toBeGreaterThanOrEqual(4.5);
+  });
+
+  it('water labels clear AA against water', () => {
+    expect(contrast(mapRef.waterLabel, mapRef.water)).toBeGreaterThanOrEqual(4.5);
+  });
+
+  it('the road network is visible against the land without shouting', () => {
+    /*
+     * Roads are not text and not a control, so 1.4.3 and 1.4.11 do not bind
+     * them — but a road nobody can see is a map nobody can read. A floor of
+     * 1.3:1 keeps them present; the CEILING is the real assertion, because the
+     * failure mode here is a glowing road network out-shouting the one moving
+     * marker the tracking screen exists for.
+     */
+    const highway = contrast(mapRef.roadHighway, mapRef.land);
+    expect(highway).toBeGreaterThanOrEqual(1.3);
+    expect(highway).toBeLessThan(contrast(roleColor.text, roleColor.page));
   });
 });

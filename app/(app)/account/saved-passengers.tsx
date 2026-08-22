@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react';
 import { useFocusEffect } from 'expo-router';
-import { Pressable, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import { Trash2 } from 'lucide-react-native';
 import { Button } from '../../../src/components/ui/Button';
 import { Card } from '../../../src/components/ui/Card';
@@ -64,7 +64,12 @@ export default function SavedPassengersScreen() {
             <AppText variant="subheading">{p.full_name}</AppText>
             {p.phone ? <AppText variant="caption">{p.phone}</AppText> : null}
           </View>
-          <Pressable onPress={() => handleRemove(p.id)}>
+          <Pressable
+            onPress={() => handleRemove(p.id)}
+            accessibilityRole="button"
+            accessibilityLabel={`Remove saved passenger ${p.full_name}`}
+            style={styles.removeButton}
+          >
             <Trash2 size={20} color={theme.content.danger} strokeWidth={1.5} />
           </Pressable>
         </Card>
@@ -79,3 +84,15 @@ export default function SavedPassengersScreen() {
     </ScreenContainer>
   );
 }
+
+const styles = StyleSheet.create({
+  /*
+   * A REAL 44x44 box, not hitSlop.
+   *
+   * The icon measured 20x20 in the built app. `hitSlop={10}` would have made
+   * it 40 — still under the floor, and invisible to anything that measures what
+   * is actually rendered. A destructive control is the last place to be
+   * approximate about a touch target.
+   */
+  removeButton: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
+});

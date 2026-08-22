@@ -45,7 +45,20 @@ export const ref = {
   /** Labels: the app's secondary and tertiary content steps. */
   label: neutral[600],
   roadLabel: neutral[500],
-  waterLabel: neutral[400],
+  /*
+   * WAS `neutral[400]` — 2.87:1 on water, a clear WCAG 1.4.3 failure.
+   *
+   * Caught by extending the contrast gate to this palette, not by looking at a
+   * map. `neutral[400]` is the quaternary step, documented as being for the
+   * "optional" qualifier in a field label and nothing else, and it was reached
+   * for here on the reasoning that a lake name should recede. It receded past
+   * legibility.
+   *
+   * A map label is text. Being cartographic exempts it from nothing.
+   * `neutral[500]` is the lowest step in the scale that clears AA here, at
+   * 6.22:1 — so it still recedes, and it is still readable.
+   */
+  waterLabel: neutral[500],
 
   /** Lake Ray Hubbard, Grapevine Lake, the Trinity. Darker than land. */
   water: '#07090c',

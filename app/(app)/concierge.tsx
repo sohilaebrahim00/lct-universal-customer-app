@@ -181,6 +181,7 @@ export default function ConciergeScreen() {
               style={({ pressed }) => [styles.chip, pressed ? styles.chipPressed : null]}
               onPress={() => handleSend(action.prompt)}
               accessibilityRole="button"
+              accessibilityLabel={action.label}
             >
               <AppText variant="caption">{action.label}</AppText>
             </Pressable>
