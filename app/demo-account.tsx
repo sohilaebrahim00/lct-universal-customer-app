@@ -55,7 +55,7 @@ export default function DemoAccountScreen() {
       </AppText>
 
       <FadeSlideIn>
-        <Card style={{ marginBottom: spacing.lg, flexDirection: 'row', alignItems: 'center' }}>
+        <Card row style={{ marginBottom: spacing.lg }}>
           <View style={styles.avatar}>
             <User size={22} color={colors.gold} strokeWidth={1.5} />
           </View>

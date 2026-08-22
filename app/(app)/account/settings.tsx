@@ -5,10 +5,11 @@ import { Button } from '../../../src/components/ui/Button';
 import { Card } from '../../../src/components/ui/Card';
 import { ScreenContainer } from '../../../src/components/ui/ScreenContainer';
 import { AppText } from '../../../src/components/ui/Typography';
-import { colors, spacing } from '../../../src/theme/tokens';
+
 import { useAuthStore } from '../../../src/store/authStore';
 import { useLocaleStore, useTranslation } from '../../../src/i18n';
 import { registerForPushNotifications } from '../../../src/lib/pushNotifications';
+import { space, theme } from '../../../src/theme';
 
 function LanguageCard() {
   const t = useTranslation();
@@ -16,14 +17,14 @@ function LanguageCard() {
   const setLocale = useLocaleStore((s) => s.setLocale);
 
   return (
-    <Card style={{ marginBottom: spacing.md }}>
+    <Card style={{ marginBottom: space.md }}>
       <AppText variant="subheading" style={{ marginBottom: 2 }}>
         {t.language.title}
       </AppText>
-      <AppText variant="caption" style={{ marginBottom: spacing.md }}>
+      <AppText variant="caption" style={{ marginBottom: space.md }}>
         {t.language.subtitle}
       </AppText>
-      <View style={{ flexDirection: 'row', gap: spacing.sm }}>
+      <View style={{ flexDirection: 'row', gap: space.sm }}>
         <Button
           label={t.language.english}
           variant={locale === 'en' ? 'primary' : 'secondary'}
@@ -62,33 +63,33 @@ export default function SettingsScreen() {
 
   return (
     <ScreenContainer>
-      <AppText variant="title" style={{ marginBottom: spacing.lg }}>
+      <AppText variant="title" style={{ marginBottom: space.lg }}>
         {t.settings.title}
       </AppText>
 
       <LanguageCard />
 
-      <Card style={{ marginBottom: spacing.md }}>
+      <Card style={{ marginBottom: space.md }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-          <View style={{ flex: 1, marginEnd: spacing.md }}>
+          <View style={{ flex: 1, marginEnd: space.md }}>
             <AppText variant="subheading">{t.settings.pushTitle}</AppText>
             <AppText variant="caption">{t.settings.pushSubtitle}</AppText>
           </View>
           <Switch
             value={pushEnabled}
             onValueChange={handleTogglePush}
-            trackColor={{ true: colors.gold, false: colors.charcoal }}
-            thumbColor={colors.offWhite}
+            trackColor={{ true: theme.content.accent, false: theme.background.tertiary }}
+            thumbColor={theme.content.primary}
           />
         </View>
         {pushError ? (
-          <AppText variant="caption" color={colors.mutedForeground} style={{ marginTop: spacing.sm }}>
+          <AppText variant="caption" color={theme.content.secondary} style={{ marginTop: space.sm }}>
             {pushError}
           </AppText>
         ) : null}
       </Card>
 
-      <Card style={{ marginBottom: spacing.md }}>
+      <Card style={{ marginBottom: space.md }}>
         <AppText variant="caption">{t.settings.signedInAs}</AppText>
         <AppText variant="body">{profile?.email ?? '—'}</AppText>
       </Card>

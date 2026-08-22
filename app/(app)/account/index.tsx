@@ -27,10 +27,11 @@ import { ScreenHeader } from '../../../src/components/ui/ScreenHeader';
 import { SectionHeader } from '../../../src/components/ui/SectionHeader';
 import { Surface } from '../../../src/components/ui/Surface';
 import { AppText } from '../../../src/components/ui/Typography';
-import { gutter, space, theme } from '../../../src/theme';
+
 import { useAuthStore } from '../../../src/store/authStore';
 import { isDemoMode, resetDemo } from '../../../src/lib/demoReset';
 import { useToast } from '../../../src/components/ui/Toast';
+import { gutter, space, theme } from '../../../src/theme';
 
 /**
  * Slice 2 wires this screen onto the shared primitives — `ListRow` in grouped

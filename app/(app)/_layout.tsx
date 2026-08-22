@@ -1,12 +1,15 @@
 import { useEffect } from 'react';
 import { Home, Map, Sparkles, User } from 'lucide-react-native';
 import { Redirect, Tabs } from 'expo-router';
-import { StyleSheet, View } from 'react-native';
+import { Platform, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { iconStroke, resolveType, theme } from '../../src/theme';
 import { useAuthStore } from '../../src/store/authStore';
 import { registerForPushNotifications } from '../../src/lib/pushNotifications';
 import { useNotificationRouter } from '../../src/lib/useNotificationRouter';
+import { ConnectivityBanner } from '../../src/components/ui/ConnectivityBanner';
+import { useConnectivityStore, connectivity } from '../../src/store/connectivityStore';
+import { formatTimeOfDay } from '../../src/lib/format';
 
 /** The bar's own height, above whatever the device reserves for its home indicator. */
 const TAB_BAR_HEIGHT = 54;
@@ -22,6 +25,23 @@ export default function AppTabsLayout() {
 
   useNotificationRouter();
 
+  const online = useConnectivityStore((s) => s.online);
+  const lastOkAt = useConnectivityStore((s) => s.lastOkAt);
+
+  /*
+   * Web only: the interface going away is instant and free, where waiting for a
+   * request to fail is not. It can only ever push the app OFFLINE —
+   * `navigator.onLine === true` means "an interface exists", not "the internet
+   * works", so it never declares the app online on its own. That stays the job
+   * of an actual successful response.
+   */
+  useEffect(() => {
+    if (Platform.OS !== 'web' || typeof window === 'undefined') return;
+    const goOffline = () => connectivity.interfaceOffline();
+    window.addEventListener('offline', goOffline);
+    return () => window.removeEventListener('offline', goOffline);
+  }, []);
+
   // Guests get the full app shell — Home, Fleet and browsing screens don't need
   // an account. Specific actions prompt for sign-in when a guest reaches them.
   const canEnter = status === 'signed-in' || isGuest;
@@ -32,6 +52,23 @@ export default function AppTabsLayout() {
 
   return (
     <View style={styles.root}>
+      {/*
+        APP-WIDE. It was built in an earlier slice and mounted nowhere but the
+        dev gallery, so every screen still showed offline as nothing at all.
+
+        Here rather than per screen: offline is a property of the app, not of
+        whichever screen happens to be open, and one mount cannot drift out of
+        sync with twelve.
+
+        It sits ABOVE the tab navigator so it is visible on every tab, and it
+        pushes content down rather than covering it — an overlay on a screen the
+        customer is reading is a second problem on top of the first.
+      */}
+      {!online ? (
+        <View style={[styles.banner, { paddingTop: insets.top }]}>
+          <ConnectivityBanner lastSyncedLabel={lastOkAt ? formatTimeOfDay(new Date(lastOkAt)) : null} />
+        </View>
+      ) : null}
       <Tabs
         screenOptions={{
           headerShown: false,
@@ -133,5 +170,6 @@ export default function AppTabsLayout() {
 }
 
 const styles = StyleSheet.create({
+  banner: { backgroundColor: theme.background.primary, paddingHorizontal: 12, paddingBottom: 8 },
   root: { flex: 1, backgroundColor: theme.background.primary },
 });

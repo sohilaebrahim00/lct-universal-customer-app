@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { StyleSheet, View, type LayoutChangeEvent } from 'react-native';
 import { Circle, MapPin, Car } from 'lucide-react-native';
 import Animated, { Easing, interpolate, useAnimatedStyle, useSharedValue, withRepeat, withTiming } from 'react-native-reanimated';
-import { colors, radius, spacing } from '../../theme/tokens';
+import { radius, space, theme } from '../../theme';
 
 const MARKER_SIZE = 30;
 
@@ -34,11 +34,11 @@ export function AnimatedRoutePreview() {
     <View style={styles.container}>
       <View style={styles.pinRow}>
         <View style={styles.pinLabel}>
-          <Circle size={10} color={colors.gold} strokeWidth={1.5} fill={colors.gold} />
+          <Circle size={10} color={theme.content.accent} strokeWidth={1.5} fill={theme.content.accent} />
         </View>
         <View style={styles.pinLabel}>
           <Animated.View style={[styles.destinationGlow, glowStyle]} />
-          <MapPin size={16} color={colors.gold} strokeWidth={1.5} />
+          <MapPin size={16} color={theme.content.accent} strokeWidth={1.5} />
         </View>
       </View>
 
@@ -46,7 +46,7 @@ export function AnimatedRoutePreview() {
         <View style={styles.routeLine} />
         {trackWidth > 0 ? (
           <Animated.View style={[styles.marker, markerStyle]}>
-            <Car size={16} color={colors.surfaceBlack} strokeWidth={1.5} />
+            <Car size={16} color={theme.background.primary} strokeWidth={1.5} />
           </Animated.View>
         ) : null}
       </View>
@@ -55,8 +55,8 @@ export function AnimatedRoutePreview() {
 }
 
 const styles = StyleSheet.create({
-  container: { width: '100%', height: 200, padding: spacing.lg, justifyContent: 'center', backgroundColor: colors.charcoal },
-  pinRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: spacing.md },
+  container: { width: '100%', height: 200, padding: space.lg, justifyContent: 'center', backgroundColor: theme.background.tertiary },
+  pinRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: space.md },
   pinLabel: { alignItems: 'center', justifyContent: 'center' },
   destinationGlow: {
     position: 'absolute',
@@ -66,13 +66,13 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(217,177,96,0.35)',
   },
   track: { justifyContent: 'center' },
-  routeLine: { height: 0, borderTopWidth: 2, borderStyle: 'dashed', borderColor: colors.border },
+  routeLine: { height: 0, borderTopWidth: 2, borderStyle: 'dashed', borderColor: theme.border.hairline },
   marker: {
     position: 'absolute',
     width: MARKER_SIZE,
     height: MARKER_SIZE,
     borderRadius: radius.full,
-    backgroundColor: colors.gold,
+    backgroundColor: theme.content.accent,
     alignItems: 'center',
     justifyContent: 'center',
     top: -(MARKER_SIZE / 2),

@@ -50,7 +50,7 @@ export default function AirportScreen() {
         <View style={{ marginBottom: spacing.xl }}>
           {FEATURES.map((feature, i) => (
             <FadeSlideIn key={feature.title} delay={i * 60}>
-              <Card style={{ marginBottom: spacing.sm, flexDirection: 'row', alignItems: 'flex-start' }}>
+              <Card row align="flex-start" style={{ marginBottom: spacing.sm }}>
                 <feature.icon size={22} color={colors.gold} strokeWidth={1.5} style={{ marginTop: 2 }} />
                 <View style={{ marginLeft: spacing.md, flex: 1 }}>
                   <AppText variant="subheading">{feature.title}</AppText>

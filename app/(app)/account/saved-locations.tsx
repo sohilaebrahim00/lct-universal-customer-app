@@ -8,9 +8,10 @@ import { ScreenContainer } from '../../../src/components/ui/ScreenContainer';
 import { ErrorState } from '../../../src/components/ui/ErrorState';
 import { TextField } from '../../../src/components/ui/TextField';
 import { AppText } from '../../../src/components/ui/Typography';
-import { colors, spacing } from '../../../src/theme/tokens';
+
 import { profilesApi } from '../../../src/api/profiles';
 import type { SavedLocation } from '../../../src/types/api';
+import { space, theme } from '../../../src/theme';
 
 export default function SavedLocationsScreen() {
   const [locations, setLocations] = useState<SavedLocation[]>([]);
@@ -53,23 +54,23 @@ export default function SavedLocationsScreen() {
       {loadError ? (
         <ErrorState title="We couldn't load your saved locations" message="This is our end, not yours." onRetry={load} />
       ) : null}
-      <AppText variant="title" style={{ marginBottom: spacing.lg }}>
+      <AppText variant="title" style={{ marginBottom: space.lg }}>
         Saved Locations
       </AppText>
 
       {locations.map((loc) => (
-        <Card key={loc.id} style={{ marginBottom: spacing.sm, flexDirection: 'row', alignItems: 'center' }}>
+        <Card key={loc.id} row style={{ marginBottom: space.sm }}>
           <View style={{ flex: 1 }}>
             <AppText variant="subheading">{loc.label}</AppText>
             <AppText variant="caption">{loc.address}</AppText>
           </View>
           <Pressable onPress={() => handleRemove(loc.id)}>
-            <Trash2 size={20} color={colors.destructive} strokeWidth={1.5} />
+            <Trash2 size={20} color={theme.content.danger} strokeWidth={1.5} />
           </Pressable>
         </Card>
       ))}
 
-      <AppText variant="heading" style={{ marginTop: spacing.lg, marginBottom: spacing.sm }}>
+      <AppText variant="heading" style={{ marginTop: space.lg, marginBottom: space.sm }}>
         Add Location
       </AppText>
       <TextField label="Label" value={label} onChangeText={setLabel} placeholder="Home, Office, ..." />

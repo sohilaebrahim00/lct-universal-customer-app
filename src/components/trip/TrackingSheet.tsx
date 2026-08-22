@@ -42,6 +42,12 @@ export interface TrackingSheetProps {
   dropoffAddress: string | null;
   /** True while the socket is delivering updates. */
   live: boolean;
+  /**
+   * The trip detail could not be fetched — so there is no chauffeur, no ETA and
+   * no position, and the customer is owed a reason rather than three blanks.
+   */
+  detailUnavailable?: boolean;
+  onRetryDetail?: () => void;
 }
 
 export function TrackingSheet({
@@ -54,6 +60,8 @@ export function TrackingSheet({
   pickupAddress,
   dropoffAddress,
   live,
+  detailUnavailable,
+  onRetryDetail,
 }: TrackingSheetProps) {
   const progress = tripProgress(etaMinutes, totalMinutes);
   const arriving = arrivingLabel(etaMinutes);
@@ -83,6 +91,27 @@ export function TrackingSheet({
         </AppText>
 
         {progress !== null && !terminal ? <ProgressBar value={progress} /> : null}
+
+        {/*
+          Says WHICH part is missing, and offers the retry. Without this the
+          screen renders a status pill over a blank map and lets the customer
+          conclude whatever they like — most likely that the car is not coming.
+        */}
+        {detailUnavailable ? (
+          <Pressable
+            onPress={onRetryDetail}
+            accessibilityRole="button"
+            accessibilityLabel="Chauffeur details unavailable. Tap to retry."
+            style={({ pressed }) => [styles.detailError, pressed ? styles.pressed : null]}
+          >
+            <AppText variant="caption" color={theme.content.warning}>
+              We couldn&apos;t load your chauffeur and ETA. Your booking is unaffected.
+            </AppText>
+            <AppText variant="captionSm" color={theme.content.accentSoft}>
+              Tap to retry
+            </AppText>
+          </Pressable>
+        ) : null}
 
         {driver ? (
           <View style={styles.chauffeurRow}>
@@ -294,6 +323,16 @@ const styles = StyleSheet.create({
     marginTop: space.md,
   },
   fill: { height: 4, borderRadius: radius.full, backgroundColor: theme.content.accent },
+  detailError: {
+    marginTop: space.md,
+    padding: space.smd,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: theme.border.hairlineStrong,
+    gap: 2,
+    minHeight: 44,
+    justifyContent: 'center',
+  },
   chauffeurRow: { flexDirection: 'row', alignItems: 'center', gap: space.smd, marginTop: space.lg },
   chauffeurText: { flex: 1 },
   timeline: { marginTop: space.lg, gap: space.sm },

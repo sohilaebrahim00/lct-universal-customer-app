@@ -109,6 +109,52 @@ for things the company has published about itself.
 
 ---
 
+## States, connectivity, and the shim
+
+### Connectivity is app-wide, and derived from what the app experiences
+
+The banner existed from an earlier slice and was mounted **nowhere but the dev
+gallery**, so offline still rendered as nothing at all on every screen.
+
+It is now mounted once on the app shell — offline is a property of the app, not
+of whichever screen is open, and one mount cannot drift out of sync with twelve.
+
+**Not `expo-network`**, and not only because adding a dependency needs asking:
+that library reports whether a network interface is up, and this app needs to
+know whether it can reach ITS API. A phone on hotel wifi behind a captive portal
+reports a perfectly healthy connection and can reach nothing. So connectivity is
+inferred at the single fetch boundary — a NETWORK-level failure marks offline, a
+successful response marks online, and an HTTP 500 does neither, because the
+server answered. On web, `navigator.onLine` supplements it, but only ever to go
+offline early: `onLine === true` means "an interface exists", not "the internet
+works".
+
+**Verified:** banner absent when online, present after going offline, and still
+present after navigating to another tab.
+
+### The demo-payload shape gate
+
+`tests/demoApiShape.test.ts` asserts that for every endpoint the app calls, the
+demo layer returns the key `src/api/*` unwraps. **Proven to catch the concierge
+bug**: reverting that fix turns the suite red on exactly that endpoint.
+
+### The token shim — three verifiable claims, and the rule caught me
+
+1. **A scoped `no-restricted-imports` rule** in `eslint.config.js` fails the
+   build for any migrated directory that imports the shim. It is enabled per
+   directory as each is migrated, because a rule that has to be disabled to
+   commit is a rule that gets deleted.
+   **It immediately caught three files I had listed as migrated and had not
+   migrated** — `Divider`, `ScreenContainer` and `AnimatedRoutePreview`. That
+   is the difference between a claim and a checked claim.
+2. The contrast gate already covers the tokens being migrated to.
+3. A screenshot sweep of 16 screens into `design/after/`, with structural
+   checks for blank screens, `NaN`/`undefined` leakage and console errors.
+
+**Migrated:** all 7 account sub-pages, plus `corporate-info`, `Divider`,
+`ScreenContainer` and `AnimatedRoutePreview`. **Outstanding:** ~25 files, listed
+by the lint rule's own inverse — anything not in `MIGRATED_OFF_THE_SHIM`.
+
 ## Screens
 
 *(Per-screen entries are compiled in the handover slice. Recorded here as work
@@ -128,6 +174,43 @@ Recorded because both were invisible until a screen actually depended on them.
 
 Both fixed by resolving coordinates from the address against one table, so an
 address and its point cannot drift apart.
+
+### Card — a component API that silently discarded layout
+
+`Card` renders `<Surface style={[..., style]}>` with its children inside an
+**inner padding `View`**. So `<Card style={{ flexDirection: 'row' }}>` set the
+direction on a container holding exactly one element, and did nothing.
+
+**Six screens shipped that way** — `corporate-info`, `airport`,
+`demo-account`, and three account sub-pages. Their rows rendered stacked, and
+the content sized to itself and clipped against the Surface's
+`overflow: hidden`: "A dedicated account for your company, with centralized
+billi—".
+
+It typechecked. It linted. It rendered without a single error. It was found by
+looking at a screenshot.
+
+Fixed as an API change rather than six patches: `Card` now takes `row` and
+`align` props that reach the inner container, so the trap is not available to
+the next person.
+
+### corporate-info — no longer deferred
+
+- Four states. It was `.catch(() => setVehicles([]))`, which does not swallow an
+  error so much as **convert it into an empty success** — a failed fetch and a
+  genuinely empty fleet rendered identically, with no retry, on the screen aimed
+  at the customers most likely to notice.
+- It also printed `From $65.00` — the same defect fixed on Fleet in the
+  backend-integration slice, still live here on the sales screen. Now the
+  published label, or nothing.
+
+### Live tracking — a failed detail fetch is no longer silent
+
+`.catch(() => {})` on the trip detail was defensible when the map was a 200pt
+card. With the map as the screen it means no marker, no ETA and no chauffeur —
+a blank map and a status pill, with nothing explaining why the rest is missing.
+A 404 still means "no trip yet" and stays quiet; anything else surfaces with a
+retry.
 
 ### Concierge
 

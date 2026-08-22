@@ -1,5 +1,5 @@
 import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
-import { colors, spacing } from '../../theme/tokens';
+import { space, theme } from '../../theme';
 
 /** The site's recurring "self-drawing gold line" motif, simplified to a static gradient-free rule for native. */
 export function Divider({ style }: { style?: StyleProp<ViewStyle> }) {
@@ -9,8 +9,8 @@ export function Divider({ style }: { style?: StyleProp<ViewStyle> }) {
 const styles = StyleSheet.create({
   line: {
     height: StyleSheet.hairlineWidth * 2,
-    backgroundColor: colors.gold,
+    backgroundColor: theme.content.accent,
     opacity: 0.5,
-    marginVertical: spacing.md,
+    marginVertical: space.md,
   },
 });

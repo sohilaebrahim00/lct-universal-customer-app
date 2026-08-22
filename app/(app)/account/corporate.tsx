@@ -6,11 +6,12 @@ import { Card } from '../../../src/components/ui/Card';
 import { ScreenContainer } from '../../../src/components/ui/ScreenContainer';
 import { ErrorState } from '../../../src/components/ui/ErrorState';
 import { AppText } from '../../../src/components/ui/Typography';
-import { colors, spacing } from '../../../src/theme/tokens';
+
 import { corporateApi } from '../../../src/api/corporate';
 import type { Booking, CorporateAccount, Profile } from '../../../src/types/api';
 import { useAuthStore } from '../../../src/store/authStore';
 import { formatCurrency, formatDateTime } from '../../../src/lib/format';
+import { space, theme } from '../../../src/theme';
 
 export default function CorporateScreen() {
   const profile = useAuthStore((s) => s.profile);
@@ -80,7 +81,7 @@ export default function CorporateScreen() {
   if (unresolved) {
     return (
       <ScreenContainer>
-        <AppText variant="title" style={{ marginBottom: spacing.lg }}>
+        <AppText variant="title" style={{ marginBottom: space.lg }}>
           Corporate Account
         </AppText>
         <ErrorState
@@ -94,16 +95,16 @@ export default function CorporateScreen() {
 
   return (
     <ScreenContainer>
-      <AppText variant="title" style={{ marginBottom: spacing.lg }}>
+      <AppText variant="title" style={{ marginBottom: space.lg }}>
         Corporate Account
       </AppText>
 
       {account ? (
-        <Card style={{ marginBottom: spacing.lg }}>
+        <Card style={{ marginBottom: space.lg }}>
           <AppText variant="subheading">{account.company_name}</AppText>
           <AppText variant="caption">{account.billing_email}</AppText>
           {account.requires_ride_approval ? (
-            <AppText variant="caption" color={colors.gold} style={{ marginTop: spacing.xs }}>
+            <AppText variant="caption" color={theme.content.accent} style={{ marginTop: space.xs }}>
               Ride approval required for employees
             </AppText>
           ) : null}
@@ -117,28 +118,28 @@ export default function CorporateScreen() {
         </AppText>
       ) : (
         <>
-          <AppText variant="heading" style={{ marginBottom: spacing.sm }}>
+          <AppText variant="heading" style={{ marginBottom: space.sm }}>
             Pending Approvals
           </AppText>
           {pending.length === 0 ? <AppText variant="bodyMuted">Nothing awaiting approval.</AppText> : null}
           {pending.map((booking) => (
-            <Card key={booking.id} style={{ marginBottom: spacing.sm }}>
+            <Card key={booking.id} style={{ marginBottom: space.sm }}>
               <AppText variant="subheading">{formatDateTime(booking.scheduled_at)}</AppText>
-              <AppText variant="caption" style={{ marginBottom: spacing.sm }}>
+              <AppText variant="caption" style={{ marginBottom: space.sm }}>
                 {booking.pickup_address} · {formatCurrency(booking.total_fare, booking.currency)}
               </AppText>
-              <View style={{ flexDirection: 'row', gap: spacing.sm }}>
+              <View style={{ flexDirection: 'row', gap: space.sm }}>
                 <Button label="Approve" onPress={() => handleApprove(booking.id)} style={{ flex: 1 }} />
                 <Button label="Reject" variant="danger" onPress={() => handleReject(booking.id)} style={{ flex: 1 }} />
               </View>
             </Card>
           ))}
 
-          <AppText variant="heading" style={{ marginTop: spacing.lg, marginBottom: spacing.sm }}>
+          <AppText variant="heading" style={{ marginTop: space.lg, marginBottom: space.sm }}>
             Employees
           </AppText>
           {employees.map((e) => (
-            <Card key={e.id} style={{ marginBottom: spacing.sm }}>
+            <Card key={e.id} style={{ marginBottom: space.sm }}>
               <AppText variant="subheading">{e.full_name}</AppText>
               <AppText variant="caption">{e.email} · {e.corporate_role}</AppText>
             </Card>

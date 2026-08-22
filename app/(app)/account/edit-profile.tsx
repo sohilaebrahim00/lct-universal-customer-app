@@ -6,10 +6,11 @@ import { Button } from '../../../src/components/ui/Button';
 import { ScreenContainer } from '../../../src/components/ui/ScreenContainer';
 import { TextField } from '../../../src/components/ui/TextField';
 import { AppText } from '../../../src/components/ui/Typography';
-import { colors, radius, spacing } from '../../../src/theme/tokens';
+
 import { useAuthStore } from '../../../src/store/authStore';
 import { profilesApi } from '../../../src/api/profiles';
 import { pickAndUploadAvatar } from '../../../src/lib/avatarUpload';
+import { radius, space, theme } from '../../../src/theme';
 
 export default function EditProfileScreen() {
   const router = useRouter();
@@ -60,7 +61,7 @@ export default function EditProfileScreen() {
 
   return (
     <ScreenContainer>
-      <AppText variant="title" style={{ marginBottom: spacing.lg }}>
+      <AppText variant="title" style={{ marginBottom: space.lg }}>
         Edit Profile
       </AppText>
 
@@ -69,21 +70,21 @@ export default function EditProfileScreen() {
           <Image source={{ uri: avatarUrl }} style={styles.avatar} />
         ) : (
           <View style={[styles.avatar, styles.avatarPlaceholder]}>
-            <User size={32} color={colors.gold} strokeWidth={1.5} />
+            <User size={32} color={theme.content.accent} strokeWidth={1.5} />
           </View>
         )}
         <View style={styles.avatarBadge}>
-          {uploadingAvatar ? <ActivityIndicator size="small" color={colors.surfaceBlack} /> : <Camera size={14} color={colors.surfaceBlack} strokeWidth={1.5} />}
+          {uploadingAvatar ? <ActivityIndicator size="small" color={theme.background.primary} /> : <Camera size={14} color={theme.background.primary} strokeWidth={1.5} />}
         </View>
       </Pressable>
-      <AppText variant="caption" center style={{ marginBottom: spacing.lg }}>
+      <AppText variant="caption" center style={{ marginBottom: space.lg }}>
         Tap to change photo
       </AppText>
 
       <TextField label="Full Name" value={fullName} onChangeText={setFullName} />
       <TextField label="Phone" value={phone} onChangeText={setPhone} keyboardType="phone-pad" />
       {error ? (
-        <AppText variant="caption" color={colors.destructiveText} accessibilityLiveRegion="assertive" style={{ marginBottom: spacing.md }}>
+        <AppText variant="caption" color={theme.content.danger} accessibilityLiveRegion="assertive" style={{ marginBottom: space.md }}>
           {error}
         </AppText>
       ) : null}
@@ -93,9 +94,9 @@ export default function EditProfileScreen() {
 }
 
 const styles = StyleSheet.create({
-  avatarWrap: { alignSelf: 'center', marginBottom: spacing.sm },
+  avatarWrap: { alignSelf: 'center', marginBottom: space.sm },
   avatar: { width: 96, height: 96, borderRadius: radius.full },
-  avatarPlaceholder: { backgroundColor: colors.charcoal, alignItems: 'center', justifyContent: 'center' },
+  avatarPlaceholder: { backgroundColor: theme.background.tertiary, alignItems: 'center', justifyContent: 'center' },
   avatarBadge: {
     position: 'absolute',
     right: 0,
@@ -103,10 +104,10 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: radius.full,
-    backgroundColor: colors.gold,
+    backgroundColor: theme.content.accent,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2,
-    borderColor: colors.surfaceBlack,
+    borderColor: theme.background.primary,
   },
 });

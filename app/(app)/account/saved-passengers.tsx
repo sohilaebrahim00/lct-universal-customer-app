@@ -8,9 +8,10 @@ import { ScreenContainer } from '../../../src/components/ui/ScreenContainer';
 import { ErrorState } from '../../../src/components/ui/ErrorState';
 import { TextField } from '../../../src/components/ui/TextField';
 import { AppText } from '../../../src/components/ui/Typography';
-import { colors, spacing } from '../../../src/theme/tokens';
+
 import { profilesApi } from '../../../src/api/profiles';
 import type { SavedPassenger } from '../../../src/types/api';
+import { space, theme } from '../../../src/theme';
 
 export default function SavedPassengersScreen() {
   const [passengers, setPassengers] = useState<SavedPassenger[]>([]);
@@ -53,23 +54,23 @@ export default function SavedPassengersScreen() {
       {loadError ? (
         <ErrorState title="We couldn't load your saved passengers" message="This is our end, not yours." onRetry={load} />
       ) : null}
-      <AppText variant="title" style={{ marginBottom: spacing.lg }}>
+      <AppText variant="title" style={{ marginBottom: space.lg }}>
         Saved Passengers
       </AppText>
 
       {passengers.map((p) => (
-        <Card key={p.id} style={{ marginBottom: spacing.sm, flexDirection: 'row', alignItems: 'center' }}>
+        <Card key={p.id} row style={{ marginBottom: space.sm }}>
           <View style={{ flex: 1 }}>
             <AppText variant="subheading">{p.full_name}</AppText>
             {p.phone ? <AppText variant="caption">{p.phone}</AppText> : null}
           </View>
           <Pressable onPress={() => handleRemove(p.id)}>
-            <Trash2 size={20} color={colors.destructive} strokeWidth={1.5} />
+            <Trash2 size={20} color={theme.content.danger} strokeWidth={1.5} />
           </Pressable>
         </Card>
       ))}
 
-      <AppText variant="heading" style={{ marginTop: spacing.lg, marginBottom: spacing.sm }}>
+      <AppText variant="heading" style={{ marginTop: space.lg, marginBottom: space.sm }}>
         Add Passenger
       </AppText>
       <TextField label="Full Name" value={fullName} onChangeText={setFullName} />

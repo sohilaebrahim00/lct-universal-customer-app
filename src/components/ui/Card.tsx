@@ -20,6 +20,27 @@ interface Props {
   selection?: 'border' | 'rail';
   /** Removes the default padding — for cards whose children manage their own insets. */
   flush?: boolean;
+  /**
+   * Lays the children out in a row.
+   *
+   * ── Why this prop exists ────────────────────────────────────────────────
+   * `style` lands on the SURFACE, and the children live in an inner padding
+   * `View` — so `<Card style={{ flexDirection: 'row' }}>` sets the direction
+   * on a container holding exactly one element and does nothing at all.
+   *
+   * That is not hypothetical. **Six screens shipped that way**: corporate-info,
+   * airport, demo-account, and three account sub-pages all passed
+   * `flexDirection: 'row'` through `style` and rendered stacked instead, with
+   * the content sizing to itself and clipping against the Surface's
+   * `overflow: hidden`. It typechecked, it linted, and it rendered without a
+   * single error — found by looking at a screenshot.
+   *
+   * So the capability is a named prop rather than a trap. `alignItems` comes
+   * with it because a row that needs one always needs the other.
+   */
+  row?: boolean;
+  /** Cross-axis alignment for `row`. Defaults to centre, which is what most rows want. */
+  align?: 'center' | 'flex-start';
 }
 
 /**
@@ -40,6 +61,8 @@ export function Card({
   active = false,
   selection = 'border',
   flush = false,
+  row = false,
+  align = 'center',
 }: Props) {
   const level = prominent ? 'cardProminent' : elevated ? 'card' : 'row';
 
@@ -53,7 +76,9 @@ export function Card({
       ]}
     >
       {active && selection === 'rail' ? <View style={styles.rail} pointerEvents="none" /> : null}
-      <View style={flush ? null : styles.padding}>{children}</View>
+      <View style={[flush ? null : styles.padding, row ? { flexDirection: 'row', alignItems: align } : null]}>
+        {children}
+      </View>
     </Surface>
   );
 }

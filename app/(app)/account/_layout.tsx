@@ -1,6 +1,7 @@
 import { Stack } from 'expo-router';
 import { theme } from '../../../src/theme';
 
+
 /**
  * Without a layout file, Expo Router treats every file in this directory as a
  * route in the PARENT navigator — which is the tab bar. That is why the app was

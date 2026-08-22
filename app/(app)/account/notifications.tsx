@@ -5,10 +5,11 @@ import { Card } from '../../../src/components/ui/Card';
 import { ScreenContainer } from '../../../src/components/ui/ScreenContainer';
 import { ErrorState } from '../../../src/components/ui/ErrorState';
 import { AppText } from '../../../src/components/ui/Typography';
-import { colors, spacing } from '../../../src/theme/tokens';
+
 import { notificationsApi } from '../../../src/api/notifications';
 import type { AppNotification } from '../../../src/types/api';
 import { formatDateTime } from '../../../src/lib/format';
+import { space, theme } from '../../../src/theme';
 
 export default function NotificationsScreen() {
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
@@ -37,7 +38,7 @@ export default function NotificationsScreen() {
       {loadError ? (
         <ErrorState title="We couldn't load your notifications" message="This is our end, not yours." onRetry={load} />
       ) : null}
-      <AppText variant="title" style={{ marginBottom: spacing.lg }}>
+      <AppText variant="title" style={{ marginBottom: space.lg }}>
         Notifications
       </AppText>
 
@@ -45,12 +46,12 @@ export default function NotificationsScreen() {
 
       {notifications.map((n) => (
         <Pressable key={n.id} onPress={() => handlePress(n)}>
-          <Card style={{ marginBottom: spacing.sm, opacity: n.read_at ? 0.6 : 1 }}>
+          <Card style={{ marginBottom: space.sm, opacity: n.read_at ? 0.6 : 1 }}>
             <AppText variant="subheading">{n.title}</AppText>
-            <AppText variant="bodyMuted" style={{ marginVertical: spacing.xs }}>
+            <AppText variant="bodyMuted" style={{ marginVertical: space.xs }}>
               {n.body}
             </AppText>
-            <AppText variant="caption" color={colors.mutedForeground}>
+            <AppText variant="caption" color={theme.content.secondary}>
               {formatDateTime(n.created_at)}
             </AppText>
           </Card>

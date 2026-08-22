@@ -1,4 +1,5 @@
 import { apiBaseUrl, isDemoMode } from './env';
+import { connectivity } from '../store/connectivityStore';
 import { supabase } from './supabase';
 
 export class ApiError extends Error {
@@ -81,9 +82,24 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
   } catch (cause) {
     clearTimeout(timeout);
     const aborted = cause instanceof Error && cause.name === 'AbortError';
+    /*
+     * A NETWORK-level failure, which is what the connectivity banner claims.
+     *
+     * Only this branch reports offline. An HTTP 500 further down means the
+     * server answered — badly, but it answered — and telling a customer they
+     * are offline when the network is fine sends them to restart their wifi
+     * over someone else's outage.
+     *
+     * A timeout counts: a host that does not respond within 12 seconds is
+     * unreachable as far as the customer is concerned.
+     */
+    connectivity.networkFailure();
     throw new ApiError(aborted ? 408 : 0, aborted ? 'The request timed out.' : 'Could not reach the server.');
   }
   clearTimeout(timeout);
+
+  // The server answered. Whatever the status, the app is not offline.
+  connectivity.success();
 
   const text = await response.text();
   const data = text ? JSON.parse(text) : null;

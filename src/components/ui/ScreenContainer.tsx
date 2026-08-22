@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import { KeyboardAvoidingView, Platform, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ScrollView } from 'react-native-gesture-handler';
-import { colors, spacing } from '../../theme/tokens';
+import { space, theme } from '../../theme';
 
 interface Props {
   children: ReactNode;
@@ -31,7 +31,7 @@ export function ScreenContainer({ children, scroll = true, padded = true, style 
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: colors.surfaceBlack },
+  safeArea: { flex: 1, backgroundColor: theme.background.primary },
   flex: { flex: 1 },
-  padded: { padding: spacing.lg, flexGrow: 1 },
+  padded: { padding: space.lg, flexGrow: 1 },
 });

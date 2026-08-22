@@ -52,6 +52,8 @@ export default function TripDetailScreen() {
   const [driver, setDriver] = useState<TripDriverInfo | null>(null);
   const [vehicle, setVehicle] = useState<TripVehicleInfo | null>(null);
   const [loadError, setLoadError] = useState<Error | null>(null);
+  /** A failed trip-detail fetch. Distinct from loadError: the booking is fine. */
+  const [tripError, setTripError] = useState<Error | null>(null);
 
   const live = useTripSocket(bookingId ?? null);
 
@@ -64,8 +66,18 @@ export default function TripDetailScreen() {
       .get(bookingId)
       .then(setBooking)
       .catch((cause: unknown) => setLoadError(cause instanceof Error ? cause : new Error(String(cause))));
-    // The trip detail is supplementary: a chauffeur may not be assigned yet,
-    // which is not a screen failure. Deliberately soft.
+    /*
+     * The trip detail is supplementary — a chauffeur may not be assigned yet,
+     * and that is not a screen failure. But it is no longer silent.
+     *
+     * A 404 means the trip does not exist yet, which is a real and expected
+     * state before dispatch acts. Anything else is a failure, and with the
+     * rebuilt full-bleed map it is a conspicuous one: no marker, no ETA, no
+     * chauffeur — a blank map with a status pill and no explanation for why
+     * the rest is missing. That is the "empty screen that lies" shape, on the
+     * screen a customer stares at while they wait.
+     */
+    setTripError(null);
     tripsApi
       .getByBookingId(bookingId)
       .then((res) => {
@@ -73,7 +85,11 @@ export default function TripDetailScreen() {
         setDriver(res.driver);
         setVehicle(res.vehicle);
       })
-      .catch(() => {});
+      .catch((cause: unknown) => {
+        const status = (cause as { status?: number } | null)?.status;
+        if (status === 404) return; // No trip yet. Expected, not an error.
+        setTripError(cause instanceof Error ? cause : new Error(String(cause)));
+      });
   }, [bookingId]);
 
   useFocusEffect(useCallback(() => { load(); }, [load]));
@@ -208,6 +224,8 @@ export default function TripDetailScreen() {
           pickupAddress={booking.pickup_address}
           dropoffAddress={booking.dropoff_address}
           live={live.connected}
+          detailUnavailable={tripError !== null}
+          onRetryDetail={load}
         />
       </View>
     </View>
