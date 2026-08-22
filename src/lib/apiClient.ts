@@ -1,4 +1,4 @@
-import { apiBaseUrl } from './env';
+import { apiBaseUrl, isDemoMode } from './env';
 import { supabase } from './supabase';
 
 export class ApiError extends Error {
@@ -33,17 +33,56 @@ interface RequestOptions {
  * in the background), so there's no separate token-caching layer to get
  * stale.
  */
+/** Request timeout. Without one a dead host hangs a screen on its loading state forever. */
+const TIMEOUT_MS = 12_000;
+
 export async function apiRequest<T>(path: string, options: RequestOptions = {}): Promise<T> {
   const { method = 'GET', body, auth = true } = options;
+
+  /*
+   * DEMO MODE — the single interception point.
+   *
+   * Routing here rather than through src/api/* means every API module, store
+   * and screen keeps its exact shape and knows nothing about the substitution.
+   * It also means there is exactly one place to check that a demo build cannot
+   * reach the network: this one.
+   *
+   * The lazy require matters. A static import would pull the seeded dataset
+   * into every bundle, and metro.config.js blocks src/dev/ from a
+   * non-demo production build — so a static import would fail to resolve there.
+   */
+  if (isDemoMode) {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports -- see above
+    const { handleDemoRequest } = require('../dev/demoApi') as typeof import('../dev/demoApi');
+    const result = await handleDemoRequest(path, method, body);
+    if (result.handled) return result.data as T;
+    // Unmapped endpoints surface as a normal error state rather than as a
+    // silently empty screen.
+    throw new ApiError(501, `Not available in this demo build (${method} ${path})`);
+  }
 
   const headers: Record<string, string> = { 'content-type': 'application/json' };
   if (auth) Object.assign(headers, await getAuthHeader());
 
-  const response = await fetch(`${apiBaseUrl}${path}`, {
-    method,
-    headers,
-    body: body !== undefined ? JSON.stringify(body) : undefined,
-  });
+  // AbortController rather than Promise.race, so a timed-out request is
+  // actually cancelled instead of left running behind a rejected promise.
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), TIMEOUT_MS);
+
+  let response: Response;
+  try {
+    response = await fetch(`${apiBaseUrl}${path}`, {
+      method,
+      headers,
+      body: body !== undefined ? JSON.stringify(body) : undefined,
+      signal: controller.signal,
+    });
+  } catch (cause) {
+    clearTimeout(timeout);
+    const aborted = cause instanceof Error && cause.name === 'AbortError';
+    throw new ApiError(aborted ? 408 : 0, aborted ? 'The request timed out.' : 'Could not reach the server.');
+  }
+  clearTimeout(timeout);
 
   const text = await response.text();
   const data = text ? JSON.parse(text) : null;

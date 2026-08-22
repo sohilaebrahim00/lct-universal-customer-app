@@ -1,6 +1,6 @@
 import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 import { Minus, Plus } from 'lucide-react-native';
-import * as Haptics from 'expo-haptics';
+import { hapticSelection } from '../../lib/haptics';
 import { AppText } from './Typography';
 import { IconButton } from './IconButton';
 import { minTouchTarget, space, theme } from '../../theme';
@@ -32,7 +32,7 @@ export function Stepper({ label, value, onChange, min = 0, max = 99, unit, style
   function set(next: number) {
     const clamped = Math.min(max, Math.max(min, next));
     if (clamped === value) return;
-    void Haptics.selectionAsync();
+    hapticSelection();
     onChange(clamped);
   }
 

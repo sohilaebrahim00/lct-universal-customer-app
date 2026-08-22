@@ -26,7 +26,16 @@ const config = getDefaultConfig(__dirname);
  * `EXCLUSION_MARKER`, and the check is `npm run export:ios` followed by a grep
  * of `dist/` for it. It must return nothing.
  */
-if (process.env.NODE_ENV === 'production') {
+const isDemoBuild = process.env.EXPO_PUBLIC_DEMO_MODE === 'true';
+
+/*
+ * The demo build is the deliberate exception: EXPO_PUBLIC_DEMO_MODE=true means
+ * the seeded dataset in src/dev/ IS the app's data source, so it has to be
+ * bundled. The fixture harness and the gallery are still guarded by __DEV__ at
+ * their routes, so neither is reachable in a deployed demo — but the seed data
+ * is present, which is the point, and is named as demo data in DEMO_GUIDE.md.
+ */
+if (process.env.NODE_ENV === 'production' && !isDemoBuild) {
   const devOnly = [/[/\\]src[/\\]dev[/\\]/, /[/\\]app[/\\]_dev[/\\]/];
   const existing = config.resolver.blockList;
   config.resolver.blockList = Array.isArray(existing)

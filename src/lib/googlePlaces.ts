@@ -1,5 +1,5 @@
 import 'react-native-get-random-values';
-import { env, isMapsConfigured } from './env';
+import { env, isMapsConfigured, isDemoMode } from './env';
 
 /**
  * Thin wrapper around the Google Places / Directions / Geocoding REST APIs
@@ -102,10 +102,22 @@ export interface RouteInfo {
   polyline: string;
 }
 
+/**
+ * Demo mode has no Maps key and therefore no Directions call, which would leave
+ * every fare priced on base rate alone. This returns the seeded reference trip
+ * so the booking flow quotes a believable number.
+ *
+ * Seeded, not invented pricing: the DISTANCE is demo data, and the fare is still
+ * computed from it by the real pricing function. Named as demo data in
+ * DEMO_GUIDE.md.
+ */
+const DEMO_ROUTE = { distanceMiles: 18.4, durationMinutes: 42, polyline: '' };
+
 export async function getRoute(
   origin: { lat: number; lng: number },
   destination: { lat: number; lng: number },
 ): Promise<RouteInfo | null> {
+  if (isDemoMode) return DEMO_ROUTE;
   if (!isMapsConfigured) return null;
 
   const url = new URL('https://maps.googleapis.com/maps/api/directions/json');

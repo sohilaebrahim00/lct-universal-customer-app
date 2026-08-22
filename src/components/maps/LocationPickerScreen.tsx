@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useRef, useState, type RefObject } from 'react';
-import { useRouter } from 'expo-router';
 import { ActivityIndicator, Platform, Pressable, StyleSheet, View } from 'react-native';
 import type { Region } from 'react-native-maps';
 import { MapPin, Locate } from 'lucide-react-native';
@@ -72,7 +71,6 @@ function NativeLocationMap({
 }
 
 export function LocationPickerScreen({ title, subtitle, onConfirm, bias }: Props) {
-  const router = useRouter();
   const mapRef = useRef<MapHandle | null>(null);
   const [region, setRegion] = useState<Region>(
     bias ? { ...DEFAULT_REGION, latitude: bias.lat, longitude: bias.lng, latitudeDelta: 0.05, longitudeDelta: 0.05 } : DEFAULT_REGION,
@@ -128,6 +126,18 @@ export function LocationPickerScreen({ title, subtitle, onConfirm, bias }: Props
   }
 
   function handleConfirm() {
+    /*
+     * ONE COMMIT, ONE TRANSITION.
+     *
+     * This used to call onConfirm() — which itself pushes the next step — and
+     * THEN router.back(), popping the screen it had just pushed. On the dev
+     * server the race usually resolved forwards; in a production build it
+     * resolves backwards, so the booking flow never advanced past pickup at all.
+     * Audit P0-7 called this out as a visible double transition; it is in fact a
+     * dead end.
+     *
+     * The caller owns navigation. This only reports the result.
+     */
     if (mapAvailable) {
       if (!address) return;
       onConfirm({ address, lat: region.latitude, lng: region.longitude });
@@ -135,7 +145,6 @@ export function LocationPickerScreen({ title, subtitle, onConfirm, bias }: Props
       if (!manualAddress.trim()) return;
       onConfirm({ address: manualAddress.trim(), lat: 0, lng: 0 });
     }
-    router.back();
   }
 
   if (!mapAvailable) {

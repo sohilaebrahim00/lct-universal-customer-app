@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useRouter } from 'expo-router';
 import { Platform, Pressable, StyleSheet, View } from 'react-native';
 import { Calendar, Clock } from 'lucide-react-native';
-import { StepHeader } from '../../../src/components/booking/StepHeader';
+import { ProgressRail } from '../../../src/components/ui/ProgressRail';
 import { Button } from '../../../src/components/ui/Button';
 import { Card } from '../../../src/components/ui/Card';
 import { ScreenContainer } from '../../../src/components/ui/ScreenContainer';
@@ -73,7 +73,10 @@ export default function DetailsStep() {
 
   return (
     <ScreenContainer>
-      <StepHeader step={4} title="Trip Details" subtitle="When, how many, and anything we should know." />
+      <ProgressRail step={4} total={5} label="When & who" style={{ marginBottom: spacing.mdl }} />
+      <AppText variant="heading" style={{ marginBottom: spacing.mdl }}>
+        When should the car arrive?
+      </AppText>
 
       <AppText variant="subheading" style={{ marginBottom: spacing.sm }}>
         Date & Time

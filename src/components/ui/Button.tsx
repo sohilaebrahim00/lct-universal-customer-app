@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
-import * as Haptics from 'expo-haptics';
+import { hapticSelection } from '../../lib/haptics';
 import type { LucideIcon } from 'lucide-react-native';
 import { AppText } from './Typography';
 import { controlHeight, elevation, iconSize, iconStroke, radius, space, spring, theme } from '../../theme';
@@ -122,7 +122,7 @@ export function Button({
   function handlePress() {
     // Selection is the browsing-grade signal: a choice was registered. Commits
     // and confirmations use notificationAsync at their own call site instead.
-    if (haptic) void Haptics.selectionAsync();
+    if (haptic) hapticSelection();
     onPress();
   }
 

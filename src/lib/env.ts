@@ -25,6 +25,7 @@ const schema = z.object({
   EXPO_PUBLIC_SUPABASE_ANON_KEY: z.string().optional(),
   EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY: z.string().optional(),
   EXPO_PUBLIC_GOOGLE_MAPS_API_KEY: z.string().optional(),
+  EXPO_PUBLIC_DEMO_MODE: z.string().optional(),
 });
 
 function loadEnv() {
@@ -35,6 +36,7 @@ function loadEnv() {
     EXPO_PUBLIC_SUPABASE_ANON_KEY: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY,
     EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY: process.env.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY,
     EXPO_PUBLIC_GOOGLE_MAPS_API_KEY: process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY,
+    EXPO_PUBLIC_DEMO_MODE: process.env.EXPO_PUBLIC_DEMO_MODE,
   });
 
   if (!parsed.success) {
@@ -67,3 +69,19 @@ export const wsBaseUrl = (env.EXPO_PUBLIC_WS_URL ?? apiBaseUrl.replace(/^http/, 
 export const isSupabaseConfigured = Boolean(env.EXPO_PUBLIC_SUPABASE_URL && env.EXPO_PUBLIC_SUPABASE_ANON_KEY);
 export const isStripeConfigured = Boolean(env.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY);
 export const isMapsConfigured = Boolean(env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY);
+
+/**
+ * DEMO MODE — off unless explicitly switched on at build time.
+ *
+ * When true the app serves a seeded dataset instead of calling the network and
+ * bypasses auth, so a deployed build opens on a populated signed-in Home with
+ * no backend behind it. Intended for the client demo deploy and nothing else.
+ *
+ * Strict equality with 'true': any other value, including 'false', '1' or a
+ * typo, leaves it off. A flag that fails open would be the wrong failure.
+ *
+ * EXPO_PUBLIC_* variables are inlined by Metro at BUILD time, so this is fixed
+ * when the bundle is produced — it cannot be toggled at runtime, and a build
+ * made before the variable was set has to be redeployed.
+ */
+export const isDemoMode = env.EXPO_PUBLIC_DEMO_MODE === 'true';

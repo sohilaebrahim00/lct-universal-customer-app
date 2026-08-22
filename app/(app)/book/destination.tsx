@@ -16,8 +16,19 @@ export default function DestinationStep() {
       onConfirm={async (result) => {
         update({ dropoffAddress: result.address, dropoffLat: result.lat || undefined, dropoffLng: result.lng || undefined });
 
-        if (draft.pickupLat && draft.pickupLng && result.lat && result.lng) {
-          const route = await getRoute({ lat: draft.pickupLat, lng: draft.pickupLng }, { lat: result.lat, lng: result.lng });
+        /*
+         * The manual-entry fallback (no Maps key, Expo Go, or web) reports
+         * lat/lng as 0, so the old truthiness guard skipped the route lookup
+         * entirely — leaving distanceMiles null and every fare priced on base
+         * rate alone. getRoute() returns null on its own when Maps is
+         * unconfigured, so calling it unconditionally is safe and is what lets
+         * demo mode supply the seeded reference distance.
+         */
+        {
+          const route = await getRoute(
+            { lat: draft.pickupLat ?? 0, lng: draft.pickupLng ?? 0 },
+            { lat: result.lat, lng: result.lng },
+          );
           if (route) {
             update({
               distanceMiles: Math.round(route.distanceMiles * 10) / 10,

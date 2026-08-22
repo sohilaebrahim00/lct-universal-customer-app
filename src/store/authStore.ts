@@ -2,6 +2,7 @@ import type { Session } from '@supabase/supabase-js';
 import { create } from 'zustand';
 import { profilesApi } from '../api/profiles';
 import { supabase } from '../lib/supabase';
+import { isDemoMode } from '../lib/env';
 import { isGuestMode, setGuestMode } from '../lib/guestMode';
 import type { Profile } from '../types/api';
 
@@ -30,6 +31,30 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   isGuest: false,
 
   initialize: () => {
+    /*
+     * DEMO MODE — auth is bypassed and the app opens signed in.
+     *
+     * This one branch is the difference between a demo that reads as a finished
+     * product and one that reads as an empty shell: without a session, Home has
+     * no upcoming trip, Trips shows a sign-in gate, and Account is a guest card.
+     * The profile comes from the seeded dataset, not from a token — no Supabase
+     * call is made, and there is no session to be had.
+     *
+     * Gated on the build-time flag only. A normal build never takes this path.
+     */
+    if (isDemoMode) {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports -- src/dev is blocked from non-demo production bundles
+      const { DEMO_PROFILE } = require('../dev/demoData') as typeof import('../dev/demoData');
+      set({
+        status: 'signed-in',
+        session: null,
+        profile: DEMO_PROFILE,
+        isGuest: false,
+        guestModeChecked: true,
+      });
+      return () => {};
+    }
+
     isGuestMode().then((guest) => set({ isGuest: guest, guestModeChecked: true }));
 
     if (!supabase) {
@@ -72,7 +97,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   signOut: async () => {
-    if (!supabase) return;
+    // In a demo build there is no session to end; signing out would strand the
+    // client on a welcome screen with no way back to the populated app.
+    if (isDemoMode || !supabase) return;
     await supabase.auth.signOut();
     // Leaving an account returns to guest browsing, not a forced welcome
     // screen — the app itself is never fully locked behind auth.

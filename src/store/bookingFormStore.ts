@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import type { CreateBookingInput } from '../api/bookings';
 import { bookingsApi } from '../api/bookings';
 import type { ServiceType, Vehicle } from '../types/api';
+import type { FareBreakdown } from '../lib/pricingPreview';
 
 export interface BookingDraft {
   serviceType: ServiceType | null;
@@ -23,6 +24,15 @@ export interface BookingDraft {
   specialRequests: string;
   flightNumber: string;
   vehicle: Vehicle | null;
+  /**
+   * The all-in fare computed ONCE, on the vehicle screen, and carried forward.
+   *
+   * Exists so the vehicle card and the payment total cannot disagree: they read
+   * the same object rather than each recomputing and hoping the inputs match.
+   * That divergence is audit P0-3, and a shared value is the only structural
+   * fix for it.
+   */
+  allInFare: FareBreakdown | null;
 }
 
 const initialDraft: BookingDraft = {
@@ -41,6 +51,7 @@ const initialDraft: BookingDraft = {
   specialRequests: '',
   flightNumber: '',
   vehicle: null,
+  allInFare: null,
 };
 
 interface BookingFormState {
@@ -105,6 +116,9 @@ export const useBookingFormStore = create<BookingFormState>((set, get) => ({
         primaryPassengerName: draft.primaryPassengerName || undefined,
         primaryPassengerPhone: draft.primaryPassengerPhone || undefined,
         specialRequests: draft.specialRequests || undefined,
+        // Sent so the created booking stores the exact figure the customer
+        // authorised, rather than a re-derivation of it.
+        ...(draft.allInFare ? { allInFare: draft.allInFare } : {}),
         flightNumber: draft.flightNumber || undefined,
       };
 
