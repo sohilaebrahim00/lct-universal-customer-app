@@ -20,6 +20,8 @@ import { formatCurrency, formatDateTime } from '../../../src/lib/format';
 import { VEHICLE_IMAGES } from '../../../src/lib/vehicleImages';
 import { asyncState, type AsyncState } from '../../../src/lib/asyncState';
 import { isRTL } from '../../../src/i18n/rtl';
+import { isQuoteOnly } from '../../../src/lib/quoteOnly';
+import { PRICING_STATEMENT } from '../../../src/config/servicePolicy';
 
 /**
  * STEP 4 — CHOOSE YOUR CAR.
@@ -87,6 +89,12 @@ export default function VehicleStep() {
   const fares = useMemo(() => {
     const map = new Map<string, FareBreakdown | null>();
     for (const vehicle of vehicles) {
+      // The business will not price these without being asked, so neither does
+      // the app. See src/lib/quoteOnly.ts.
+      if (isQuoteOnly(vehicle.type)) {
+        map.set(vehicle.id, null);
+        continue;
+      }
       try {
         map.set(
           vehicle.id,
@@ -118,9 +126,10 @@ export default function VehicleStep() {
 
   const selected = draft.vehicle ? vehicles.find((v) => v.id === draft.vehicle?.id) : undefined;
   const selectedFare = selected ? (fares.get(selected.id) ?? null) : null;
+  const selectedIsQuoteOnly = selected ? isQuoteOnly(selected.type) : false;
 
   const subhead = [
-    'Every price below is final — gratuity and tax included.',
+    `${PRICING_STATEMENT} Every price below is final — gratuity and tax included.`,
     draft.distanceMiles ? `${draft.distanceMiles} mi` : null,
     formatDateTime(scheduledAt.toISOString()),
   ]
@@ -181,17 +190,30 @@ export default function VehicleStep() {
 
       {/* Sticky footer: the chosen number stays on screen right up to the commit. */}
       <LinearGradient colors={['rgba(2,2,1,0)', theme.background.primary]} locations={[0, 0.4]} style={styles.footer}>
-        {selected && selectedFare ? (
+        {selected ? (
           <View style={styles.footerRow}>
             <AppText variant="caption" numberOfLines={1} style={styles.footerName}>
-              {`${selected.name} · all-in`}
+              {selectedIsQuoteOnly ? selected.name : `${selected.name} · all-in`}
             </AppText>
-            <AppText variant="heading">{formatCurrency(selectedFare.totalFare)}</AppText>
+            {selectedFare && !selectedIsQuoteOnly ? (
+              <AppText variant="heading">{formatCurrency(selectedFare.totalFare)}</AppText>
+            ) : null}
           </View>
         ) : null}
+        {/*
+          A quote-only class continues to a REQUEST, not a booking, and the
+          button says so. Committing a customer to "Continue · $X" for a vehicle
+          the business quotes by hand would be the app inventing a price.
+        */}
         <Button
-          label={selectedFare ? `Continue · ${formatCurrency(selectedFare.totalFare)}` : 'Continue'}
-          disabled={!selected || !selectedFare}
+          label={
+            selectedIsQuoteOnly
+              ? 'Request a quote'
+              : selectedFare
+                ? `Continue · ${formatCurrency(selectedFare.totalFare)}`
+                : 'Continue'
+          }
+          disabled={!selected || (!selectedFare && !selectedIsQuoteOnly)}
           disabledReason="Pick a car to continue"
           haptic
           onPress={() => router.push('/(app)/book/details')}
@@ -215,14 +237,18 @@ function VehicleCard({
   onSelect: () => void;
 }) {
   const fits = vehicle.capacity_passengers >= passengerCount;
-  const disabled = !fits || fare === null;
+  const quoteOnly = isQuoteOnly(vehicle.type);
+  // Quote-only classes are selectable — they are just not priced here.
+  const disabled = !fits;
   const photo = VEHICLE_IMAGES[vehicle.type];
 
   const reason = !fits
     ? `Seats ${vehicle.capacity_passengers} — you have ${passengerCount} guests`
-    : fare === null
-      ? 'Not available for this trip'
-      : null;
+    : quoteOnly
+      ? 'Our team confirms the fare for this class before you commit.'
+      : fare === null
+        ? 'Not available for this trip'
+        : null;
 
   return (
     <Pressable
@@ -232,7 +258,7 @@ function VehicleCard({
       accessibilityState={{ selected, disabled }}
       accessibilityLabel={[
         vehicle.name,
-        fare ? `${formatCurrency(fare.totalFare)} all in` : null,
+        quoteOnly ? 'request quote' : fare ? `${formatCurrency(fare.totalFare)} all in` : null,
         `${vehicle.capacity_passengers} guests, ${vehicle.capacity_luggage} bags`,
         reason,
       ]
@@ -249,7 +275,11 @@ function VehicleCard({
               <AppText variant="subheading" numberOfLines={1} style={styles.name}>
                 {vehicle.name}
               </AppText>
-              {fare ? (
+              {quoteOnly ? (
+                <AppText variant="caption" color={theme.content.accentEmphasis}>
+                  Request quote
+                </AppText>
+              ) : fare ? (
                 <AppText variant="figure" color={theme.content.accentEmphasis}>
                   {formatCurrency(fare.totalFare)}
                 </AppText>
@@ -263,7 +293,7 @@ function VehicleCard({
             <View style={styles.metaRow}>
               <AppText variant="captionSm">{`${vehicle.capacity_passengers} guests`}</AppText>
               <AppText variant="captionSm">{`${vehicle.capacity_luggage} bags`}</AppText>
-              {fare ? (
+              {fare && !quoteOnly ? (
                 <AppText variant="micro" style={styles.allIn}>
                   All-in
                 </AppText>

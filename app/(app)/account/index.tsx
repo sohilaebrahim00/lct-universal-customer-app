@@ -11,6 +11,7 @@ import {
   LogOut,
   MapPin,
   Navigation,
+  RotateCcw,
   Settings,
   UserCircle,
   Users,
@@ -27,6 +28,8 @@ import { Surface } from '../../../src/components/ui/Surface';
 import { AppText } from '../../../src/components/ui/Typography';
 import { gutter, space, theme } from '../../../src/theme';
 import { useAuthStore } from '../../../src/store/authStore';
+import { isDemoMode, resetDemo } from '../../../src/lib/demoReset';
+import { useToast } from '../../../src/components/ui/Toast';
 
 /**
  * Slice 2 wires this screen onto the shared primitives — `ListRow` in grouped
@@ -39,6 +42,7 @@ import { useAuthStore } from '../../../src/store/authStore';
  */
 export default function AccountScreen() {
   const router = useRouter();
+  const toast = useToast();
   const status = useAuthStore((s) => s.status);
   const profile = useAuthStore((s) => s.profile);
   const signOut = useAuthStore((s) => s.signOut);
@@ -150,9 +154,29 @@ export default function AccountScreen() {
         )}
       </Surface>
 
-      <Surface level="card" style={styles.block}>
-        <ListRow icon={LogOut} title="Log out" destructive chevron={false} divider={false} onPress={() => void signOut()} />
-      </Surface>
+      {/*
+        Demo builds only. Lets whoever is presenting clear the trips a previous
+        viewer booked, so every showing starts from the same place.
+      */}
+      {isDemoMode ? (
+        <Surface level="card" style={styles.block}>
+          <ListRow
+            icon={RotateCcw}
+            title="Reset demo"
+            subtitle="Clears any trips booked during this preview"
+            chevron={false}
+            divider={false}
+            onPress={() => {
+              resetDemo();
+              toast.show('Demo reset — reload to see the starting trips', 'info');
+            }}
+          />
+        </Surface>
+      ) : (
+        <Surface level="card" style={styles.block}>
+          <ListRow icon={LogOut} title="Log out" destructive chevron={false} divider={false} onPress={() => void signOut()} />
+        </Surface>
+      )}
     </ScrollView>
   );
 }

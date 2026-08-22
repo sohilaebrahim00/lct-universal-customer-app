@@ -105,13 +105,14 @@ export interface RouteInfo {
 /**
  * Demo mode has no Maps key and therefore no Directions call, which would leave
  * every fare priced on base rate alone. This returns the seeded reference trip
- * so the booking flow quotes a believable number.
+ * so the booking flow quotes a believable number. The reference journey is
+ * Uptown Dallas to DFW Terminal D — LCT operates in Dallas-Fort Worth.
  *
  * Seeded, not invented pricing: the DISTANCE is demo data, and the fare is still
  * computed from it by the real pricing function. Named as demo data in
  * DEMO_GUIDE.md.
  */
-const DEMO_ROUTE = { distanceMiles: 18.4, durationMinutes: 42, polyline: '' };
+const DEMO_ROUTE = { distanceMiles: 23.2, durationMinutes: 34, polyline: '' };
 
 export async function getRoute(
   origin: { lat: number; lng: number },

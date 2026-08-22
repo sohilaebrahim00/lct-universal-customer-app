@@ -8,7 +8,7 @@ import { formatCurrency, formatDateTime } from '../../lib/format';
 import { isTerminalStatus, type TripStatus } from '../../lib/tripStatus';
 
 interface Props {
-  /** Route as the customer thinks of it, e.g. "Home → LAX T7". */
+  /** Route as the customer thinks of it, e.g. "Home → DFW Terminal D". */
   route: string;
   scheduledAt: string;
   status: TripStatus;

@@ -203,6 +203,10 @@ charges. They do not agree.
 
 ### Why it matters
 
+**In one sentence: a customer quoted a price on the website and charged a
+different price by the booking system can be given two different numbers for the
+same journey, and the fixed-price promise cannot hold until the two agree.**
+
 The entire fixed-price promise this redesign is built on — the number on the
 vehicle card is the number charged — cannot hold while a customer quoted from the
 website is charged from the database. Whichever source is wrong, they have to be

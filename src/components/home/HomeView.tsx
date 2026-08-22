@@ -13,6 +13,7 @@ import { gutter, iconSize, iconStroke, radius, space, theme } from '../../theme'
 import type { Booking, ServiceType, TripDriverInfo, TripVehicleInfo } from '../../types/api';
 import { formatCurrency } from '../../lib/format';
 import type { AsyncState } from '../../lib/asyncState';
+import { isDemoMode } from '../../lib/env';
 
 /**
  * Home's presentation, with no data fetching in it.
@@ -56,6 +57,14 @@ const SERVICE_TILES: { type: ServiceType; label: string }[] = [
   { type: 'hourly', label: 'Hourly' },
 ];
 
+/**
+ * Hourly needs a duration the current route order does not collect, so it can
+ * reach the vehicle screen unpriced. Rather than let a client tap into that, the
+ * tile is visibly unavailable in the demo — a calm label, not an error. It works
+ * normally in a real build.
+ */
+const HOURLY_UNAVAILABLE_IN_DEMO = isDemoMode;
+
 export function greetingFor(date: Date): string {
   const hour = date.getHours();
   if (hour < 12) return 'Good morning';
@@ -75,7 +84,7 @@ export function countdownTo(iso: string, now: Date): string | null {
   return `in ${Math.round(hours / 24)}d`;
 }
 
-/** "1240 Hillcrest Rd, Beverly Hills" → "1240 Hillcrest Rd". */
+/** "4820 Maple Ave, Dallas, TX" → "4820 Maple Ave". */
 export function shortAddress(address: string | null): string {
   if (!address) return '';
   return (address.split(',')[0] ?? address).trim();
@@ -158,19 +167,37 @@ export function HomeView({
             Services
           </AppText>
           <View style={styles.tiles}>
-            {SERVICE_TILES.map((tile) => (
-              <Pressable
-                key={tile.type}
-                onPress={() => onStartBooking(tile.type)}
-                accessibilityRole="button"
-                accessibilityLabel={`Book ${tile.label}`}
-                style={({ pressed }) => [styles.tile, pressed ? styles.tilePressed : null]}
-              >
-                <AppText variant="caption" color={theme.content.primary} center>
-                  {tile.label}
-                </AppText>
-              </Pressable>
-            ))}
+            {SERVICE_TILES.map((tile) => {
+              const unavailable = HOURLY_UNAVAILABLE_IN_DEMO && tile.type === 'hourly';
+              return (
+                <Pressable
+                  key={tile.type}
+                  onPress={unavailable ? undefined : () => onStartBooking(tile.type)}
+                  disabled={unavailable}
+                  accessibilityRole="button"
+                  accessibilityLabel={unavailable ? `${tile.label} — not in this preview` : `Book ${tile.label}`}
+                  accessibilityState={{ disabled: unavailable }}
+                  style={({ pressed }) => [
+                    styles.tile,
+                    unavailable ? styles.tileUnavailable : null,
+                    pressed && !unavailable ? styles.tilePressed : null,
+                  ]}
+                >
+                  <AppText
+                    variant="caption"
+                    color={unavailable ? theme.content.tertiary : theme.content.primary}
+                    center
+                  >
+                    {tile.label}
+                  </AppText>
+                  {unavailable ? (
+                    <AppText variant="captionSm" color={theme.content.tertiary} center>
+                      Not in this preview
+                    </AppText>
+                  ) : null}
+                </Pressable>
+              );
+            })}
           </View>
         </FadeSlideIn>
       </ScrollView>
@@ -310,5 +337,6 @@ const styles = StyleSheet.create({
     minHeight: 46,
   },
   tilePressed: { backgroundColor: theme.background.tertiary },
+  tileUnavailable: { backgroundColor: theme.background.primary, borderStyle: 'dashed' },
   footer: { paddingHorizontal: gutter, paddingBottom: space.smd, paddingTop: space.sm },
 });

@@ -43,14 +43,18 @@ by the same pricing code the live product uses, from LCT Universal's actual rate
 card — an Executive Sedan really is $65 base plus $3.25 a mile, with gratuity at
 20% and tax on top. Nothing on screen is a typed-in number.
 
-**Demo data.** The customer, the chauffeur, the addresses, the trips and the
-distances are a prepared example so there is something to look at. This build has
+**Cancellation.** The window shown is your real published policy for the service
+you are booking — 6 hours on an airport transfer, 12 on a sedan or SUV trip, 48
+on hourly and events.
+
+**Demo data.** The customer, the chauffeur, the Dallas–Fort Worth addresses, the
+trips and the distances are a prepared example so there is something to look at. This build has
 no connection to a live system: no real booking is created, no card is charged,
 and nothing reaches dispatch. You can press anything.
 
-**One thing to know:** refreshing the browser starts the demo over. Any car you
-booked during your visit disappears and the example trips come back. That is
-deliberate, so the next person sees the same starting point.
+**Your booking sticks.** Refresh the page, close the tab and come back — the car
+you booked is still there. To hand the demo to someone else from a clean start,
+go to **Account → Reset demo**.
 
 ---
 
@@ -61,6 +65,12 @@ Honest about the edges, so nothing surprises you:
 - **Maps are not live.** Pickup and destination take a typed address instead of
   an interactive map. The map screens exist and work; they need a Google Maps key
   that has not been issued yet.
+- **Hourly service is switched off in this preview.** It needs a duration step
+  that is not in the flow yet, so the tile says so rather than taking you
+  somewhere unfinished.
+- **Sprinters and coaches show "Request quote", not a price.** That is on
+  purpose: LCT quotes those classes by hand, so the app does not put a number on
+  them.
 - **Payment is not connected.** The payment screen is complete, but no card is
   taken and no money moves.
 - **Some screens are still the previous design.** Live tracking, the concierge

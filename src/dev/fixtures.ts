@@ -50,7 +50,7 @@ const daysAgo = (d: number) => new Date(FIXTURE_NOW.getTime() - d * 86_400_000).
  * all-in fares the artboard quotes — $261 sedan, $318 SUV, $402 Sprinter.
  */
 export const FIXTURE_TRIP = {
-  distanceMiles: 18.4,
+  distanceMiles: 23.2,
   durationMinutes: 42,
   scheduledAt: inHours(3.2),
 } as const;
@@ -61,10 +61,10 @@ function booking(overrides: Partial<Booking> & Pick<Booking, 'id' | 'status' | '
     corporate_account_id: null,
     service_type: 'airport',
     vehicle_id: 'fixture-vehicle-sedan',
-    pickup_address: f('1240 Hillcrest Rd, Beverly Hills'),
+    pickup_address: f('4820 Maple Ave, Dallas'),
     pickup_lat: null,
     pickup_lng: null,
-    dropoff_address: f('LAX Terminal 7'),
+    dropoff_address: f('DFW Terminal D'),
     dropoff_lat: null,
     dropoff_lng: null,
     hourly_duration_hours: null,
@@ -76,7 +76,7 @@ function booking(overrides: Partial<Booking> & Pick<Booking, 'id' | 'status' | '
     flight_number: null,
     approval_status: 'auto_approved',
     base_fare: '145.00',
-    distance_miles: '18.4',
+    distance_miles: '23.2',
     distance_fare: '58.00',
     time_fare: '0.00',
     surcharges: '0.00',
@@ -107,7 +107,7 @@ export const FIXTURE_PAST: Booking[] = [
     scheduled_at: daysAgo(21),
     service_type: 'hourly',
     vehicle_id: 'fixture-vehicle-suv',
-    pickup_address: f('400 S Hope St, Los Angeles'),
+    pickup_address: f('2100 Ross Ave, Dallas'),
     dropoff_address: null,
     hourly_duration_hours: 4,
     total_fare: '520.00',

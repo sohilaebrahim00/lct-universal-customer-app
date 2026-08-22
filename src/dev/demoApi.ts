@@ -29,16 +29,78 @@ import {
  * at the top of Trips a moment later. Nothing leaves the device, and there is no
  * host to leave to.
  *
- * State lives for the lifetime of the JS bundle: a page refresh resets it to the
- * seed, which is the right behaviour for a demo that several people will walk
- * through one after another.
+ * State survives a page reload — see PERSISTENCE below. "Don't refresh" is not
+ * a constraint a client will honour. Account → Reset demo clears it between
+ * showings.
  */
 
 interface DemoState {
   bookings: Booking[];
 }
 
-const state: DemoState = { bookings: seedBookings(new Date()) };
+/**
+ * PERSISTENCE.
+ *
+ * "Don't refresh mid-demo" is not a constraint anyone will honour — a client
+ * will reload, a phone will drop the tab from memory and restore it, or two
+ * people will open the link. If the booking they just made vanishes, the demo
+ * has broken in front of them.
+ *
+ * So state is mirrored to localStorage, scoped to a versioned key. Every read
+ * and write is wrapped: localStorage throws in private browsing on some
+ * browsers, and is simply absent on native. Any failure falls through to the
+ * seed, which is always a correct state to be in.
+ */
+const STORAGE_KEY = 'lct-universal:demo-state:v1';
+
+function storage(): Storage | null {
+  try {
+    if (typeof localStorage === 'undefined') return null;
+    // Touch it — presence is not the same as permission.
+    localStorage.getItem(STORAGE_KEY);
+    return localStorage;
+  } catch {
+    return null;
+  }
+}
+
+function load(): DemoState | null {
+  const store = storage();
+  if (!store) return null;
+  try {
+    const raw = store.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Partial<DemoState>;
+    if (!Array.isArray(parsed.bookings) || parsed.bookings.length === 0) return null;
+    return { bookings: parsed.bookings as Booking[] };
+  } catch {
+    return null;
+  }
+}
+
+function persist(): void {
+  const store = storage();
+  if (!store) return;
+  try {
+    store.setItem(STORAGE_KEY, JSON.stringify(state));
+  } catch {
+    // Quota, private mode, or a browser that declines. The demo still works
+    // in memory for this session; it just will not survive a reload.
+  }
+}
+
+/** Clears persisted state and returns to the seed. Wired to Account → Reset demo. */
+export function resetDemoState(): void {
+  state.bookings = seedBookings(new Date());
+  const store = storage();
+  try {
+    store?.removeItem(STORAGE_KEY);
+  } catch {
+    // Nothing to do; the in-memory reset above already happened.
+  }
+}
+
+const state: DemoState = load() ?? { bookings: seedBookings(new Date()) };
 
 /** Deliberate, small, and uniform — a demo with zero latency reads as fake. */
 const LATENCY_MS = 260;
@@ -146,6 +208,7 @@ export async function handleDemoRequest(
         booking.total_fare = fare.totalFare!.toFixed(2);
       }
       state.bookings = [booking, ...state.bookings];
+      persist();
       return { handled: true, data: await delay({ booking, tripId: seedTrip(booking).id }) };
     }
 
@@ -167,6 +230,7 @@ export async function handleDemoRequest(
       const booking = bookingById(second);
       if (!booking) return { handled: false };
       booking.status = 'cancelled';
+      persist();
       return { handled: true, data: await delay({ booking }) };
     }
 

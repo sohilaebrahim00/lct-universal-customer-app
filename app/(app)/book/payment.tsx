@@ -16,7 +16,7 @@ import { formatCurrency, formatDateTime, formatServiceType } from '../../../src/
 import { isStripeConfigured } from '../../../src/lib/env';
 import { useStripeCheckout } from '../../../src/lib/useStripeCheckout';
 import { AuthGate } from '../../../src/components/AuthGate';
-import { servicePolicy } from '../../../src/config/servicePolicy';
+import { cancellationSentenceFor } from '../../../src/config/servicePolicy';
 import { isRTL } from '../../../src/i18n/rtl';
 
 /**
@@ -256,13 +256,15 @@ export default function PaymentStep() {
             onPress={handlePayAndConfirm}
           />
           {/*
-            servicePolicy.freeCancellationWindowHours is null — a blocked
-            business input — so this renders nothing at all. Not a dash, not a
-            placeholder. The layout slot stays exactly where the design put it.
+            The published window for THIS service type — 6 hours on an airport
+            transfer, 12 on a point-to-point, 48 on hourly or an event. Not a
+            generic line: telling an airport customer "12 hours" would be as
+            wrong as inventing a figure. Null (a quote-routed custom booking)
+            still renders nothing.
           */}
-          {servicePolicy.freeCancellationWindowHours !== null ? (
+          {cancellationSentenceFor(draft.serviceType) ? (
             <AppText variant="captionSm" center style={styles.policy}>
-              {`Free cancellation until ${servicePolicy.freeCancellationWindowHours} hours before pickup.`}
+              {cancellationSentenceFor(draft.serviceType)}
             </AppText>
           ) : null}
         </AuthGate>

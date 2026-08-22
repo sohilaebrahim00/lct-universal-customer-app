@@ -91,7 +91,7 @@ export const DEMO_PROFILE: Profile = {
   role: 'customer',
   full_name: 'Michael Okafor',
   email: 'm.okafor@northline.co',
-  phone: '+1 (310) 555-0148',
+  phone: '+1 (214) 555-0148',
   avatar_url: null,
   corporate_account_id: 'demo-corporate',
   corporate_role: 'manager',
@@ -106,20 +106,25 @@ export const DEMO_DRIVER: TripDriverInfo = {
   rating: '4.98',
 };
 
+/**
+ * DALLAS-FORT WORTH. LCT Universal operates in DFW and Grapevine, Texas — the
+ * app's own copy says so on About, Airport and Corporate. Every seeded place
+ * here is a real DFW location with its real coordinates.
+ */
 export const DEMO_SAVED_LOCATIONS: SavedLocation[] = [
-  { id: 'demo-loc-home', label: 'Home', address: '1240 Hillcrest Rd, Beverly Hills, CA', lat: 34.0836, lng: -118.4076 },
-  { id: 'demo-loc-office', label: 'Northline HQ', address: '400 S Hope St, Los Angeles, CA', lat: 34.0519, lng: -118.2542 },
-  { id: 'demo-loc-lax', label: 'LAX Terminal 7', address: '380 World Way, Los Angeles, CA', lat: 33.9456, lng: -118.4011 },
+  { id: 'demo-loc-home', label: 'Home', address: '4820 Maple Ave, Dallas, TX', lat: 32.8121, lng: -96.8175 },
+  { id: 'demo-loc-office', label: 'Northline HQ', address: '2100 Ross Ave, Dallas, TX', lat: 32.7873, lng: -96.7969 },
+  { id: 'demo-loc-dfw', label: 'DFW Terminal D', address: '2337 S International Pkwy, DFW Airport, TX', lat: 32.8969, lng: -97.0381 },
 ];
 
 export const DEMO_RECENT_LOCATIONS: SavedLocation[] = [
-  { id: 'demo-recent-1', label: 'Chateau Marmont', address: '8221 Sunset Blvd, Los Angeles, CA', lat: 34.0977, lng: -118.3703 },
-  { id: 'demo-recent-2', label: 'Santa Monica Pier', address: '200 Santa Monica Pier, Santa Monica, CA', lat: 34.0094, lng: -118.4973 },
+  { id: 'demo-recent-1', label: 'Gaylord Texan', address: '1501 Gaylord Trail, Grapevine, TX', lat: 32.9618, lng: -97.0645 },
+  { id: 'demo-recent-2', label: 'Dallas Love Field', address: '8008 Herb Kelleher Way, Dallas, TX', lat: 32.8481, lng: -96.8512 },
 ];
 
 export const DEMO_SAVED_PASSENGERS: SavedPassenger[] = [
-  { id: 'demo-pax-1', full_name: 'Priya Raman', phone: '+1 (310) 555-0192', email: 'p.raman@northline.co' },
-  { id: 'demo-pax-2', full_name: 'Tomas Lindqvist', phone: '+1 (424) 555-0117', email: null },
+  { id: 'demo-pax-1', full_name: 'Priya Raman', phone: '+1 (214) 555-0192', email: 'p.raman@northline.co' },
+  { id: 'demo-pax-2', full_name: 'Tomas Lindqvist', phone: '+1 (817) 555-0117', email: null },
 ];
 
 export const DEMO_PAYMENT_METHODS: PaymentMethodRecord[] = [
@@ -212,27 +217,27 @@ export function seedBookings(now: Date): Booking[] {
       vehicle: sedan,
       status: 'driver_assigned',
       scheduledAt: new Date(now.getTime() + 3.2 * HOURS),
-      distanceMiles: 18.4,
-      pickup: '1240 Hillcrest Rd, Beverly Hills, CA',
-      dropoff: 'LAX Terminal 7, Los Angeles, CA',
+      distanceMiles: 23.2,
+      pickup: '4820 Maple Ave, Dallas, TX',
+      dropoff: 'DFW Terminal D, DFW Airport, TX',
     }),
     makeBooking({
       id: 'demo-booking-past-1',
       vehicle: sedan,
       status: 'completed',
       scheduledAt: new Date(now.getTime() - 8 * 24 * HOURS),
-      distanceMiles: 18.4,
-      pickup: '1240 Hillcrest Rd, Beverly Hills, CA',
-      dropoff: 'LAX Terminal 7, Los Angeles, CA',
+      distanceMiles: 23.2,
+      pickup: '4820 Maple Ave, Dallas, TX',
+      dropoff: 'DFW Terminal D, DFW Airport, TX',
     }),
     makeBooking({
       id: 'demo-booking-past-2',
       vehicle: suv,
       status: 'completed',
       scheduledAt: new Date(now.getTime() - 21 * 24 * HOURS),
-      distanceMiles: 12.1,
-      pickup: '400 S Hope St, Los Angeles, CA',
-      dropoff: 'Chateau Marmont, 8221 Sunset Blvd',
+      distanceMiles: 26.4,
+      pickup: '2100 Ross Ave, Dallas, TX',
+      dropoff: 'Gaylord Texan, Grapevine, TX',
       serviceType: 'corporate',
       passengers: 4,
     }),
@@ -314,6 +319,14 @@ export const DEMO_CONCIERGE: { role: 'user' | 'assistant'; content: string }[] =
  * coaches "Request Quote" while the backend prices them; and three capacities
  * differ. Not reconciled here — that is a business decision.
  */
+/**
+ * Classes the website marks "Request Quote". The app must NOT produce a number
+ * for these: quoting a fixed price for a vehicle the business has said it will
+ * not price without asking commits LCT to a promise it never made — the same
+ * failure as an invented policy figure.
+ */
+export const QUOTE_ONLY_VEHICLE_TYPES: readonly string[] = ['sprinter', 'coach'];
+
 export const WEBSITE_PUBLISHED_RATES: Record<string, string> = {
   // Backend `vehicle_type` → the website's published label, unchanged.
   executive_sedan: 'From $95',

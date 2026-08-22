@@ -18,6 +18,7 @@ import { choreography, gutter, iconSize, iconStroke, radius, space, theme } from
 import { useBookingFormStore } from '../../../src/store/bookingFormStore';
 import { formatCurrency, formatDateTime } from '../../../src/lib/format';
 import { useMotion } from '../../../src/lib/useMotion';
+import { cancellationSentenceFor } from '../../../src/config/servicePolicy';
 
 /**
  * CONFIRMED — the emotional peak, and previously the least designed screen in
@@ -160,6 +161,13 @@ export default function ConfirmedStep() {
           </View>
         </Surface>
 
+        {/* Published policy, resolved for the service that was actually booked. */}
+        {cancellationSentenceFor(draft.serviceType) ? (
+          <AppText variant="captionSm" center style={styles.policy}>
+            {cancellationSentenceFor(draft.serviceType)}
+          </AppText>
+        ) : null}
+
         <View style={styles.actionsRow}>
           <Pressable
             accessibilityRole="button"
@@ -240,6 +248,7 @@ const styles = StyleSheet.create({
   footCell: { flex: 1, paddingVertical: 13, paddingHorizontal: space.md },
   footDivider: { width: StyleSheet.hairlineWidth, backgroundColor: theme.border.hairline },
 
+  policy: { marginBottom: space.smd },
   actionsRow: { flexDirection: 'row', gap: 9 },
   secondaryAction: {
     flex: 1,

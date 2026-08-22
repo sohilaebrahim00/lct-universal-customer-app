@@ -318,14 +318,14 @@ export function Gallery() {
 
       <Section title="TripCard — one card, live trip carries a rail">
         <TripCard
-          route="1240 Hillcrest Rd → LAX T7"
+          route="4820 Maple Ave → DFW Terminal D"
           scheduledAt={sampleDate}
           status="driver_assigned"
           totalFare={261}
           meta="Executive Sedan"
           onPress={() => {}}
         />
-        <TripCard route="SFO → Nob Hill" scheduledAt={sampleDate} status="completed" totalFare={198} meta="Executive Sedan" />
+        <TripCard route="Love Field → Grapevine" scheduledAt={sampleDate} status="completed" totalFare={198} meta="Executive Sedan" />
       </Section>
 
       <Section title="PriceBreakdown — expanded by default">
@@ -333,7 +333,7 @@ export function Gallery() {
           <PriceBreakdown
             lines={[
               { label: 'Base fare', amount: 145 },
-              { label: 'Distance · 18.4 mi', amount: 58 },
+              { label: 'Distance · 23.2 mi', amount: 58 },
               { label: 'Gratuity · 20%', amount: 40.6 },
               { label: 'Tax', amount: 17.4 },
             ]}

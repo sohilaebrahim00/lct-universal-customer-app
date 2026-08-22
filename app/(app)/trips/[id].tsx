@@ -15,6 +15,7 @@ import { TRIP_STAGE_ORDER, TRIP_STATUS_LABELS, isTerminalStatus, stageIndex, typ
 import { useTripSocket } from '../../../src/lib/useTripSocket';
 import { isMapsConfigured } from '../../../src/lib/env';
 import { isExpoGo } from '../../../src/lib/expoEnvironment';
+import { servicePolicy, cancellationSentenceFor } from '../../../src/config/servicePolicy';
 
 // Only ever rendered when Maps is configured AND we're not in Expo Go —
 // `react-native-maps` is required lazily here, inside this component's own
@@ -194,6 +195,24 @@ export default function TripDetailScreen() {
           {formatCurrency(booking.total_fare, booking.currency)}
         </AppText>
       </Card>
+
+      {/*
+        Published policy, stated BEFORE the client tries rather than after.
+        A change requested inside the cutoff may not be possible at all, and
+        finding that out from an error is the wrong way to learn it.
+      */}
+      {canCancel ? (
+        <Card style={{ marginTop: spacing.md }}>
+          <AppText variant="caption">
+            {`Changes made less than ${servicePolicy.modificationCutoffHours} hours before pickup are subject to availability and may carry a fee.`}
+          </AppText>
+          {cancellationSentenceFor(booking.service_type) ? (
+            <AppText variant="caption" style={{ marginTop: spacing.xs }}>
+              {cancellationSentenceFor(booking.service_type)}
+            </AppText>
+          ) : null}
+        </Card>
+      ) : null}
 
       {canCancel ? (
         <Button label="Cancel Trip" variant="danger" onPress={handleCancel} loading={cancelling} style={{ marginTop: spacing.lg }} />

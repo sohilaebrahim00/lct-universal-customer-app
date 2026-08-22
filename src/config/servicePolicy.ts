@@ -1,67 +1,114 @@
-/**
- * BUSINESS INPUTS PENDING CONFIRMATION.
- *
- * These are commitments LCT Universal makes to a customer. None of them can be
- * inferred from the code, the backend or the design — they come from the
- * business, and until they do, the app says nothing.
- *
- * ── The rule ────────────────────────────────────────────────────────────────
- * A `null` value renders NOTHING. Not a dash, not an em-dash, not "—", not a
- * greyed placeholder, not a "coming soon". The row, the line, the note simply
- * does not exist. A plausible-looking number in a cancellation promise above a
- * pay button is a commitment the business has not made, and a customer would be
- * right to hold them to it.
- *
- * Every consumer therefore reads as:
- *
- *   {servicePolicy.freeCancellationWindowHours !== null ? (
- *     <Text>Free cancellation until {servicePolicy.freeCancellationWindowHours} hours before pickup.</Text>
- *   ) : null}
- *
- * ── Where these are consumed ────────────────────────────────────────────────
- *   freeCancellationWindowHours  → Payment screen, directly above the authorise
- *                                  button. The design reserves the slot; only
- *                                  the source of the number changed.
- *   complimentaryWaitMinutes     → Destination sheet (airport note) and the
- *                                  confirmation screen.
- *   onDemandEnabled              → Gates any "Now" affordance on the when-and-who
- *                                  screen. Stays false until dispatch confirms
- *                                  they can actually service an immediate
- *                                  request; "In 60 min" is the first time chip
- *                                  either way, which is correct whichever way
- *                                  this resolves.
- *
- * All three are listed in DESIGN_CHANGELOG.md under "blocked on business input,
- * must be set before launch."
- */
-export const servicePolicy = {
-  /** Hours before pickup that cancellation remains free. `null` → the payment screen states no policy. */
-  freeCancellationWindowHours: null as number | null,
+import type { ServiceType } from '../types/api';
 
-  /** Complimentary wait time included in the fare, in minutes. `null` → the note does not render. */
+/**
+ * Published service policy, plus the inputs still pending.
+ *
+ * ── The rule for anything null ──────────────────────────────────────────────
+ * A `null` value renders NOTHING. Not a dash, not an em-dash, not a greyed
+ * placeholder. The row simply does not exist. A plausible-looking number in a
+ * promise to a customer is a commitment the business has not made, and they
+ * would be right to hold LCT to it.
+ */
+
+/**
+ * Free-cancellation window in hours before pickup, BY SERVICE TYPE.
+ *
+ * Published policy, confirmed by the business. It is deliberately not one
+ * number — the design assumed a single generic window, and that assumption was
+ * wrong. An airport transfer and a wedding car have different economics and
+ * different windows, and telling an airport customer "12 hours" would be as
+ * wrong as inventing a figure.
+ *
+ *   Sedans and SUVs      free if cancelled more than 12 hours before pickup;
+ *                        50% of the fare inside 12 hours; full charge inside
+ *                        2 hours or on a no-show.
+ *   Airport transfers    free at least 6 hours before; 50% inside 6 hours;
+ *                        100% on a no-show.
+ *   Hourly and events    free at least 48 hours in advance; 50% inside 48
+ *                        hours; full charge same-day or on a no-show.
+ *
+ * Fees may be waived at the company's discretion in severe weather or a
+ * verified emergency. That is a discretion, not an entitlement, so the app does
+ * not state it as one.
+ */
+const freeCancellationHours = {
+  pointToPoint: 12,
+  airport: 6,
+  hourlyOrEvent: 48,
+} as const;
+
+/**
+ * Resolves the window for the service actually being booked, so a screen shows
+ * "6 hours" on an airport transfer and "12 hours" on a point-to-point rather
+ * than a generic line that is wrong for two thirds of bookings.
+ */
+export function freeCancellationHoursFor(serviceType: ServiceType | null): number | null {
+  switch (serviceType) {
+    case 'airport':
+      return freeCancellationHours.airport;
+    case 'hourly':
+    case 'events':
+      return freeCancellationHours.hourlyOrEvent;
+    case 'point_to_point':
+    case 'corporate':
+      return freeCancellationHours.pointToPoint;
+    // 'custom' is quote-routed and has no published window of its own.
+    default:
+      return null;
+  }
+}
+
+/** "12 hours" / "1 hour" — so no caller has to remember the plural. */
+export function cancellationSentenceFor(serviceType: ServiceType | null): string | null {
+  const hours = freeCancellationHoursFor(serviceType);
+  if (hours === null) return null;
+  return `Free cancellation until ${hours} ${hours === 1 ? 'hour' : 'hours'} before pickup.`;
+}
+
+export const servicePolicy = {
+  freeCancellationHours,
+
+  /**
+   * Changes inside this many hours of pickup may be subject to availability and
+   * additional fees. Surfaced on the trip screen's Modify affordance, so a
+   * client is told BEFORE they try rather than after.
+   */
+  modificationCutoffHours: 6,
+
+  /**
+   * The 24/7 concierge line, as published on the website. Used by the failed
+   * state's "Call dispatch" action — because a customer with a car arriving in
+   * twenty minutes needs a human, not a retry button.
+   */
+  dispatchPhone: '+1 (888) 615-4065' as string | null,
+
+  /**
+   * STILL BLOCKED. Complimentary wait time included in the fare, in minutes.
+   *
+   * Searched the website source: it is not on the fleet page, the rates page,
+   * the cancellation policy or the FAQ. The FAQ covers flight monitoring and
+   * meet-and-greet but states no wait-time figure, and nothing else on the site
+   * mentions one.
+   *
+   * So it stays null and its slots render nothing. Note that
+   * `app/(app)/airport.tsx` still MARKETS "Complimentary Waiting Time" without
+   * a figure — pre-existing copy, flagged rather than silently rewritten.
+   */
   complimentaryWaitMinutes: {
     standard: null as number | null,
     airport: null as number | null,
   },
 
   /**
-   * The number a customer calls when the app cannot reach the backend, in E.164.
-   *
-   * Surfaced in slice 1 rather than agreed earlier, because building the failed
-   * state made the gap obvious: the design's error screen offers "Call dispatch"
-   * beside "Try again" — deliberately, because a customer with a car arriving in
-   * twenty minutes needs a human, not a retry button — and there is no phone
-   * number anywhere in this repo or the API to put on it.
-   *
-   * `null` → the failed state shows "Try again" alone. It does not show a
-   * disabled call button, and it certainly does not show a plausible number.
-   */
-  dispatchPhone: null as string | null,
-
-  /**
-   * Whether dispatch can service an immediate request. Not confirmed.
-   * The client currently enforces a one-hour minimum lead time
-   * (`MIN_LEAD_TIME_MS` in the booking flow); this flag is what would relax it.
+   * Whether dispatch can service an immediate request. Not confirmed, so the
+   * client still enforces a one-hour minimum lead time and no "Now" affordance
+   * ships. "In 60 min" is the first time chip, which is correct either way.
    */
   onDemandEnabled: false,
 } as const;
+
+/**
+ * The company's own words for the fare-transparency statement, and the thesis
+ * of this whole redesign in five words. Used verbatim.
+ */
+export const PRICING_STATEMENT = 'Priced at the moment you book.';
