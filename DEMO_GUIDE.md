@@ -76,11 +76,10 @@ Honest about the edges, so nothing surprises you:
 - **Some screens are still the previous design.** Live tracking, the concierge
   chat, and a few account pages work and are populated, but have not yet been
   through the redesign. They will look plainer than the rest.
-- **Three service details are blank on purpose.** The free-cancellation window,
-  the complimentary waiting time, and the dispatch phone number are not shown
-  anywhere, because LCT Universal has not confirmed them yet. Rather than print a
-  number that might be wrong, the app prints nothing. Once you tell us the three
-  figures they appear everywhere they belong.
+- **One service detail is still blank on purpose.** Complimentary waiting time
+  is not shown anywhere, because it is not published on your website and has not
+  been confirmed. Rather than print a number that might be wrong, the app prints
+  nothing. Tell us the figure and it appears everywhere it belongs.
 - **Customer reviews have been removed.** The earlier version showed testimonials
   that were written as placeholders. They are gone until there are real ones.
 
