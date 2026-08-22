@@ -1,4 +1,4 @@
-import type { ReactElement } from 'react';
+import type { ReactNode } from 'react';
 
 /**
  * Web implementation — `@stripe/stripe-react-native` is a native-only
@@ -8,6 +8,15 @@ import type { ReactElement } from 'react';
  * (see StripePayment.web.tsx and useStripeCheckout.web.ts for the
  * corresponding web fallbacks at each actual usage site).
  */
-export function StripeAppProvider({ children }: { children: ReactElement[] }) {
+/**
+ * `children` is ReactNode, not ReactElement[].
+ *
+ * It was typed as an array because it happened to receive two elements, which
+ * made it impossible to wrap the tree in a single provider without an array
+ * literal. Type-only widening: the native/web split, the Expo Go guard and the
+ * fallback contract are untouched, and BOTH counterparts change together so
+ * their signatures stay identical.
+ */
+export function StripeAppProvider({ children }: { children: ReactNode }) {
   return <>{children}</>;
 }

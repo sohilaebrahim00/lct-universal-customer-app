@@ -1,14 +1,15 @@
 import { useState } from 'react';
 import { useRouter } from 'expo-router';
 import { Platform, Pressable, StyleSheet, View } from 'react-native';
-import { Minus, Plus, Calendar, Clock } from 'lucide-react-native';
+import { Calendar, Clock } from 'lucide-react-native';
 import { StepHeader } from '../../../src/components/booking/StepHeader';
 import { Button } from '../../../src/components/ui/Button';
 import { Card } from '../../../src/components/ui/Card';
 import { ScreenContainer } from '../../../src/components/ui/ScreenContainer';
+import { Stepper } from '../../../src/components/ui/Stepper';
 import { TextField } from '../../../src/components/ui/TextField';
 import { AppText } from '../../../src/components/ui/Typography';
-import { colors, radius, spacing } from '../../../src/theme/tokens';
+import { colors, spacing } from '../../../src/theme/tokens';
 import { useBookingFormStore } from '../../../src/store/bookingFormStore';
 import { formatDateTime } from '../../../src/lib/format';
 
@@ -29,25 +30,6 @@ function NativeDateTimePicker(props: {
   // eslint-disable-next-line @typescript-eslint/no-require-imports -- intentional lazy load, see comment above.
   const DateTimePicker = require('@react-native-community/datetimepicker').default as typeof import('@react-native-community/datetimepicker').default;
   return <DateTimePicker {...props} themeVariant="dark" />;
-}
-
-function Stepper({ label, value, onChange, min, max }: { label: string; value: number; onChange: (v: number) => void; min: number; max: number }) {
-  return (
-    <View style={styles.stepperRow}>
-      <AppText variant="body">{label}</AppText>
-      <View style={styles.stepper}>
-        <Pressable style={styles.stepperButton} onPress={() => onChange(Math.max(min, value - 1))}>
-          <Minus size={18} color={colors.gold} strokeWidth={1.5} />
-        </Pressable>
-        <AppText variant="subheading" style={{ minWidth: 28, textAlign: 'center' }}>
-          {value}
-        </AppText>
-        <Pressable style={styles.stepperButton} onPress={() => onChange(Math.min(max, value + 1))}>
-          <Plus size={18} color={colors.gold} strokeWidth={1.5} />
-        </Pressable>
-      </View>
-    </View>
-  );
 }
 
 export default function DetailsStep() {
@@ -137,16 +119,35 @@ export default function DetailsStep() {
       )}
 
       {isHourly ? (
-        <Card style={{ marginBottom: spacing.md }}>
-          <Stepper label="Duration (hours)" value={duration} onChange={(v) => update({ hourlyDurationHours: v })} min={1} max={12} />
-        </Card>
+        <Stepper
+          label="Duration"
+          unit={duration === 1 ? 'hour' : 'hours'}
+          value={duration}
+          onChange={(v) => update({ hourlyDurationHours: v })}
+          min={1}
+          max={12}
+          style={{ marginBottom: spacing.md }}
+        />
       ) : null}
 
-      <Card style={{ marginBottom: spacing.md }}>
-        <Stepper label="Passengers" value={draft.passengerCount} onChange={(v) => update({ passengerCount: v })} min={1} max={40} />
-        <View style={{ height: spacing.sm }} />
-        <Stepper label="Luggage" value={draft.luggageCount} onChange={(v) => update({ luggageCount: v })} min={0} max={40} />
-      </Card>
+      <Stepper
+        label="Guests"
+        unit={draft.passengerCount === 1 ? 'guest' : 'guests'}
+        value={draft.passengerCount}
+        onChange={(v) => update({ passengerCount: v })}
+        min={1}
+        max={40}
+        style={{ marginBottom: spacing.sm }}
+      />
+      <Stepper
+        label="Luggage"
+        unit={draft.luggageCount === 1 ? 'bag' : 'bags'}
+        value={draft.luggageCount}
+        onChange={(v) => update({ luggageCount: v })}
+        min={0}
+        max={40}
+        style={{ marginBottom: spacing.md }}
+      />
 
       <TextField
         label="Notes (optional)"
@@ -166,15 +167,4 @@ export default function DetailsStep() {
 const styles = StyleSheet.create({
   row: { flexDirection: 'row', gap: spacing.md },
   field: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-  stepperRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  stepper: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
-  stepperButton: {
-    width: 34,
-    height: 34,
-    borderRadius: radius.full,
-    borderWidth: 1,
-    borderColor: colors.border,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
 });

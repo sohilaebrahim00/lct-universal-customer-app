@@ -1,7 +1,21 @@
 import { useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
-import { ArrowRight, Bell, CreditCard, MapPin, Plus, Trash2, X } from 'lucide-react-native';
+import { ArrowRight, Bell, CalendarX, CreditCard, MapPin, Plus, Trash2, X } from 'lucide-react-native';
 import { Avatar } from '../components/ui/Avatar';
+import { Badge } from '../components/ui/Badge';
+import { BottomSheet } from '../components/ui/BottomSheet';
+import { ConnectivityBanner } from '../components/ui/ConnectivityBanner';
+import { EmptyState } from '../components/ui/EmptyState';
+import { ErrorState } from '../components/ui/ErrorState';
+import { PriceBreakdown } from '../components/ui/PriceBreakdown';
+import { ProgressRail } from '../components/ui/ProgressRail';
+import { ScreenHeader } from '../components/ui/ScreenHeader';
+import { SectionHeader } from '../components/ui/SectionHeader';
+import { SegmentedControl } from '../components/ui/SegmentedControl';
+import { Sheet } from '../components/ui/Sheet';
+import { Stepper } from '../components/ui/Stepper';
+import { TripCard } from '../components/ui/TripCard';
+import { useToast } from '../components/ui/Toast';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
 import { IconButton } from '../components/ui/IconButton';
@@ -70,6 +84,14 @@ export function Gallery() {
   const [text, setText] = useState('');
   const [notes, setNotes] = useState('');
   const [selected, setSelected] = useState<'border' | 'rail' | null>(null);
+  const [tab, setTab] = useState<'upcoming' | 'past'>('upcoming');
+  const [guests, setGuests] = useState(2);
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const toast = useToast();
+
+  // A fixed instant, so the gallery's TripCard renders the same date every run
+  // and a screenshot diff is a real change rather than the clock moving.
+  const sampleDate = '2026-08-22T13:15:00.000Z';
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
@@ -252,6 +274,115 @@ export function Gallery() {
           <Avatar name="Sam" size="sm" />
           <Avatar size="md" />
         </View>
+      </Section>
+
+
+      <Section title="SegmentedControl">
+        <SegmentedControl
+          segments={[
+            { value: 'upcoming', label: 'Upcoming', count: 2 },
+            { value: 'past', label: 'Past', count: 14 },
+          ]}
+          value={tab}
+          onChange={setTab}
+        />
+      </Section>
+
+      <Section title="Badge">
+        <View style={styles.inline}>
+          <Badge label="Neutral" />
+          <Badge label="Corporate account" tone="accent" />
+          <Badge label="Completed" tone="success" />
+          <Badge label="Payment failed" tone="danger" />
+          <Badge label="Live" tone="success" dot />
+        </View>
+      </Section>
+
+      <Section title="Stepper — 44pt targets, adjustable to a screen reader">
+        <Stepper label="Guests" unit={guests === 1 ? 'guest' : 'guests'} value={guests} onChange={setGuests} min={1} max={12} />
+      </Section>
+
+      <Section title="ProgressRail — rides on all five booking steps">
+        {[1, 3, 5].map((step) => (
+          <View key={step} style={styles.stack}>
+            <ProgressRail step={step} total={5} label={['Pickup', 'When & who', 'Review & pay'][[1, 3, 5].indexOf(step)]} />
+          </View>
+        ))}
+      </Section>
+
+      <Section title="ScreenHeader / SectionHeader">
+        <ScreenHeader title="Account" onBack={() => {}} />
+        <SectionHeader title="Travel" />
+        <SectionHeader title="Book again" actionLabel="See all" onAction={() => {}} />
+      </Section>
+
+      <Section title="TripCard — one card, live trip carries a rail">
+        <TripCard
+          route="1240 Hillcrest Rd → LAX T7"
+          scheduledAt={sampleDate}
+          status="driver_assigned"
+          totalFare={261}
+          meta="Executive Sedan"
+          onPress={() => {}}
+        />
+        <TripCard route="SFO → Nob Hill" scheduledAt={sampleDate} status="completed" totalFare={198} meta="Executive Sedan" />
+      </Section>
+
+      <Section title="PriceBreakdown — expanded by default">
+        <Card>
+          <PriceBreakdown
+            lines={[
+              { label: 'Base fare', amount: 145 },
+              { label: 'Distance · 18.4 mi', amount: 58 },
+              { label: 'Gratuity · 20%', amount: 40.6 },
+              { label: 'Tax', amount: 17.4 },
+            ]}
+            total={261}
+          />
+        </Card>
+      </Section>
+
+      <Section title="States — empty, failed, offline">
+        <Card style={styles.stack}>
+          <EmptyState
+            icon={CalendarX}
+            title="No upcoming trips"
+            message="When you book a car, it will show up here."
+            action={<Button label="Book a car" onPress={() => {}} />}
+          />
+        </Card>
+        <Card style={styles.stack}>
+          {/*
+            "Call dispatch" is absent because servicePolicy.dispatchPhone is
+            null — a blocked business input. This is what the state looks like
+            today, not a broken render.
+          */}
+          <ErrorState
+            title="We couldn't load your trips"
+            message="Your trips are safe — this is our end."
+            onRetry={() => {}}
+          />
+        </Card>
+        <ConnectivityBanner lastSyncedLabel="9:12 AM" />
+      </Section>
+
+      <Section title="Toast">
+        <View style={styles.inline}>
+          <Button label="Success" size="sm" variant="secondary" onPress={() => toast.show('Trip cancelled', 'success')} />
+          <Button label="Error" size="sm" variant="secondary" onPress={() => toast.show('Could not cancel — try again', 'error')} />
+          <Button label="Info" size="sm" variant="secondary" onPress={() => toast.show('Saved to your locations', 'info')} />
+        </View>
+      </Section>
+
+      <Section title="BottomSheet — in-place; route sheets use sheetScreenOptions()">
+        <Button label="Open sheet" variant="secondary" onPress={() => setSheetOpen(true)} />
+        <BottomSheet visible={sheetOpen} onClose={() => setSheetOpen(false)} title="Set pickup">
+          <Sheet>
+            <AppText variant="body">
+              Drag the grabber down, or flick past 500 px/s, to dismiss.
+            </AppText>
+          </Sheet>
+        </BottomSheet>
       </Section>
 
       <Section title="Skeleton">

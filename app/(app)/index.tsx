@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react';
 import { useFocusEffect, useRouter } from 'expo-router';
-import { Linking, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { AlertCircle, ArrowRight, Clock, type LucideIcon } from 'lucide-react-native';
 import { Avatar } from '../../src/components/ui/Avatar';
 import { Button } from '../../src/components/ui/Button';
@@ -12,7 +12,6 @@ import { Surface } from '../../src/components/ui/Surface';
 import { AppText } from '../../src/components/ui/Typography';
 import { ErrorState } from '../../src/components/ui/ErrorState';
 import { gutter, iconSize, iconStroke, radius, space, theme } from '../../src/theme';
-import { servicePolicy } from '../../src/config/servicePolicy';
 import { useAuthStore } from '../../src/store/authStore';
 import { useBookingFormStore } from '../../src/store/bookingFormStore';
 import { bookingsApi } from '../../src/api/bookings';
@@ -221,30 +220,17 @@ export default function HomeScreen() {
         ) : state.status === 'error' ? (
           <View style={styles.block}>
             <Card>
+              {/*
+                ErrorState now owns the action row, including the "Call
+                dispatch" button that renders only when
+                servicePolicy.dispatchPhone is set. That number is still a
+                blocked business input, so today this is "Try again" alone.
+              */}
               <ErrorState
                 icon={AlertCircle}
                 title="We couldn't load your trips"
-                message={
-                  'Your trips are safe — this is our end. ' +
-                  (servicePolicy.dispatchPhone
-                    ? 'If you have a car coming, call us and we’ll confirm it directly.'
-                    : 'If you have a car coming, it is unaffected.')
-                }
-                action={
-                  <View style={styles.errorActions}>
-                    <Button label="Try again" size="md" onPress={() => void load()} style={styles.errorButton} />
-                    {/* Renders only when the business has given us a number. */}
-                    {servicePolicy.dispatchPhone ? (
-                      <Button
-                        label="Call dispatch"
-                        variant="secondary"
-                        size="md"
-                        onPress={() => void Linking.openURL(`tel:${servicePolicy.dispatchPhone}`)}
-                        style={styles.errorButton}
-                      />
-                    ) : null}
-                  </View>
-                }
+                message="Your trips are safe — this is our end."
+                onRetry={() => void load()}
               />
             </Card>
           </View>
@@ -454,8 +440,6 @@ const styles = StyleSheet.create({
   },
   tilePressed: { backgroundColor: theme.background.tertiary },
 
-  errorActions: { flexDirection: 'row', gap: space.sm, width: '100%' },
-  errorButton: { flex: 1 },
 
   footer: { paddingHorizontal: gutter, paddingBottom: space.smd, paddingTop: space.sm },
 });

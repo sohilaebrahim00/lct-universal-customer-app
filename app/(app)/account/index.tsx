@@ -1,41 +1,42 @@
 import { useRouter } from 'expo-router';
-import { Image, Pressable, View } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
 import {
-  ChevronRight,
-  UserCircle,
-  Building2,
-  Briefcase,
-  Navigation,
-  User,
-  Users,
-  MapPin,
-  CreditCard,
-  Clock,
   Bell,
+  Briefcase,
+  Building2,
+  Car,
+  Clock,
+  CreditCard,
   Info,
-  Settings,
   LogOut,
-  type LucideIcon,
+  MapPin,
+  Navigation,
+  Settings,
+  UserCircle,
+  Users,
 } from 'lucide-react-native';
+import { Avatar } from '../../../src/components/ui/Avatar';
+import { Badge } from '../../../src/components/ui/Badge';
 import { Button } from '../../../src/components/ui/Button';
 import { Card } from '../../../src/components/ui/Card';
-import { ScreenContainer } from '../../../src/components/ui/ScreenContainer';
+import { EmptyState } from '../../../src/components/ui/EmptyState';
+import { ListRow } from '../../../src/components/ui/ListRow';
+import { ScreenHeader } from '../../../src/components/ui/ScreenHeader';
+import { SectionHeader } from '../../../src/components/ui/SectionHeader';
+import { Surface } from '../../../src/components/ui/Surface';
 import { AppText } from '../../../src/components/ui/Typography';
-import { colors, radius, spacing } from '../../../src/theme/tokens';
+import { gutter, space, theme } from '../../../src/theme';
 import { useAuthStore } from '../../../src/store/authStore';
 
-function NavRow({ icon: Icon, label, onPress }: { icon: LucideIcon; label: string; onPress: () => void }) {
-  return (
-    <Pressable onPress={onPress} style={styles.row}>
-      <Icon size={20} color={colors.gold} strokeWidth={1.5} />
-      <AppText variant="body" style={{ flex: 1, marginLeft: spacing.md }}>
-        {label}
-      </AppText>
-      <ChevronRight size={18} color={colors.mutedForeground} strokeWidth={1.5} />
-    </Pressable>
-  );
-}
-
+/**
+ * Slice 2 wires this screen onto the shared primitives — `ListRow` in grouped
+ * `Surface`s, `SectionHeader`, `Badge`, `ScreenHeader` — and adds the "Our
+ * fleet" row that Fleet needs now that it is a route rather than a tab.
+ *
+ * The full iOS-Settings-grade pass (artboard 2m: profile card, corporate badge
+ * placement, destructive actions moved inside each detail screen behind a
+ * confirm dialog) is slice 11. What is here is the wiring, not the redesign.
+ */
 export default function AccountScreen() {
   const router = useRouter();
   const status = useAuthStore((s) => s.status);
@@ -44,89 +45,124 @@ export default function AccountScreen() {
 
   if (status !== 'signed-in') {
     return (
-      <ScreenContainer>
-        <AppText variant="display" style={{ marginBottom: spacing.lg }}>
-          Account
-        </AppText>
+      <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
+        <ScreenHeader title="Account" />
 
-        <Card style={{ alignItems: 'center', padding: spacing.xl, marginBottom: spacing.lg }}>
-          <UserCircle size={40} color={colors.gold} strokeWidth={1.5} style={{ marginBottom: spacing.sm }} />
-          <AppText variant="subheading" center style={{ marginBottom: spacing.xs }}>
-            You&apos;re browsing as a guest
-          </AppText>
-          <AppText variant="bodyMuted" center style={{ marginBottom: spacing.lg }}>
-            Sign in or create a free account to save payment methods, view trip history, and manage your profile.
-          </AppText>
-          <Button label="Sign In" onPress={() => router.push('/(auth)/login')} style={{ width: '100%', marginBottom: spacing.sm }} />
-          <Button label="Create Account" variant="secondary" onPress={() => router.push('/(auth)/signup')} style={{ width: '100%' }} />
+        <Card style={styles.block}>
+          <EmptyState
+            icon={UserCircle}
+            title="You're browsing as a guest"
+            message="Sign in to save payment methods, view trip history, and manage your profile."
+            action={
+              <View style={styles.guestActions}>
+                <Button label="Sign in" onPress={() => router.push('/(auth)/login')} />
+                <Button
+                  label="Create account"
+                  variant="secondary"
+                  onPress={() => router.push('/(auth)/signup')}
+                />
+              </View>
+            }
+          />
         </Card>
 
-        <View style={{ gap: spacing.sm }}>
-          <NavRow icon={Building2} label="About LCT Universal" onPress={() => router.push('/(app)/about')} />
-          <NavRow icon={Briefcase} label="Corporate Accounts" onPress={() => router.push('/(app)/corporate-info')} />
-          <NavRow icon={Navigation} label="Preview Live Tracking" onPress={() => router.push('/(app)/demo-trip')} />
-        </View>
-      </ScreenContainer>
+        <SectionHeader title="About" />
+        <Surface level="card" style={styles.block}>
+          <ListRow icon={Car} title="Our fleet" onPress={() => router.push('/(app)/fleet')} />
+          <ListRow icon={Building2} title="About LCT Universal" onPress={() => router.push('/(app)/about')} />
+          <ListRow icon={Briefcase} title="Corporate accounts" onPress={() => router.push('/(app)/corporate-info')} />
+          <ListRow
+            icon={Navigation}
+            title="Preview live tracking"
+            divider={false}
+            onPress={() => router.push('/(app)/demo-trip')}
+          />
+        </Surface>
+      </ScrollView>
     );
   }
 
   return (
-    <ScreenContainer>
-      <AppText variant="display" style={{ marginBottom: spacing.lg }}>
-        Account
-      </AppText>
+    <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
+      <ScreenHeader title="Account" />
 
-      <Card style={{ marginBottom: spacing.lg, flexDirection: 'row', alignItems: 'center' }}>
-        {profile?.avatar_url ? (
-          <Image source={{ uri: profile.avatar_url }} style={styles.avatar} />
-        ) : (
-          <View style={[styles.avatar, styles.avatarPlaceholder]}>
-            <User size={22} color={colors.gold} strokeWidth={1.5} />
+      <Card style={styles.block}>
+        <View style={styles.profileRow}>
+          <Avatar name={profile?.full_name ?? null} uri={profile?.avatar_url ?? null} size="lg" />
+          <View style={styles.profileText}>
+            <AppText variant="subheading" numberOfLines={1}>
+              {profile?.full_name ?? '—'}
+            </AppText>
+            <AppText variant="captionSm" numberOfLines={1}>
+              {profile?.email ?? '—'}
+            </AppText>
           </View>
-        )}
-        <View style={{ marginLeft: spacing.md, flex: 1 }}>
-          <AppText variant="subheading">{profile?.full_name ?? '—'}</AppText>
-          <AppText variant="bodyMuted">{profile?.email ?? '—'}</AppText>
-          {profile?.phone ? <AppText variant="bodyMuted">{profile.phone}</AppText> : null}
+          <Button
+            label="Edit"
+            variant="secondary"
+            size="sm"
+            onPress={() => router.push('/(app)/account/edit-profile')}
+          />
         </View>
       </Card>
 
-      <View style={{ gap: spacing.sm, marginBottom: spacing.lg }}>
-        <NavRow icon={UserCircle} label="Edit Profile" onPress={() => router.push('/(app)/account/edit-profile')} />
-        <NavRow icon={Users} label="Saved Passengers" onPress={() => router.push('/(app)/account/saved-passengers')} />
-        <NavRow icon={MapPin} label="Saved Locations" onPress={() => router.push('/(app)/account/saved-locations')} />
-        <NavRow icon={CreditCard} label="Payment Methods" onPress={() => router.push('/(app)/account/payment-methods')} />
-        <NavRow icon={Clock} label="Trip History" onPress={() => router.push('/(app)/trips')} />
-        <NavRow icon={Bell} label="Notifications" onPress={() => router.push('/(app)/account/notifications')} />
-        {profile?.corporate_account_id ? (
-          <NavRow icon={Building2} label="Corporate Account" onPress={() => router.push('/(app)/account/corporate')} />
-        ) : (
-          <NavRow icon={Briefcase} label="Corporate Solutions" onPress={() => router.push('/(app)/corporate-info')} />
-        )}
-        <NavRow icon={Info} label="About LCT Universal" onPress={() => router.push('/(app)/about')} />
-        <NavRow icon={Settings} label="Settings" onPress={() => router.push('/(app)/account/settings')} />
-      </View>
+      {profile?.corporate_account_id ? (
+        <Badge label="Corporate account" tone="accent" style={styles.badge} />
+      ) : null}
 
-      <Pressable onPress={() => void signOut()} style={styles.row}>
-        <LogOut size={20} color={colors.destructive} strokeWidth={1.5} />
-        <AppText variant="body" color={colors.destructive} style={{ marginLeft: spacing.md }}>
-          Log Out
-        </AppText>
-      </Pressable>
-    </ScreenContainer>
+      <SectionHeader title="Travel" />
+      <Surface level="card" style={styles.block}>
+        <ListRow icon={MapPin} title="Saved locations" onPress={() => router.push('/(app)/account/saved-locations')} />
+        <ListRow icon={Users} title="Saved passengers" onPress={() => router.push('/(app)/account/saved-passengers')} />
+        <ListRow
+          icon={CreditCard}
+          title="Payment methods"
+          onPress={() => router.push('/(app)/account/payment-methods')}
+        />
+        <ListRow icon={Clock} title="Trip history" divider={false} onPress={() => router.push('/(app)/trips')} />
+      </Surface>
+
+      <SectionHeader title="App" />
+      <Surface level="card" style={styles.block}>
+        <ListRow icon={Bell} title="Notifications" onPress={() => router.push('/(app)/account/notifications')} />
+        <ListRow icon={Settings} title="Settings" divider={false} onPress={() => router.push('/(app)/account/settings')} />
+      </Surface>
+
+      <SectionHeader title="About" />
+      <Surface level="card" style={styles.block}>
+        {/* Fleet is a route now, not a tab — this is where browsing it lives. */}
+        <ListRow icon={Car} title="Our fleet" onPress={() => router.push('/(app)/fleet')} />
+        <ListRow icon={Info} title="About LCT Universal" onPress={() => router.push('/(app)/about')} />
+        {profile?.corporate_account_id ? (
+          <ListRow
+            icon={Building2}
+            title="Corporate account"
+            divider={false}
+            onPress={() => router.push('/(app)/account/corporate')}
+          />
+        ) : (
+          <ListRow
+            icon={Briefcase}
+            title="Corporate solutions"
+            divider={false}
+            onPress={() => router.push('/(app)/corporate-info')}
+          />
+        )}
+      </Surface>
+
+      <Surface level="card" style={styles.block}>
+        <ListRow icon={LogOut} title="Log out" destructive chevron={false} divider={false} onPress={() => void signOut()} />
+      </Surface>
+    </ScrollView>
   );
 }
 
-const styles = {
-  row: {
-    flexDirection: 'row' as const,
-    alignItems: 'center' as const,
-    padding: spacing.md,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.onyx,
-  },
-  avatar: { width: 52, height: 52, borderRadius: radius.full },
-  avatarPlaceholder: { backgroundColor: colors.charcoal, alignItems: 'center' as const, justifyContent: 'center' as const },
-};
+const styles = StyleSheet.create({
+  screen: { flex: 1, backgroundColor: theme.background.primary },
+  content: { padding: gutter, paddingBottom: space.xl },
+  block: { marginBottom: space.mdl },
+  badge: { marginBottom: space.mdl },
+  profileRow: { flexDirection: 'row', alignItems: 'center' },
+  profileText: { flex: 1, marginHorizontal: 13 },
+  guestActions: { gap: space.sm },
+});

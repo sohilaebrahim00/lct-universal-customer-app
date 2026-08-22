@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { Home, Car, Map, Sparkles, User } from 'lucide-react-native';
+import { Home, Map, Sparkles, User } from 'lucide-react-native';
 import { Redirect, Tabs } from 'expo-router';
 import { StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -7,7 +7,6 @@ import { iconStroke, resolveType, theme } from '../../src/theme';
 import { useAuthStore } from '../../src/store/authStore';
 import { registerForPushNotifications } from '../../src/lib/pushNotifications';
 import { useNotificationRouter } from '../../src/lib/useNotificationRouter';
-import { ConciergeFab } from '../../src/components/ConciergeFab';
 
 /** The bar's own height, above whatever the device reserves for its home indicator. */
 const TAB_BAR_HEIGHT = 54;
@@ -58,7 +57,10 @@ export default function AppTabsLayout() {
             // clamping the bar to 42pt, which collapsed the label box to 0 and
             // clipped every label. minHeight is what it actually honours.
             minHeight: tabBarHeight,
-            paddingTop: 8,
+            // 6, not 8: React Navigation clamps the web bar to ~45pt, and
+            // 8 + 20 (icon) + 4 (gap) + 14 (label) = 46 clipped the descenders
+            // on "Trips" and "Concierge" by a pixel.
+            paddingTop: 6,
             paddingBottom: insets.bottom,
             backgroundColor: theme.background.tertiary,
             borderTopColor: theme.border.hairline,
@@ -73,7 +75,7 @@ export default function AppTabsLayout() {
             // past AppText into a raw style object, so it has to restate it.
             lineHeight: tabLabelStyle.lineHeight,
             letterSpacing: tabLabelStyle.letterSpacing,
-            marginTop: 4,
+            marginTop: 3,
           },
           tabBarIconStyle: { marginTop: 0, height: 20 },
         }}
@@ -83,20 +85,6 @@ export default function AppTabsLayout() {
           options={{
             title: 'Home',
             tabBarIcon: ({ color }) => <Home size={20} color={color} strokeWidth={iconStroke.interactive} />,
-          }}
-        />
-        {/*
-          The design's artboards show four tabs and drop Fleet. Kept at five
-          here on purpose: removing a tab is a navigation change, and the brief
-          allows exactly one (the booking route reorder). Fleet is also where
-          the marketing content moved off Home, so it needs to stay reachable.
-          Flagged for a call rather than decided quietly.
-        */}
-        <Tabs.Screen
-          name="fleet"
-          options={{
-            title: 'Fleet',
-            tabBarIcon: ({ color }) => <Car size={20} color={color} strokeWidth={iconStroke.interactive} />,
           }}
         />
         <Tabs.Screen
@@ -120,13 +108,26 @@ export default function AppTabsLayout() {
             tabBarIcon: ({ color }) => <User size={20} color={color} strokeWidth={iconStroke.interactive} />,
           }}
         />
+        {/*
+          Four tabs. Fleet is a ROUTE, not a tab.
+          A tab is the most expensive real estate in the app, and spending one on
+          relocated marketing contradicts the thesis — the structural advantage
+          over Uber is that this app opens straight into a ride rather than
+          carrying four verticals. The fleet is decision-relevant on the vehicle
+          step, which already shows the real photography at the moment it
+          matters, and browsable from the "Our fleet" row in Account.
+
+          `href: null` rather than deleting the folder, so `fleet/_layout.tsx`
+          stays and the 14-tab bug (every file in a layout-less directory
+          becoming its own tab) cannot come back.
+        */}
+        <Tabs.Screen name="fleet" options={{ href: null }} />
         <Tabs.Screen name="book" options={{ href: null }} />
         <Tabs.Screen name="about" options={{ href: null }} />
         <Tabs.Screen name="corporate-info" options={{ href: null }} />
         <Tabs.Screen name="demo-trip" options={{ href: null }} />
         <Tabs.Screen name="airport" options={{ href: null }} />
       </Tabs>
-      <ConciergeFab bottomOffset={tabBarHeight} />
     </View>
   );
 }

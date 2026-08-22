@@ -1,48 +1,45 @@
 import type { ReactNode } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 import { AppText } from './Typography';
-import { colors, spacing } from '../../theme/tokens';
+import { space, theme } from '../../theme';
 
 interface Props {
   title: string;
-  subtitle?: string;
+  /** Trailing text action, e.g. "See all". */
   actionLabel?: string;
   onAction?: () => void;
   right?: ReactNode;
+  style?: StyleProp<ViewStyle>;
 }
 
-/** Recurring "section title + optional trailing action" row, e.g. "Upcoming" / "See all". */
-export function SectionHeader({ title, subtitle, actionLabel, onAction, right }: Props) {
+/**
+ * "BOOK AGAIN", "TRAVEL", "PAYMENT METHOD".
+ *
+ * Manrope `section`, uppercase, tracked — NOT the 28px Cormorant this used to
+ * be. A display serif on a functional list header is the clearest case of the
+ * serif doing utility work, which is what stops it signifying anything
+ * (audit P1-2). Structure is sans; the serif carries content.
+ */
+export function SectionHeader({ title, actionLabel, onAction, right, style }: Props) {
   return (
-    <View style={styles.row}>
-      <View style={styles.titleBlock}>
-        <AppText variant="heading">{title}</AppText>
-        {subtitle ? (
-          <AppText variant="caption" style={styles.subtitle}>
-            {subtitle}
-          </AppText>
-        ) : null}
-      </View>
+    <View style={[styles.row, style]}>
+      <AppText variant="section" accessibilityRole="header" style={styles.title}>
+        {title}
+      </AppText>
       {actionLabel && onAction ? (
-        <Pressable onPress={onAction} hitSlop={8}>
-          <AppText variant="caption" color={colors.gold}>
+        <Pressable onPress={onAction} accessibilityRole="button" accessibilityLabel={actionLabel} hitSlop={12}>
+          <AppText variant="caption" color={theme.content.accentSoft}>
             {actionLabel}
           </AppText>
         </Pressable>
       ) : (
-        right ?? null
+        (right ?? null)
       )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  row: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    justifyContent: 'space-between',
-    marginBottom: spacing.sm,
-  },
-  titleBlock: { flex: 1 },
-  subtitle: { marginTop: 2 },
+  row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: space.smd },
+  title: { flex: 1 },
 });

@@ -1,117 +1,153 @@
 import { useCallback, useState } from 'react';
 import { useFocusEffect, useRouter } from 'expo-router';
-import { Pressable, RefreshControl, View } from 'react-native';
-import { ScrollView } from 'react-native-gesture-handler';
+import { FlatList, RefreshControl, StyleSheet, View } from 'react-native';
 import { Calendar, Clock } from 'lucide-react-native';
-import { Card } from '../../../src/components/ui/Card';
 import { Button } from '../../../src/components/ui/Button';
-import { ScreenContainer } from '../../../src/components/ui/ScreenContainer';
-import { StatusPill } from '../../../src/components/ui/StatusPill';
-import { AppText } from '../../../src/components/ui/Typography';
-import { colors, spacing } from '../../../src/theme/tokens';
+import { EmptyState } from '../../../src/components/ui/EmptyState';
+import { ErrorState } from '../../../src/components/ui/ErrorState';
+import { ScreenHeader } from '../../../src/components/ui/ScreenHeader';
+import { SegmentedControl } from '../../../src/components/ui/SegmentedControl';
+import { Skeleton } from '../../../src/components/ui/Skeleton';
+import { TripCard } from '../../../src/components/ui/TripCard';
+import { gutter, space, theme } from '../../../src/theme';
 import { bookingsApi } from '../../../src/api/bookings';
 import type { Booking } from '../../../src/types/api';
-import { formatCurrency, formatDateTime, formatServiceType } from '../../../src/lib/format';
 import { isUpcomingBookingStatus } from '../../../src/lib/tripStatus';
 import { AuthGate } from '../../../src/components/AuthGate';
-import { EmptyState } from '../../../src/components/ui/EmptyState';
 import { useAuthStore } from '../../../src/store/authStore';
+import { asyncState, type AsyncState } from '../../../src/lib/asyncState';
 
-function TripCard({ booking, onPress }: { booking: Booking; onPress: () => void }) {
-  return (
-    <Pressable onPress={onPress}>
-      <Card style={{ marginBottom: spacing.sm }}>
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: spacing.xs }}>
-          <AppText variant="subheading">{formatServiceType(booking.service_type)}</AppText>
-          <AppText variant="subheading" color={colors.gold}>
-            {formatCurrency(booking.total_fare, booking.currency)}
-          </AppText>
-        </View>
-        <AppText variant="caption" style={{ marginBottom: spacing.sm }}>
-          {formatDateTime(booking.scheduled_at)}
-        </AppText>
-        <StatusPill status={booking.status} />
-      </Card>
-    </Pressable>
-  );
-}
+type Tab = 'upcoming' | 'past';
 
+/**
+ * Slice 2 replaces this screen's LOCAL `TripCard` — a worse copy of the shared
+ * one, which had zero call sites — and swaps the two stacked serif headings for
+ * a `SegmentedControl`, which is what lets each list be its own `FlatList`
+ * instead of both `.map()`ing inside one `ScrollView` (audit P1-8: trip history
+ * is unbounded).
+ *
+ * It also removes the screen's silent catch. `.catch(() => setBookings([]))`
+ * meant a 500 from `GET /bookings` rendered "No upcoming trips" — telling a
+ * customer with a car arriving in twenty minutes that they had none. Failed,
+ * empty and loading are now three different things on screen.
+ *
+ * The full artboard-2j treatment (live-trip action row, receipt links) is
+ * slice 9. This is the wiring.
+ */
 export default function TripsScreen() {
   const router = useRouter();
   const status = useAuthStore((s) => s.status);
-  const [bookings, setBookings] = useState<Booking[] | null>(null);
+  const [tab, setTab] = useState<Tab>('upcoming');
+  const [state, setState] = useState<AsyncState<Booking[]>>(asyncState.idle<Booking[]>());
   const [refreshing, setRefreshing] = useState(false);
 
-  const load = useCallback(() => {
-    if (status !== 'signed-in') return;
-    bookingsApi
-      .list()
-      .then(setBookings)
-      .catch(() => setBookings([]));
+  const load = useCallback(async () => {
+    if (status !== 'signed-in') {
+      setState(asyncState.success<Booking[]>([]));
+      return;
+    }
+    setState(asyncState.loading<Booking[]>());
+    try {
+      setState(asyncState.success(await bookingsApi.list()));
+    } catch (cause) {
+      setState(asyncState.error<Booking[]>(cause));
+    }
   }, [status]);
 
-  useFocusEffect(useCallback(() => { load(); }, [load]));
+  useFocusEffect(
+    useCallback(() => {
+      void load();
+    }, [load]),
+  );
 
   async function onRefresh() {
     setRefreshing(true);
-    await bookingsApi.list().then(setBookings).catch(() => {});
-    setRefreshing(false);
+    try {
+      setState(asyncState.success(await bookingsApi.list()));
+    } catch (cause) {
+      setState(asyncState.error<Booking[]>(cause));
+    } finally {
+      setRefreshing(false);
+    }
   }
 
-  const upcoming = bookings?.filter((b) => isUpcomingBookingStatus(b.status)) ?? [];
-  const past = bookings?.filter((b) => !isUpcomingBookingStatus(b.status)) ?? [];
+  const bookings = state.status === 'success' ? state.data : [];
+  const upcoming = bookings.filter((b) => isUpcomingBookingStatus(b.status));
+  const past = bookings.filter((b) => !isUpcomingBookingStatus(b.status));
+  const rows = tab === 'upcoming' ? upcoming : past;
+
+  function routeOf(booking: Booking): string {
+    const from = (booking.pickup_address.split(',')[0] ?? '').trim();
+    const to = (booking.dropoff_address?.split(',')[0] ?? '').trim();
+    return to ? `${from} → ${to}` : from;
+  }
 
   return (
-    <ScreenContainer scroll={false}>
-      <ScrollView
-        contentContainerStyle={{ padding: spacing.lg }}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.gold} />}
+    <View style={styles.screen}>
+      <View style={styles.header}>
+        <ScreenHeader title="Trips" />
+        <SegmentedControl<Tab>
+          segments={[
+            { value: 'upcoming', label: 'Upcoming', count: upcoming.length },
+            { value: 'past', label: 'Past', count: past.length },
+          ]}
+          value={tab}
+          onChange={setTab}
+        />
+      </View>
+
+      <AuthGate
+        title="Sign in to view your trip history"
+        message="Upcoming and past trips, live tracking, and receipts all live here once you have an account."
       >
-        <AppText variant="display" style={{ marginBottom: spacing.lg }}>
-          Your Trips
-        </AppText>
-
-        <AuthGate
-          title="Sign in to view your trip history"
-          message="Upcoming and past trips, live tracking, and receipts all live here once you have an account."
-        >
-          <AppText variant="heading" style={{ marginBottom: spacing.sm }}>
-            Upcoming
-          </AppText>
-          {upcoming.length === 0 ? (
-            <EmptyState
-              icon={Calendar}
-              title="No upcoming trips"
-              message="When you book a ride, it will show up here."
-              action={<Button label="Book a Ride" onPress={() => router.push('/(app)/book')} />}
-            />
-          ) : (
-            upcoming.map((booking) => (
-              <TripCard key={booking.id} booking={booking} onPress={() => router.push(`/(app)/trips/${booking.id}`)} />
-            ))
-          )}
-
-          <AppText variant="heading" style={{ marginTop: spacing.lg, marginBottom: spacing.sm }}>
-            Past
-          </AppText>
-          {past.length === 0 ? (
-            <EmptyState icon={Clock} title="No past trips" message="Your completed trips will appear here." />
-          ) : (
-            past.map((booking) => (
-              <TripCard key={booking.id} booking={booking} onPress={() => router.push(`/(app)/trips/${booking.id}`)} />
-            ))
-          )}
-        </AuthGate>
-
-        {status !== 'signed-in' ? (
-          <Button
-            label="Preview Live Tracking"
-            variant="ghost"
-            onPress={() => router.push('/(app)/demo-trip')}
-            style={{ marginTop: spacing.lg }}
+        {state.status === 'loading' ? (
+          <Skeleton.List count={3} style={styles.body} />
+        ) : state.status === 'error' ? (
+          <ErrorState
+            title="We couldn't load your trips"
+            message="Your trips are safe — this is our end."
+            onRetry={() => void load()}
+            style={styles.body}
           />
-        ) : null}
-      </ScrollView>
-    </ScreenContainer>
+        ) : (
+          <FlatList
+            data={rows}
+            keyExtractor={(item) => item.id}
+            contentContainerStyle={styles.body}
+            refreshControl={
+              <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.content.accent} />
+            }
+            renderItem={({ item }) => (
+              <TripCard
+                route={routeOf(item)}
+                scheduledAt={item.scheduled_at}
+                status={item.status}
+                totalFare={item.total_fare}
+                currency={item.currency}
+                onPress={() => router.push(`/(app)/trips/${item.id}`)}
+              />
+            )}
+            ListEmptyComponent={
+              tab === 'upcoming' ? (
+                <EmptyState
+                  icon={Calendar}
+                  title="No upcoming trips"
+                  message="When you book a car, it will show up here."
+                  action={<Button label="Book a car" onPress={() => router.push('/(app)/book/pickup')} />}
+                />
+              ) : (
+                <EmptyState icon={Clock} title="No past trips" message="Your completed trips will appear here." />
+              )
+            }
+          />
+        )}
+      </AuthGate>
+    </View>
   );
 }
+
+const styles = StyleSheet.create({
+  screen: { flex: 1, backgroundColor: theme.background.primary },
+  header: { paddingHorizontal: gutter, paddingTop: space.sm },
+  body: { paddingHorizontal: gutter, paddingTop: space.mdl, paddingBottom: space.xl },
+});

@@ -1,4 +1,4 @@
-import { useEffect, type ReactElement } from 'react';
+import { useEffect, type ReactNode } from 'react';
 import {
   useFonts,
   // Cormorant 400 is the weight the redesign's type scale specifies at every
@@ -22,11 +22,19 @@ import { useAuthStore } from '../src/store/authStore';
 import { useLocaleStore } from '../src/i18n';
 import { AppLoadingScreen } from '../src/components/AppLoadingScreen';
 import { StripeAppProvider } from '../src/components/payment/StripeAppProvider';
+import { ToastProvider } from '../src/components/ui/Toast';
 
 void SplashScreen.preventAutoHideAsync();
 
-function AppShell({ children }: { children: ReactElement[] }) {
-  return <StripeAppProvider>{children}</StripeAppProvider>;
+function AppShell({ children }: { children: ReactNode }) {
+  // ToastProvider sits inside StripeAppProvider and outside the navigator, so a
+  // toast survives navigation — the rollback message from an optimistic action
+  // must outlive the screen that started it (slice 12).
+  return (
+    <StripeAppProvider>
+      <ToastProvider>{children}</ToastProvider>
+    </StripeAppProvider>
+  );
 }
 
 export default function RootLayout() {

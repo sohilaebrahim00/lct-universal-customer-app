@@ -1,74 +1,110 @@
+import type { ReactNode } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
-import { ChevronRight } from 'lucide-react-native';
 import { Card } from './Card';
 import { StatusPill } from './StatusPill';
 import { AppText } from './Typography';
-import { colors, spacing } from '../../theme/tokens';
+import { space, theme } from '../../theme';
 import { formatCurrency, formatDateTime } from '../../lib/format';
-import type { TripStatus } from '../../lib/tripStatus';
+import { isTerminalStatus, type TripStatus } from '../../lib/tripStatus';
 
 interface Props {
-  serviceLabel: string;
+  /** Route as the customer thinks of it, e.g. "Home → LAX T7". */
+  route: string;
   scheduledAt: string;
+  status: TripStatus;
   totalFare: number | string;
   currency?: string;
-  status: TripStatus;
-  pickupAddress?: string;
-  dropoffAddress?: string | null;
+  /** "Executive Sedan · Daniel A." — assembled by the caller from what the API returns. */
+  meta?: string;
+  /** Actions on a hairline-topped row: "Track live", "Receipt". */
+  actions?: ReactNode;
   onPress?: () => void;
 }
 
-/** Shared trip/booking summary row — home's next-trip card and the trips list both render this. */
+/**
+ * The one trip card.
+ *
+ * `trips/index.tsx` carried its own local `TripCard` — a worse copy of this
+ * file, which had zero call sites (audit P0-6). Two components rendering the
+ * same object in two slightly different ways is what makes an app feel assembled
+ * by different people; the local one is deleted with this.
+ *
+ * A live trip carries a gold rail down the leading edge, so the one trip that is
+ * happening is findable in a list without reading any of them.
+ *
+ * The whole card is one accessibility node. Otherwise a screen-reader user walks
+ * five separate fragments — status, date, route, fare, meta — with no indication
+ * they describe the same trip.
+ */
 export function TripCard({
-  serviceLabel,
+  route,
   scheduledAt,
+  status,
   totalFare,
   currency = 'usd',
-  status,
-  pickupAddress,
-  dropoffAddress,
+  meta,
+  actions,
   onPress,
 }: Props) {
-  const content = (
-    <Card style={styles.card}>
-      <View style={styles.headerRow}>
-        <AppText variant="subheading" style={styles.serviceLabel} numberOfLines={1}>
-          {serviceLabel}
+  const live = !isTerminalStatus(status) && status !== 'pending';
+  const fare = formatCurrency(totalFare, currency);
+  const when = formatDateTime(scheduledAt);
+
+  const body = (
+    <Card style={styles.card} flush>
+      {live ? <View style={styles.liveRail} pointerEvents="none" /> : null}
+      <View style={styles.inner}>
+        <View style={styles.topRow}>
+          <StatusPill status={status} />
+          <AppText variant="caption">{when}</AppText>
+        </View>
+
+        <AppText variant="headingSm" numberOfLines={1} style={styles.route}>
+          {route}
         </AppText>
-        <AppText variant="subheading" color={colors.gold}>
-          {formatCurrency(totalFare, currency)}
+
+        <AppText variant="caption" numberOfLines={1}>
+          {[meta, fare].filter(Boolean).join(' · ')}
         </AppText>
-      </View>
-      <AppText variant="caption" style={styles.dateText}>
-        {formatDateTime(scheduledAt)}
-      </AppText>
-      {pickupAddress ? (
-        <AppText variant="bodyMuted" numberOfLines={1} style={styles.addressLine}>
-          {pickupAddress}
-        </AppText>
-      ) : null}
-      {dropoffAddress ? (
-        <AppText variant="bodyMuted" numberOfLines={1} style={styles.dropoffLine}>
-          {dropoffAddress}
-        </AppText>
-      ) : null}
-      <View style={styles.footerRow}>
-        <StatusPill status={status} />
-        {onPress ? <ChevronRight size={18} color={colors.mutedForeground} strokeWidth={1.75} /> : null}
+
+        {actions ? <View style={styles.actions}>{actions}</View> : null}
       </View>
     </Card>
   );
 
-  if (!onPress) return content;
-  return <Pressable onPress={onPress}>{content}</Pressable>;
+  if (!onPress) return body;
+
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={[route, when, [meta, fare].filter(Boolean).join(', ')].join('. ')}
+    >
+      {body}
+    </Pressable>
+  );
 }
 
 const styles = StyleSheet.create({
-  card: { marginBottom: spacing.sm },
-  headerRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: spacing.xs, gap: spacing.sm },
-  serviceLabel: { flex: 1 },
-  dateText: { marginBottom: spacing.sm },
-  addressLine: { marginBottom: 2 },
-  dropoffLine: { marginBottom: spacing.sm },
-  footerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  card: { marginBottom: 11 },
+  inner: { padding: 15 },
+  liveRail: {
+    position: 'absolute',
+    top: 0,
+    bottom: 0,
+    // Logical property — mirrors under RTL, which `left` would not.
+    insetInlineStart: 0,
+    width: 3,
+    backgroundColor: theme.content.accent,
+  },
+  topRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: space.sm },
+  route: { marginBottom: space.xs },
+  actions: {
+    flexDirection: 'row',
+    gap: space.sm,
+    marginTop: 13,
+    paddingTop: 13,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: theme.border.hairline,
+  },
 });

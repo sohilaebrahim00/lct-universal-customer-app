@@ -1,18 +1,17 @@
 import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
-import { Modal, Pressable, StyleSheet, View } from 'react-native';
+import { KeyboardAvoidingView, Modal, Platform, Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
 import Animated, {
-  Easing,
-  ReduceMotion,
   runOnJS,
   useAnimatedStyle,
   useSharedValue,
   withTiming,
 } from 'react-native-reanimated';
 import { AppText } from './Typography';
-import { colors, radius, spacing } from '../../theme/tokens';
+import { elevation, elevationRadius, radius, space, theme, transition } from '../../theme';
+import { useMotion } from '../../lib/useMotion';
 
 interface Props {
   visible: boolean;
@@ -22,19 +21,40 @@ interface Props {
 }
 
 const OFFSCREEN = 420;
-const DISMISS_THRESHOLD = 120;
-const TIMING = { duration: 280, easing: Easing.out(Easing.cubic), reduceMotion: ReduceMotion.System };
+const DISMISS_DISTANCE = 120;
+/** Material's fling threshold. Matched rather than invented so a flick feels like the platform. */
+const DISMISS_VELOCITY = 500;
 
-/** Shared bottom sheet: backdrop fade, drag-to-dismiss handle, safe-area-aware panel. */
+/**
+ * An in-place modal sheet, for content that is not its own route.
+ *
+ * ── When NOT to use this ───────────────────────────────────────────────────
+ * If the sheet IS a route — a picker you can navigate to and back from — use
+ * `sheetScreenOptions()` in ./Sheet.tsx instead. That gets real OS detents, real
+ * scrim behaviour and no JS on the drag, from `react-native-screens`, which is
+ * already installed. This component exists for the cases that are not routes.
+ *
+ * ── Accessibility ─────────────────────────────────────────────────────────
+ * `accessibilityViewIsModal` on iOS and `importantForAccessibility` on the
+ * backdrop are what stop a screen reader from wandering into the content behind
+ * an open sheet. RN's `Modal` handles focus containment on Android; iOS needs
+ * to be told.
+ *
+ * ── Motion ────────────────────────────────────────────────────────────────
+ * Already the one component in the app that handled reduced motion correctly
+ * before the redesign. It now goes through `useMotion()` like everything else,
+ * so a reduced-motion user gets a cross-fade in place rather than either a slide
+ * or a teleport.
+ */
 export function BottomSheet({ visible, onClose, title, children }: Props) {
   const insets = useSafeAreaInsets();
+  const motion = useMotion();
   const translateY = useSharedValue(OFFSCREEN);
   const backdropOpacity = useSharedValue(0);
-  // Modal's own `visible` prop toggles instantly, so this delays the unmount until the closing
-  // animation actually finishes instead of the sheet just vanishing.
+
+  // Modal's own `visible` toggles instantly, so this delays unmount until the
+  // closing animation has actually finished instead of the sheet vanishing.
   const [rendered, setRendered] = useState(visible);
-  // Adjusting state during render (not in an effect) to mount as soon as `visible` flips true —
-  // React's own documented pattern for deriving state from a prop change without an extra render pass.
   const [prevVisible, setPrevVisible] = useState(visible);
   if (visible !== prevVisible) {
     setPrevVisible(visible);
@@ -42,34 +62,34 @@ export function BottomSheet({ visible, onClose, title, children }: Props) {
   }
 
   useEffect(() => {
+    const timing = motion.reduced ? transition.reducedFade : transition.enter;
     if (visible) {
-      translateY.value = withTiming(0, TIMING);
-      backdropOpacity.value = withTiming(1, TIMING);
+      translateY.value = motion.reduced ? 0 : withTiming(0, timing);
+      backdropOpacity.value = withTiming(1, timing);
     } else {
-      translateY.value = withTiming(OFFSCREEN, TIMING);
-      backdropOpacity.value = withTiming(0, TIMING, (finished) => {
+      translateY.value = motion.reduced ? OFFSCREEN : withTiming(OFFSCREEN, timing);
+      backdropOpacity.value = withTiming(0, timing, (finished) => {
         if (finished) runOnJS(setRendered)(false);
       });
     }
-  }, [visible, translateY, backdropOpacity]);
+  }, [visible, motion.reduced, translateY, backdropOpacity]);
 
-  // Shared-value mutation inside gesture worklets — the same intentional Reanimated pattern
-  // (and the same lint disable) as Button.tsx's press-scale handlers.
   const pan = Gesture.Pan()
     .onUpdate((e) => {
       if (e.translationY > 0) {
-        // eslint-disable-next-line react-hooks/immutability
+        // eslint-disable-next-line react-hooks/immutability -- worklet-owned cell, not render state
         translateY.value = e.translationY;
       }
     })
     .onEnd((e) => {
-      if (e.translationY > DISMISS_THRESHOLD) {
+      const shouldDismiss = e.translationY > DISMISS_DISTANCE || e.velocityY > DISMISS_VELOCITY;
+      if (shouldDismiss) {
         // eslint-disable-next-line react-hooks/immutability
-        translateY.value = withTiming(OFFSCREEN, { ...TIMING, duration: 220 }, (finished) => {
+        translateY.value = withTiming(OFFSCREEN, transition.exit, (finished) => {
           if (finished) runOnJS(onClose)();
         });
       } else {
-        translateY.value = withTiming(0, { ...TIMING, duration: 220 });
+        translateY.value = withTiming(0, transition.enter);
       }
     });
 
@@ -80,51 +100,60 @@ export function BottomSheet({ visible, onClose, title, children }: Props) {
 
   return (
     <Modal visible transparent animationType="none" onRequestClose={onClose}>
-      <GestureHandlerRootView style={styles.flexFill}>
-        <Animated.View style={[StyleSheet.absoluteFill, styles.backdrop, backdropStyle]}>
-          <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
+      <GestureHandlerRootView style={styles.fill}>
+        <Animated.View
+          style={[StyleSheet.absoluteFill, styles.backdrop, backdropStyle]}
+          importantForAccessibility="no-hide-descendants"
+        >
+          <Pressable
+            style={StyleSheet.absoluteFill}
+            onPress={onClose}
+            accessibilityRole="button"
+            accessibilityLabel="Close"
+          />
         </Animated.View>
-        <GestureDetector gesture={pan}>
-          <Animated.View style={[styles.sheet, { paddingBottom: insets.bottom + spacing.lg }, sheetStyle]}>
-            <View style={styles.handle} />
-            {title ? (
-              <AppText variant="heading" style={styles.title}>
-                {title}
-              </AppText>
-            ) : null}
-            {children}
-          </Animated.View>
-        </GestureDetector>
+
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          style={styles.keyboard}
+          pointerEvents="box-none"
+        >
+          <GestureDetector gesture={pan}>
+            <Animated.View
+              style={[styles.sheet, { paddingBottom: insets.bottom + space.lg }, sheetStyle]}
+              accessibilityViewIsModal
+            >
+              <View style={styles.grabberHit}>
+                <View style={styles.grabber} />
+              </View>
+              {title ? (
+                <AppText variant="title" accessibilityRole="header" style={styles.title}>
+                  {title}
+                </AppText>
+              ) : null}
+              {children}
+            </Animated.View>
+          </GestureDetector>
+        </KeyboardAvoidingView>
       </GestureHandlerRootView>
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
-  flexFill: { flex: 1 },
-  backdrop: { backgroundColor: colors.overlay },
+  fill: { flex: 1 },
+  keyboard: { flex: 1, justifyContent: 'flex-end' },
+  backdrop: { backgroundColor: theme.background.scrim },
   sheet: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
+    ...elevation.sheet,
     maxHeight: '85%',
-    backgroundColor: colors.onyx,
-    borderTopLeftRadius: radius.xl,
-    borderTopRightRadius: radius.xl,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderBottomWidth: 0,
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.sm,
+    borderTopLeftRadius: elevationRadius.sheet,
+    borderTopRightRadius: elevationRadius.sheet,
+    paddingHorizontal: space.mdl,
+    paddingTop: space.sm,
   },
-  handle: {
-    alignSelf: 'center',
-    width: 40,
-    height: 4,
-    borderRadius: radius.full,
-    backgroundColor: colors.border,
-    marginBottom: spacing.md,
-  },
-  title: { marginBottom: spacing.md },
+  // A 40x4 visual pill inside a 44pt target — the grab area is the row, not the pill.
+  grabberHit: { height: 44, alignItems: 'center', justifyContent: 'center' },
+  grabber: { width: 40, height: 4, borderRadius: radius.full, backgroundColor: theme.misc.handle },
+  title: { marginBottom: space.md },
 });

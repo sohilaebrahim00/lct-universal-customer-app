@@ -1,27 +1,41 @@
 import { useMemo, useState } from 'react';
 import { useRouter } from 'expo-router';
-import { View } from 'react-native';
 import { StepHeader } from '../../../src/components/booking/StepHeader';
 import { Button } from '../../../src/components/ui/Button';
 import { Card } from '../../../src/components/ui/Card';
-import { Divider } from '../../../src/components/ui/Divider';
+import { ListRow } from '../../../src/components/ui/ListRow';
+import { PriceBreakdown, type FareLine } from '../../../src/components/ui/PriceBreakdown';
 import { ScreenContainer } from '../../../src/components/ui/ScreenContainer';
 import { AppText } from '../../../src/components/ui/Typography';
 import { colors, spacing } from '../../../src/theme/tokens';
 import { useBookingFormStore } from '../../../src/store/bookingFormStore';
 import { calculateFarePreview } from '../../../src/lib/pricingPreview';
-import { formatCurrency, formatDateTime, formatServiceType } from '../../../src/lib/format';
+import { formatDateTime, formatServiceType } from '../../../src/lib/format';
 import { isStripeConfigured } from '../../../src/lib/env';
 import { useStripeCheckout } from '../../../src/lib/useStripeCheckout';
 import { AuthGate } from '../../../src/components/AuthGate';
 
-function Row({ label, value }: { label: string; value: string }) {
-  return (
-    <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: spacing.xs }}>
-      <AppText variant="bodyMuted">{label}</AppText>
-      <AppText variant="body">{value}</AppText>
-    </View>
-  );
+/** Only non-zero components are shown — a "$0.00 Time" row is noise, not transparency. */
+function fareLines(fare: {
+  baseFare: number;
+  distanceFare: number;
+  timeFare: number;
+  surcharges: number;
+  gratuity: number;
+  tax: number;
+}): FareLine[] {
+  const lines: FareLine[] = [{ label: 'Base fare', amount: fare.baseFare }];
+  if (fare.distanceFare > 0) lines.push({ label: 'Distance', amount: fare.distanceFare });
+  if (fare.timeFare > 0) lines.push({ label: 'Time', amount: fare.timeFare });
+  if (fare.surcharges > 0) lines.push({ label: 'Late-night surcharge', amount: fare.surcharges });
+  lines.push({ label: 'Gratuity · 20%', amount: fare.gratuity });
+  lines.push({ label: 'Tax', amount: fare.tax });
+  return lines;
+}
+
+/** Summary rows read as label + value; ListRow already renders exactly that. */
+function summaryRow(label: string, value: string) {
+  return <ListRow key={label} title={label} value={value} chevron={false} />;
 }
 
 export default function PaymentStep() {
@@ -86,34 +100,33 @@ export default function PaymentStep() {
     <ScreenContainer>
       <StepHeader step={5} title="Payment" subtitle="Review your fare and confirm your booking." />
 
-      <Card style={{ marginBottom: spacing.md }}>
-        <Row label="Service" value={draft.serviceType ? formatServiceType(draft.serviceType) : '—'} />
-        <Row label="Pickup" value={draft.pickupAddress || '—'} />
-        {draft.serviceType !== 'hourly' ? <Row label="Drop-off" value={draft.dropoffAddress || '—'} /> : null}
-        <Row label="Date & Time" value={draft.scheduledAt ? formatDateTime(draft.scheduledAt.toISOString()) : '—'} />
-        <Row label="Vehicle" value={draft.vehicle?.name ?? '—'} />
-        {draft.serviceType === 'hourly' && draft.hourlyDurationHours ? (
-          <Row label="Duration" value={`${draft.hourlyDurationHours} hour${draft.hourlyDurationHours === 1 ? '' : 's'}`} />
-        ) : draft.durationMinutes ? (
-          <Row label="Est. Duration" value={`${draft.durationMinutes} min`} />
-        ) : null}
+      <Card style={{ marginBottom: spacing.md }} flush>
+        {summaryRow('Service', draft.serviceType ? formatServiceType(draft.serviceType) : '—')}
+        {summaryRow('Pickup', draft.pickupAddress || '—')}
+        {draft.serviceType !== 'hourly' ? summaryRow('Drop-off', draft.dropoffAddress || '—') : null}
+        {summaryRow('Date & time', draft.scheduledAt ? formatDateTime(draft.scheduledAt.toISOString()) : '—')}
+        {summaryRow('Vehicle', draft.vehicle?.name ?? '—')}
+        {draft.serviceType === 'hourly' && draft.hourlyDurationHours
+          ? summaryRow('Duration', `${draft.hourlyDurationHours} hour${draft.hourlyDurationHours === 1 ? '' : 's'}`)
+          : draft.durationMinutes
+            ? summaryRow('Est. duration', `${draft.durationMinutes} min`)
+            : null}
       </Card>
 
+      {/*
+        The shared PriceBreakdown, which existed with zero call sites while this
+        screen hand-rolled its own rows (audit P0-6).
+
+        NOTE — no `reassurance` prop is passed. "This is the same $261 you chose
+        the car on" is a CLAIM, and it is not true yet: the vehicle screen still
+        quotes an estimate computed from a placeholder date, and `allInFare`
+        does not reach the draft until slice 7. Passing the line now would be
+        printing a promise the code cannot keep, which is worse than an honest
+        estimate. It gets passed in slice 8, after slice 7's parity check.
+      */}
       {fare ? (
         <Card style={{ marginBottom: spacing.md }}>
-          <Row label="Base fare" value={formatCurrency(fare.baseFare)} />
-          {fare.distanceFare > 0 ? <Row label="Distance" value={formatCurrency(fare.distanceFare)} /> : null}
-          {fare.timeFare > 0 ? <Row label="Time" value={formatCurrency(fare.timeFare)} /> : null}
-          {fare.surcharges > 0 ? <Row label="Late-night surcharge" value={formatCurrency(fare.surcharges)} /> : null}
-          <Row label="Gratuity (20%)" value={formatCurrency(fare.gratuity)} />
-          <Row label="Tax" value={formatCurrency(fare.tax)} />
-          <Divider />
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-            <AppText variant="subheading">Total</AppText>
-            <AppText variant="subheading" color={colors.gold}>
-              {formatCurrency(fare.totalFare)}
-            </AppText>
-          </View>
+          <PriceBreakdown lines={fareLines(fare)} total={fare.totalFare} />
         </Card>
       ) : null}
 

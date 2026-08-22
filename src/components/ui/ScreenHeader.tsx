@@ -1,62 +1,69 @@
 import type { ReactNode } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 import { ChevronLeft, ChevronRight } from 'lucide-react-native';
 import { AppText } from './Typography';
-import { colors, radius, spacing } from '../../theme/tokens';
+import { IconButton } from './IconButton';
+import { space } from '../../theme';
 import { isRTL } from '../../i18n/rtl';
 
 interface Props {
-  title: string;
+  title?: string;
   eyebrow?: string;
   onBack?: () => void;
+  /** Trailing action slot. */
   right?: ReactNode;
+  /** Sits between the back control and the title — used by the booking steps for the ProgressRail. */
+  center?: ReactNode;
+  style?: StyleProp<ViewStyle>;
 }
 
-/** Shared top-of-screen header: optional back action, title, optional eyebrow, and a right-side action slot. */
-export function ScreenHeader({ title, eyebrow, onBack, right }: Props) {
+/**
+ * Back control, title, trailing slot.
+ *
+ * The chevron points toward the reading direction's START, which is why it
+ * flips under RTL — "back" is a direction, not a glyph. `src/i18n/rtl.ts` has
+ * been saying so since before the redesign; this is one of the few places that
+ * was already listening.
+ *
+ * The back control is a 38pt circular `IconButton`, so it carries a label and a
+ * 44pt touch target for free. `book/_layout.tsx` sets `headerShown: false` and
+ * no booking screen rendered a header at all, leaving the OS gesture as the only
+ * way back (audit P0-7) — this is what fills that gap.
+ */
+export function ScreenHeader({ title, eyebrow, onBack, right, center, style }: Props) {
+  const BackIcon = isRTL() ? ChevronRight : ChevronLeft;
+
   return (
-    <View style={styles.row}>
+    <View style={[styles.row, style]}>
       {onBack ? (
-        <Pressable onPress={onBack} hitSlop={8} style={styles.backButton}>
-          {isRTL() ? (
-            <ChevronRight size={22} color={colors.offWhite} strokeWidth={1.75} />
-          ) : (
-            <ChevronLeft size={22} color={colors.offWhite} strokeWidth={1.75} />
-          )}
-        </Pressable>
+        <IconButton
+          icon={BackIcon}
+          accessibilityLabel="Go back"
+          variant="circular"
+          onPress={onBack}
+          style={styles.back}
+        />
       ) : null}
-      <View style={styles.titleBlock}>
-        {eyebrow ? (
-          <AppText variant="eyebrow" style={styles.eyebrow}>
-            {eyebrow}
-          </AppText>
-        ) : null}
-        <AppText variant="heading" numberOfLines={1}>
-          {title}
-        </AppText>
-      </View>
-      {right ? <View style={styles.rightSlot}>{right}</View> : null}
+
+      {center ?? (
+        <View style={styles.titleBlock}>
+          {eyebrow ? <AppText variant="eyebrow">{eyebrow}</AppText> : null}
+          {title ? (
+            <AppText variant="title" numberOfLines={1} accessibilityRole="header">
+              {title}
+            </AppText>
+          ) : null}
+        </View>
+      )}
+
+      {right ? <View style={styles.right}>{right}</View> : null}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    minHeight: 44,
-    marginBottom: spacing.md,
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: radius.full,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.charcoal,
-    marginEnd: spacing.sm,
-  },
+  row: { flexDirection: 'row', alignItems: 'center', minHeight: 44, marginBottom: space.md },
+  back: { marginEnd: space.smd },
   titleBlock: { flex: 1 },
-  eyebrow: { marginBottom: 2 },
-  rightSlot: { marginStart: spacing.sm, alignItems: 'flex-end' },
+  right: { marginStart: space.sm, alignItems: 'flex-end' },
 });
