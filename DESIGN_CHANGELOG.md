@@ -12,6 +12,59 @@ claim is only the former, it says so.
 
 ---
 
+## Read this first: present, readable, and inert
+
+Three times in this project, a safeguard was written, reviewed, read correctly by
+everyone who looked at it, and did nothing at all.
+
+1. **The `isDemoMode` guards.** Two protections written as
+   `if (!isDemoMode) return null/false`. They protected the demo and were inert
+   in the build that mattered, which is how the app came to advertise
+   `From $65.00` against a published $95 and to quote fixed prices for two
+   classes the business will not price.
+2. **The observed-rate-card lint rule.** It parsed, it read correctly, and ESLint
+   flat config silently replaced it — a later block set the same rule name, so
+   the patterns were wiped. A probe file importing the fenced data linted clean.
+3. **The accessibility gate.** It reported "0 targets under 44×44, no reflow
+   problems" across sixteen routes. Fifteen of the sixteen were the 404 page.
+
+**A check that cannot tell it is pointed at nothing is not a check.** That is the
+one failure mode here which no amount of care at the call site prevents: the call
+site was correct every time. Only running the guard against a case it must fail
+proves it runs at all.
+
+Every guard added after this was found now has a probe: the containment rule is
+proved by a file that imports the fenced data, the surge assertion by a
+multiplier injected into `payment.tsx`, the duplicate-name guard by a second
+injected conflict, and the accessibility gate by `assertRendered()`, which fails
+the run if any route serves the not-found page.
+
+### The correction to the record
+
+**Slice 7 and Slice 8 were both reported green, and accepted, partly on the
+strength of "0 touch targets under 44×44, no reflow problems at 1.0/1.3/1.6/2.0".
+That claim was measuring a 404 page fifteen times out of sixteen. Those
+acceptances are void.**
+
+- **Reported by:** Claude, in the Slice 7 and Slice 8 reports.
+- **Accepted by:** the project owner, on the strength of those reports.
+- **Cause:** the gate's route list used expo-router *group* paths — `/(app)/fleet`
+  and so on. Route groups organise files and are stripped from the URL. Every
+  assertion the gate made was true and none were about the app: a 404 page has
+  text, so the blank check passed; it has one link, so the target check passed;
+  it fits any viewport, so the reflow check passed.
+- **Caught by:** loading `/fleet` by hand during Slice 10 while investigating an
+  unrelated question about vehicle names, and getting a 404.
+- **Cost:** `/onboarding` — the first screen a new customer sees — had been
+  scrolling sideways on web for the whole period those greens were reported. It
+  was found within a day of the gate starting to work.
+
+**The corrected numbers are now true:** 20 of 20 routes measured, none serving
+404, 0 targets under 44×44, 0 reflow overflow at 1.0/1.3/1.6/2.0. They were not
+true when they were first claimed, and both facts belong in this file.
+
+---
+
 ## Verified behaviours
 
 Things that have been observed working, with what produced the observation.
@@ -878,3 +931,77 @@ three documents that carry it forward:
 
 What remains needs a device, a client and a backend. None of those are ours to
 invent, and the project stops here rather than pretending otherwise.
+
+---
+
+## The SUV collapse — checked in the files, reported only
+
+**The question:** does the app collapse two published classes into one entry, and
+if so whose price did it keep?
+
+**Answer to the two specific checks:**
+
+1. **`publishedFleet.ts` contains no Executive SUV entry.** It has exactly one
+   SUV entry: `suv: 'From $110'`.
+2. **`From $110` does not sit next to the words "Executive SUV" on the site.** It
+   sits next to a class the site calls **SUV**. "Executive SUV" is the
+   *backend's* name for that class, from `seed.sql`. `BACKEND_FOLLOWUPS.md` §6
+   already pairs them: *"Executive SUV … $109.01 minimum against a published
+   'From $110'"*.
+
+**So the site's two classes are `SUV` and `Luxury SUV`, not `Executive SUV` and
+`Luxury SUV`** — and the price map is **correct**. `suv → From $110` is the
+site's SUV. The site's Luxury SUV at From $130 is correctly recorded in
+`WEBSITE_CLASSES_WITHOUT_BACKEND_EQUIVALENT` as having no backend equivalent.
+
+Transcribed in `BACKEND_FOLLOWUPS.md` §6 from
+`lct_migrate/src/lib/site-data.ts`, read 2026-08-22. **That source is not in this
+repository**, so this rests on a transcription, not on a file anyone here can
+re-read.
+
+| site | pax | bags | published | backend | app |
+|---|---|---|---|---|---|
+| Sedan | 3 | 2 | From $95 | Executive Sedan | `executive_sedan` |
+| **SUV** | 6 | 6 | **From $110** | **Executive SUV** | **`suv`** |
+| **Luxury SUV** | 6 | 6 | **From $130** | *(none)* | *(none)* |
+| First Class Sedan | 2 | 2 | $150/hour | *(none)* | *(none)* |
+| Executive Sprinter | 14 | 10 | Request Quote | Sprinter Van | `sprinter` |
+| Mini Coach | 39 | — | Request Quote | Coach / Custom | `coach` |
+| Motor Coach | 56 | — | Request Quote | Coach / Custom | `coach` |
+
+### The defect is one level above the price map
+
+`VEHICLE_DISPLAY_NAME.suv = 'Luxury SUV'`.
+
+The app takes the class the site publishes at **From $110** and labels it with
+the name of a **different published class that the same file records as having no
+backend equivalent** — the one at From $130. Its image asset is
+`luxury-suv.jpg`, and the demo row describes it as *"Cadillac Escalade or
+equivalent"*, which is the operations panel's vehicle for its **Luxury SUV**
+(minimum $120), not for the SUV class.
+
+So the app **describes the Luxury SUV and charges the SUV.** On `/fleet` and
+`/corporate-info` a customer reads *Luxury SUV — From $110* for a product the
+business publishes at $130. On the home screen, the booking picker,
+`PricingPreview` and `TrackingSheet` the same class reads *Executive SUV*, the
+backend's name.
+
+Capacity cannot disambiguate: the site lists SUV and Luxury SUV as **6 pax and 6
+bags each**. The only distinguishing published fact is the price, and the app
+carries the lower one under the higher one's name.
+
+### Why this is not fixed here
+
+Two readings, each with money attached, and only the business can choose:
+
+- **The name is wrong.** `suv` is the SUV class; it should not be called Luxury
+  SUV. The fix is a display name, and the $110 stands.
+- **The price is wrong.** `suv` is meant to *be* the Luxury SUV — the Escalade
+  description and the `luxury-suv.jpg` asset both point that way. Then the
+  published figure should be $130 and the app is under-charging.
+
+Either way the app currently quotes one class and describes another, and it is
+doing so for customers today. **Changing a class name or a published price is a
+customer-facing value change**, which no slice in this phase makes. It is at the
+top of the blocked-on-the-business list in `HANDOFF.md`, above the nine platform
+questions, because unlike them it has a paying customer attached to it now.

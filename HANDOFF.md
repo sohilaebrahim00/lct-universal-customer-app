@@ -57,6 +57,33 @@ credentials never pass through this workspace.
 
 ## 3 · Blocked on the business
 
+**First, because it has a paying customer attached to it today — the others do
+not:**
+
+> **The app describes the Luxury SUV and charges the SUV.**
+>
+> The site publishes two separate classes at identical capacity (6 pax, 6 bags):
+> **SUV — From $110** and **Luxury SUV — From $130**. The app has one entry. Its
+> price map is correct (`suv → From $110`, the site's SUV), but
+> `VEHICLE_DISPLAY_NAME.suv` labels it **"Luxury SUV"** — the name of the $130
+> class that the same file records as having no backend equivalent. Its image is
+> `luxury-suv.jpg` and its description is *"Cadillac Escalade or equivalent"*,
+> which is the operations panel's vehicle for its $120-minimum Luxury SUV.
+>
+> So on `/fleet` and `/corporate-info` a customer reads *Luxury SUV — From $110*
+> for a product the business publishes at $130. On four other screens the same
+> class reads *Executive SUV*, the backend's name. Capacity cannot disambiguate
+> the two site classes; price is the only distinguishing published fact, and the
+> app carries the lower one under the higher one's name.
+>
+> **Two readings, each with money attached — only the business can choose.**
+> Either the **name** is wrong and $110 stands, or the class is meant to *be* the
+> Luxury SUV (the Escalade description and the asset both point that way) and the
+> **price** should be $130. Not changed here: both are customer-facing values.
+>
+> **Owner:** the client. Detail in `DESIGN_CHANGELOG.md` → *The SUV collapse*.
+> Pinned by `tests/publishedNameConflicts.test.ts`.
+
 | # | question | why it blocks |
 |---|---|---|
 | Q1 | Is `lctuniversal.us/admin` this app's backend, or a separate product? | everything else hangs from it |
@@ -68,8 +95,6 @@ credentials never pass through this workspace.
 | Q7 | Is the per-class ETA hand-entered or computed? | if hand-entered it must never be shown as an arrival estimate |
 | Q8 | Does a driver app exist behind the Driver Apps nav item? | decides whether C-4 is a build or a wiring job |
 | Q9 | Sandbox credentials and API documentation | without them this app stays on demo data indefinitely |
-| — | **Luxury SUV: $110, $120 or $130?** The app publishes From $110 for a class whose attributes (Cadillac Escalade, 6 seats, 6 bags) match the panel's Luxury SUV, whose minimum is $120, while the site lists Luxury SUV at From $130. Pinned in `tests/publishedNameConflicts.test.ts` | the app under-publishes for the class it actually describes |
-| — | **The app calls one class two names.** `/fleet` and `/corporate-info` say *Luxury SUV*; the home screen, booking picker, pricing preview and tracking sheet say *Executive SUV*. Both customer-facing. Not changed here — a class name is a customer-facing value | a customer browses one product and books another by name |
 | B3 | Who owns the rating figure and how often is it refreshed? "4.93 from 55 reviews" is a hand-read snapshot that will silently go stale | `src/config/reputation.ts` |
 | B4 | How late is late? Nothing defines a problem row | the dispatcher board invents a five-minute grace |
 | B5 | Is meet-and-greet selectable, and does it cost anything? | pricing and packaging before it is a column |
