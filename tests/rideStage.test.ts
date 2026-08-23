@@ -4,6 +4,7 @@ import {
   canMarkArrived,
   chauffeurAction,
   customerHeadline,
+  etaIsAttributable,
   hasReached,
   stageFor,
   waitingWindow,
@@ -214,5 +215,44 @@ describe('the complimentary waiting window', () => {
     const utc = waitingWindow('2026-08-23T19:42:00.000Z', 'point_to_point', at(10));
     const sameInstantWrittenDifferently = waitingWindow('2026-08-23T14:42:00.000-05:00', 'point_to_point', at(10));
     expect(sameInstantWrittenDifferently?.minutesRemaining).toBe(utc?.minutesRemaining);
+  });
+});
+
+describe('the ETA is only rendered where it can be attributed', () => {
+  /*
+   * G-5: the socket carries one `etaMinutes` with no statement of which leg it
+   * measures. Before pickup it coincides with the leg the customer watches —
+   * luck, not correctness. After pickup there is no basis for it at all.
+   *
+   * Pinned as a test because the first fix gated only the headline and left the
+   * progress bar drawing from the same number, which is the same claim with the
+   * digits removed. One predicate, asserted over every stage.
+   */
+  it('allows an ETA only while the car is still approaching', () => {
+    expect(etaIsAttributable('confirmed')).toBe(true);
+    expect(etaIsAttributable('chauffeur_assigned')).toBe(true);
+    expect(etaIsAttributable('chauffeur_en_route')).toBe(true);
+
+    expect(etaIsAttributable('arrived_at_pickup')).toBe(false);
+    expect(etaIsAttributable('passenger_picked_up')).toBe(false);
+    expect(etaIsAttributable('trip_in_progress')).toBe(false);
+    expect(etaIsAttributable('completed')).toBe(false);
+  });
+
+  it('shows nothing for a cancelled ride, which has no stage', () => {
+    expect(etaIsAttributable(null)).toBe(false);
+  });
+
+  it('covers every stage, so a new one cannot default to showing an ETA', () => {
+    // A stage added later is false until someone decides otherwise — the safe
+    // direction, and the reason this is an explicit list rather than a negation.
+    for (const stage of RIDE_STAGES) {
+      expect(typeof etaIsAttributable(stage)).toBe('boolean');
+    }
+    expect(RIDE_STAGES.filter((s) => etaIsAttributable(s))).toEqual([
+      'confirmed',
+      'chauffeur_assigned',
+      'chauffeur_en_route',
+    ]);
   });
 });

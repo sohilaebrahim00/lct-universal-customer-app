@@ -13,6 +13,7 @@ import {
   RIDE_STAGES,
   RIDE_STAGE_LABELS,
   customerHeadline,
+  etaIsAttributable,
   rideStageIndex,
   stageFor,
   waitingSentence,
@@ -40,27 +41,25 @@ import type { ServiceType, TripDriverInfo, TripVehicleInfo } from '../../types/a
  */
 
 /**
- * Stages where the ETA must NOT be the headline.
+ * THE CLIENT DOES NOT RENDER AN ETA IT CANNOT ATTRIBUTE.
  *
- * Found by the lifecycle walk, not by reading the code: once the passenger was
- * on board the screen still said "Arriving in 6 min". Two things are wrong with
- * that. It is stale — the car has arrived, so an arrival countdown is answering
- * a question nobody is asking any more. And it is *undefined*: the socket
- * carries one `etaMinutes` with no statement of which leg it measures
- * (`BACKEND_FOLLOWUPS.md` G-5, "ETA is whatever the driver app last said"), so
- * after pickup there is no basis for claiming it means the destination.
+ * The socket carries a single `etaMinutes` with no statement of which leg it
+ * measures — `BACKEND_FOLLOWUPS.md` G-5, "ETA is whatever the driver app last
+ * said". Before pickup that number happens to coincide with the leg the
+ * customer is watching. **That is luck, not correctness**: nothing in the
+ * contract says it is the arrival ETA, and after pickup there is no basis at
+ * all for claiming it means the destination.
  *
- * So from arrival onwards the stage owns the headline, and no number is shown
- * that the app cannot justify. `confirmed`, `chauffeur_assigned` and
- * `chauffeur_en_route` keep the ETA, where it means the one thing it reliably
- * means: when the car reaches the customer.
+ * ── "In any form" is the part that needed a second pass ────────────────────
+ * The first fix gated only the HEADLINE, and left the progress bar drawing from
+ * the same number — rendering the unattributable ETA geometrically instead of
+ * numerically, which is the same claim with the digits removed. One predicate
+ * now gates both, so the next thing derived from `etaMinutes` cannot be added
+ * without meeting it.
+ *
+ * The rule itself is `etaIsAttributable()` in `src/lib/rideStage.ts`, because
+ * it is a property of the STAGE rather than of this component.
  */
-const STAGE_OWNS_HEADLINE = new Set<RideStage>([
-  'arrived_at_pickup',
-  'passenger_picked_up',
-  'trip_in_progress',
-]);
-
 export interface TrackingSheetProps {
   status: TripStatus;
   etaMinutes: number | null;
@@ -127,6 +126,11 @@ export function TrackingSheet({
 
   const waiting = counting && arrivedAt ? waitingWindow(arrivedAt, serviceType, now) : null;
 
+  // One predicate, BOTH render sites — the headline and the progress bar. The
+  // rule lives in rideStage.ts because it is a property of the stage, not of
+  // this component.
+  const showEta = etaIsAttributable(stage);
+
   return (
     <View style={styles.sheet}>
       <View style={styles.grabber} />
@@ -155,7 +159,7 @@ export function TrackingSheet({
           sitting beneath it.
         */}
         <AppText variant="title" style={styles.headline} accessibilityLiveRegion="polite">
-          {stage && STAGE_OWNS_HEADLINE.has(stage)
+          {stage && !showEta
             ? customerHeadline(stage)
             : terminal
               ? TRIP_STATUS_LABELS[status]
@@ -187,7 +191,7 @@ export function TrackingSheet({
           </View>
         ) : null}
 
-        {progress !== null && !terminal && stage !== 'arrived_at_pickup' ? <ProgressBar value={progress} /> : null}
+        {progress !== null && !terminal && showEta ? <ProgressBar value={progress} /> : null}
 
         {/*
           Says WHICH part is missing, and offers the retry. Without this the

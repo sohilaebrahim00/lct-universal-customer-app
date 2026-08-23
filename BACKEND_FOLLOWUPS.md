@@ -387,6 +387,42 @@ completed`. `driver_arriving` means *en route*. There is no state between
 This is a small change with a large payoff and should be near the front of the
 queue.
 
+#### C-4b · **`bookings` carries no timezone** — so no screen can render the pickup's local time
+
+*What the screen wanted it for.* Every time a customer reads: the receipt's
+"completed at", the trip list, the confirmation. §8 below settles what the
+**arithmetic** should do — the pickup location's zone governs the late-night
+surcharge, as an IANA identifier and never an offset. **This is the other half
+of that, and it is a missing column rather than a missing decision.**
+
+*What exists.* `bookings.scheduled_at` is a timestamp and nothing else. There is
+no `pickup_timezone`, and `Booking` in `src/types/api.ts` declares none.
+
+*The consequence, which is concrete.* The client has no zone to render in, so it
+renders in the **device's**. A traveller landing at DFW with a phone still on
+London time reads a 7:40 PM Dallas pickup as 1:40 AM. The number is wrong, it
+looks authoritative, and nothing on the screen tells them which clock it is.
+
+*What was NOT done about it, deliberately.* The ride-lifecycle slice needed to
+render an arrival time and had two options: default to `America/Chicago` because
+the fleet operates in Dallas–Fort Worth, or render device-local and say so. It
+renders device-local. **Defaulting would have been inventing a fact about the
+ride out of a fact about the business** — the same move that produced
+`From $65.00` and an invented cancellation window. The comment in
+`src/components/trip/TripReceipt.tsx` records the choice at the render site.
+
+*What would change.* Add `bookings.pickup_timezone TEXT NOT NULL` (IANA
+identifier), populate it at booking time from the pickup coordinates, and return
+it on the booking. The client already has the formatter — `Intl.DateTimeFormat`
+with a `timeZone` option needs no dependency — and it is one field away from
+being able to use it.
+
+*Why it is filed beside C-4.* Both are the same shape: a datum the product
+needs, with nowhere in the schema to put it, currently worked around in a way
+that is honest but visibly a workaround. C-4's workaround is a timestamp map
+beside the bookings; this one's is a rendered time that quietly means something
+different for every reader.
+
 #### C-5 · Messaging the client — **no system exists**
 
 *What the screen wanted it for.* "I'm in the third lane by column C" is the most

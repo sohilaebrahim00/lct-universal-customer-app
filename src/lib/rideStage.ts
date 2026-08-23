@@ -261,6 +261,30 @@ export function canMarkArrived(status: TripStatus): boolean {
 }
 
 /**
+ * MAY THE CLIENT RENDER AN ETA AT THIS STAGE?
+ *
+ * The socket carries a single `etaMinutes` with no statement of which leg it
+ * measures — `BACKEND_FOLLOWUPS.md` G-5, "ETA is whatever the driver app last
+ * said". Before pickup that number happens to coincide with the leg the
+ * customer is watching. **That is luck, not correctness**: nothing in the
+ * contract says it is the arrival ETA, and after pickup there is no basis at
+ * all for claiming it means the destination.
+ *
+ * So: the ETA may be rendered only while the car is still approaching the
+ * customer. From arrival onwards it is not shown IN ANY FORM — not as a
+ * headline, and not as a progress bar derived from it, which is the same claim
+ * with the digits removed.
+ *
+ * It lives here rather than in the sheet because it is a property of the STAGE,
+ * not of a widget: a second screen that wants to show an ETA has to answer the
+ * same question, and should not be able to answer it differently.
+ */
+export function etaIsAttributable(stage: RideStage | null): boolean {
+  if (stage === null) return false;
+  return stage === 'confirmed' || stage === 'chauffeur_assigned' || stage === 'chauffeur_en_route';
+}
+
+/**
  * Reads the arrival overlay off a trip payload.
  *
  * `arrived_at` IS NOT A FIELD ON `Trip`. `src/types/api.ts` declares no such

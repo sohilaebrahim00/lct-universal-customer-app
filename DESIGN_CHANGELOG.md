@@ -1179,3 +1179,84 @@ the store is one browser's `localStorage`, and a dispatcher moving a real
 customer's screen needs the socket in G-3, which does not exist. And none of it
 runs against a backend that has an arrived-at-pickup status, because there is
 not one.
+
+---
+
+## A fifth failure, and it is a different one
+
+The four in *Read this first* were all **inert**: present, readable, doing
+nothing. The fix for inertness is a probe — run the guard against a case it must
+fail.
+
+This one was **live, and calibrated against an assumption about the defect
+rather than against the defect.**
+
+`offscreenAbove()` was written for one bug: the map placeholder pushed off the
+top of the screen. The first version tested `bottom <= 0` — *fully invisible*,
+which is what "off the top" means if you reason about it from the phrase. The
+actual element measured **top −27, bottom +9**: nine pixels still on screen,
+visibly broken, and it would have **passed**. A detector written specifically
+for a bug that would have skipped that bug.
+
+It did not ship that way only because the real element was measured before the
+check was written. **The fix for inertness is probing; the fix for this is
+measuring the actual case.** They are different disciplines and both are now
+required of anything added to `scripts/a11y-gate.mjs`.
+
+### A category, not a coincidence: output that describes more than execution
+
+Twice now a checker has reported results for work it did not do.
+
+1. **The gate measuring 404 pages** — every assertion true, none of them about
+   the app.
+2. **`--pass=targets` printing "0 reflow overflow at 1.0/1.3/1.6/2.0"** about
+   four font scales it never loaded.
+
+The second is the first in miniature, and the repair is the same both times:
+report only what ran, and say so when the run was partial. The summary now
+enumerates the passes that executed and appends `[PARTIAL RUN]` otherwise.
+
+### The harness was wrong and the app was right
+
+`lifecycle-walk.mjs` asserted against the dispatcher's **today** board for a ride
+scheduled tomorrow. The board correctly omitted it; the walk called that a
+failure. Same shape as an earlier walk in this project that failed near midnight
+because a booking +3h landed on the following day.
+
+**A verification harness that fails correct behaviour is a defect in the same
+file as the code it checks**, and it is more dangerous than a missing test,
+because the natural response to a red gate is to change the app. Retargeted at
+the dispatcher's ride view, which is keyed by id and has no date filter.
+
+### The ETA, closed properly
+
+The walk found that after pickup the customer screen still read "Arriving in
+6 min". The first fix gated the **headline** and shipped — and left the progress
+bar drawing from the same number, which is the identical claim with the digits
+removed.
+
+The rule is now one predicate, `etaIsAttributable()`, living in `rideStage.ts`
+because it is a property of the **stage** rather than of a widget:
+
+> The socket carries one `etaMinutes` with no statement of which leg it measures
+> (G-5). Before pickup it coincides with the leg the customer is watching —
+> **luck, not correctness.** After pickup there is no basis for it at all. So it
+> is rendered only while the car is still approaching, and from arrival onwards
+> it is not shown in any form.
+
+Both render sites read that one predicate, and a test asserts the full stage list
+so a stage added later cannot default to showing an ETA. An absent number beats
+an unattributable one, because a customer cannot tell that an unattributable one
+is wrong.
+
+### The timezone: the instruction was wrong and the file was right
+
+The brief said arrival times should follow the pickup's local time with
+`America/Chicago` as the default. That was not done, and the reason is now
+`BACKEND_FOLLOWUPS.md` **C-4b**: `bookings` carries no timezone column, so there
+is nothing to render in. Defaulting to `America/Chicago` would have been
+inventing a fact about the ride out of a fact about the business.
+
+The countdown itself needed no zone at all — it is duration arithmetic, two
+instants subtracted, and there is a test asserting exactly that. The receipt
+renders device-local time and says so at the render site.
