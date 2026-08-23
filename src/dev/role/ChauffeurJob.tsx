@@ -9,7 +9,7 @@ import {
   contactPhone,
   loadRide,
   nameSignText,
-  statusLabel,
+  stageLabel,
 } from './roleData';
 import { roleColor, roleLayout, roleTarget, roleText } from './roleTheme';
 import { RoleShell } from './RoleShell';
@@ -115,7 +115,7 @@ export function ChauffeurJob({ bookingId }: { bookingId: string }) {
         {`${booking.passenger_count} ${booking.passenger_count === 1 ? 'passenger' : 'passengers'} · ${booking.luggage_count} ${booking.luggage_count === 1 ? 'bag' : 'bags'}`}
       </Field>
       <Field label="Notes">{booking.special_requests}</Field>
-      <Field label="Status">{statusLabel(booking.status)}</Field>
+      <Field label="Status">{stageLabel(booking)}</Field>
 
       <Pressable
         onPress={() => router.push(`/_role/status?id=${booking.id}`)}

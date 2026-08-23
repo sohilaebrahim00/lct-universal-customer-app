@@ -9,11 +9,13 @@ import { ErrorState } from '../../../src/components/ui/ErrorState';
 import { Skeleton } from '../../../src/components/ui/Skeleton';
 import { TrackingMap } from '../../../src/components/trip/TrackingMap';
 import { TrackingSheet } from '../../../src/components/trip/TrackingSheet';
+import { TripReceipt } from '../../../src/components/trip/TripReceipt';
 import { theme } from '../../../src/theme';
 import { bookingsApi } from '../../../src/api/bookings';
 import { tripsApi } from '../../../src/api/trips';
 import type { Booking, Trip, TripDriverInfo, TripVehicleInfo } from '../../../src/types/api';
 import { isTerminalStatus, type TripStatus } from '../../../src/lib/tripStatus';
+import { arrivedAtFrom } from '../../../src/lib/rideStage';
 import { useTripSocket } from '../../../src/lib/useTripSocket';
 import { useSmoothedLocation } from '../../../src/lib/useSmoothedLocation';
 import type { LatLng } from '../../../src/lib/geo';
@@ -182,6 +184,23 @@ export default function TripDetailScreen() {
     );
   }
 
+  /*
+   * A COMPLETED RIDE IS A RECORD, NOT A LIVE FEED.
+   *
+   * Once the trip is done there is no car to watch, no ETA to believe and no
+   * position to smooth — so the map and the live sheet are replaced entirely by
+   * the receipt rather than left on screen showing a stopped marker. Leaving
+   * the tracking layout up after completion is how an app ends up animating
+   * towards a car that arrived twenty minutes ago.
+   */
+  if (status === 'completed') {
+    return (
+      <ScreenContainer scroll>
+        <TripReceipt booking={booking} chauffeurName={driver?.full_name ?? null} />
+      </ScreenContainer>
+    );
+  }
+
   return (
     <View style={styles.screen}>
       {/*
@@ -226,6 +245,14 @@ export default function TripDetailScreen() {
           live={live.connected}
           detailUnavailable={tripError !== null}
           onRetryDetail={load}
+          /*
+           * The C-4 overlay. `Trip` has no `arrived_at` column — the backend
+           * has nowhere to record the moment a car reaches the kerb — so this
+           * reads a field that only the demo layer supplies and returns null
+           * against a real server. See `src/lib/rideStage.ts`.
+           */
+          arrivedAt={arrivedAtFrom(trip)}
+          serviceType={booking.service_type}
         />
       </View>
     </View>

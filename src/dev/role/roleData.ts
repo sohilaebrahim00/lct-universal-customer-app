@@ -1,6 +1,8 @@
 import type { Booking, Profile, TripDriverInfo } from '../../types/api';
 import type { TripStatus } from '../../lib/tripStatus';
 import { TRIP_STATUS_LABELS, isTerminalStatus, nextTripStage } from '../../lib/tripStatus';
+import { RIDE_STAGE_LABELS, stageFor } from '../../lib/rideStage';
+import { arrivedAtOf } from '../demoApi';
 import { DEMO_CHAUFFEURS, DEMO_VEHICLES, chauffeurById, customerById } from '../demoData';
 import { api } from '../../lib/apiClient';
 
@@ -182,6 +184,22 @@ export function nextStepFor(status: TripStatus): NextStep | null {
   // (`confirmed` and `driver_assigned` are dispatch's), so nothing is offered.
   if (!label) return null;
   return { status: next, label };
+}
+
+/**
+ * The LIFECYCLE STAGE label for a booking — what every role view shows.
+ *
+ * Reads the arrival overlay as well as the status, so "Arrived at Pickup"
+ * appears on the dispatcher board and the chauffeur list, not just on the
+ * customer screen. That is the requirement that all three views move together:
+ * one derivation, four call sites, no view holding its own opinion.
+ *
+ * Falls back to the raw status label only for a cancelled ride, which has no
+ * stage — see stageFor().
+ */
+export function stageLabel(booking: Booking): string {
+  const stage = stageFor(booking.status, arrivedAtOf(booking.id));
+  return stage ? RIDE_STAGE_LABELS[stage] : TRIP_STATUS_LABELS[booking.status];
 }
 
 export function statusLabel(status: TripStatus): string {

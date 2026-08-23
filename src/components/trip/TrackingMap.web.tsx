@@ -47,11 +47,42 @@ const styles = StyleSheet.create({
   // same tone on both platforms.
   fill: { ...StyleSheet.absoluteFill as object, backgroundColor: theme.background.primary },
   /*
-   * Clears the sheet, which occupies the lower 62% of the screen. At 220 the
-   * live distance rendered underneath it and could not be seen at all — the
-   * one piece of real data this placeholder exists to keep showing.
+   * Clears the sheet, which occupies the lower 62% of the screen.
+   *
+   * ── This was `flex: 1` + `paddingBottom: '58%'`, and it was wrong ─────────
+   * A PERCENTAGE PADDING RESOLVES AGAINST THE CONTAINING BLOCK'S WIDTH — in
+   * CSS and in React Native, for `paddingBottom` as much as for
+   * `paddingHorizontal`. So "58%" was 58% of the viewport WIDTH, never its
+   * height:
+   *
+   *     390 wide  → 226px padding   content lands at y=260   (looked correct)
+   *    1440 wide  → 835px padding   content lands at y=-27   (above the fold)
+   *
+   * At 1440 that is 835px of padding inside an 846px-tall box: an 11px content
+   * strip, the icon and the sentence pushed off the top of the screen, and the
+   * region below reading as an empty rectangle on the one screen whose whole
+   * purpose is watching a car approach.
+   *
+   * It survived because of a coincidence. The previous attempt was a flat
+   * 220px, rejected as too small; 58% of a 390px phone is 226px — within six
+   * pixels of the number that had just been discarded. It agreed with the
+   * intended behaviour at exactly one width.
+   *
+   * ── Why `bottom` and not `paddingBottom` ─────────────────────────────────
+   * On an ABSOLUTELY POSITIONED element, a percentage `bottom` resolves against
+   * the containing block's HEIGHT, which is what was meant all along. Same
+   * visual result on a phone, correct at every width.
    */
-  centre: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: space.xl, paddingBottom: '58%' },
+  centre: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: '58%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: space.xl,
+  },
   line: { marginTop: space.smd, maxWidth: 260 },
   distance: { marginTop: space.md },
 });

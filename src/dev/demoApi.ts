@@ -1,6 +1,7 @@
 import type { Booking } from '../types/api';
 import type { TripStatus } from '../lib/tripStatus';
 import { nextTripStage } from '../lib/tripStatus';
+import { canMarkArrived } from '../lib/rideStage';
 import {
   DEMO_CORPORATE_ACCOUNT,
   DEMO_CORPORATE_EMPLOYEES,
@@ -50,6 +51,20 @@ interface DemoState {
    * mapping is already the right one.
    */
   assignments: Record<string, string>;
+  /**
+   * bookingId → ISO timestamp the chauffeur marked ARRIVED AT PICKUP.
+   *
+   * Beside the bookings, exactly as `assignments` is, and for the same reason:
+   * THE BACKEND HAS NOWHERE TO PUT IT. `TripStatus` runs
+   * `driver_arriving → passenger_picked_up` with no member meaning *here*, and
+   * `Trip` has no `arrived_at` column. That is gap C-4, and this map is what it
+   * looks like when the datum is needed anyway.
+   *
+   * Storing it beside rather than inventing a status keeps the shape honest:
+   * the day `trips.arrived_at` exists, this map is deleted and `stageFor()`
+   * reads the column instead. Nothing else changes. See `src/lib/rideStage.ts`.
+   */
+  arrivals: Record<string, string>;
 }
 
 /**
@@ -92,6 +107,9 @@ function load(): DemoState | null {
       // with the role preview, and a state saved by an earlier build simply has
       // no key. Defaulting it keeps a booking someone made before the upgrade.
       assignments: (parsed.assignments as Record<string, string> | undefined) ?? {},
+      // Same tolerance as `assignments`: `arrivals` arrived with the lifecycle
+      // slice, so a state saved by an earlier build simply has no key.
+      arrivals: (parsed.arrivals as Record<string, string> | undefined) ?? {},
     };
   } catch {
     return null;
@@ -113,6 +131,7 @@ function persist(): void {
 export function resetDemoState(): void {
   state.bookings = seedBookings(new Date());
   state.assignments = { ...seedAssignments() };
+  state.arrivals = {};
   const store = storage();
   try {
     store?.removeItem(STORAGE_KEY);
@@ -142,7 +161,7 @@ function seedAssignments(): Record<string, string> {
   };
 }
 
-const state: DemoState = load() ?? { bookings: seedBookings(new Date()), assignments: seedAssignments() };
+const state: DemoState = load() ?? { bookings: seedBookings(new Date()), assignments: seedAssignments(), arrivals: {} };
 
 /** Deliberate, small, and uniform — a demo with zero latency reads as fake. */
 const LATENCY_MS = 260;
@@ -283,7 +302,23 @@ export async function handleDemoRequest(
       return {
         handled: true,
         data: await delay({
-          trip: seedTrip(booking, driverId),
+          trip: {
+            ...seedTrip(booking, driverId),
+            /*
+             * NOT IN THE API CONTRACT, deliberately.
+             *
+             * `Trip` in `src/types/api.ts` has no `arrived_at`, and that file
+             * is not changed here. This is the C-4 overlay riding along on the
+             * demo payload — the same pattern as `allInFare` on POST /bookings,
+             * which the real backend's zod schema strips and only the demo
+             * layer reads.
+             *
+             * `arrivedAtFrom()` in `src/lib/rideStage.ts` is the only reader,
+             * and it defends against the field being absent — which it always
+             * is against a real server.
+             */
+            arrived_at: state.arrivals[booking.id] ?? null,
+          },
           events: seedTripEvents(booking),
           driver: chauffeurById(driverId),
           vehicle: tripVehicleFor(booking),
@@ -396,4 +431,40 @@ export function advanceTripStatus(bookingId: string): TripStatus | null {
   booking.status = next;
   persist();
   return next;
+}
+
+/**
+ * Marks the chauffeur as ARRIVED AT PICKUP. Writes a timestamp, not a status.
+ *
+ * ── Why this function changes no status ─────────────────────────────────────
+ * Because there is no status to change it to. The backend's enum has no member
+ * between `driver_arriving` (on the way) and `passenger_picked_up` (aboard), so
+ * arrival is recorded as a timestamp beside the booking — gap C-4, made
+ * concrete. `stageFor()` reads the pair and derives `arrived_at_pickup`.
+ *
+ * Guarded by `canMarkArrived()` so the rule lives in the state machine rather
+ * than being re-checked by every caller. Arriving twice is a no-op that returns
+ * the ORIGINAL timestamp: a chauffeur double-tapping at the kerb must not
+ * restart a customer's complimentary waiting window, which is the kind of thing
+ * that is obvious only after it has happened to somebody.
+ *
+ * Returns the arrival timestamp, or null when the transition is illegal.
+ */
+export function markArrivedAtPickup(bookingId: string): string | null {
+  const booking = bookingById(bookingId);
+  if (!booking) return null;
+  if (!canMarkArrived(booking.status)) return null;
+
+  const existing = state.arrivals[bookingId];
+  if (existing) return existing;
+
+  const at = new Date().toISOString();
+  state.arrivals[bookingId] = at;
+  persist();
+  return at;
+}
+
+/** The arrival timestamp for a booking, or null. Read by the role previews. */
+export function arrivedAtOf(bookingId: string): string | null {
+  return state.arrivals[bookingId] ?? null;
 }

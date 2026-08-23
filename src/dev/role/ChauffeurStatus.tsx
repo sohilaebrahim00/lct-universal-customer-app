@@ -3,9 +3,9 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import { radius, space } from '../../theme/ref';
 import { formatTimeOfDay } from '../../lib/format';
-import { TRIP_STAGE_ORDER, stageIndex } from '../../lib/tripStatus';
-import { advanceTripStatus } from '../demoApi';
-import { type RoleRide, loadRide, nextStepFor, statusLabel } from './roleData';
+import { RIDE_STAGES, RIDE_STAGE_LABELS, chauffeurAction, rideStageIndex, stageFor } from '../../lib/rideStage';
+import { advanceTripStatus, arrivedAtOf, markArrivedAtPickup } from '../demoApi';
+import { type RoleRide, loadRide, statusLabel } from './roleData';
 import { roleColor, roleLayout, roleTarget, roleText } from './roleTheme';
 import { RoleShell } from './RoleShell';
 
@@ -25,6 +25,7 @@ import { RoleShell } from './RoleShell';
 export function ChauffeurStatus({ bookingId }: { bookingId: string }) {
   const [ride, setRide] = useState<RoleRide | null | undefined>(undefined);
   const [justSet, setJustSet] = useState<string | null>(null);
+  const [confirming, setConfirming] = useState(false);
 
   const reload = useCallback(() => {
     void loadRide(bookingId, new Date()).then(setRide);
@@ -53,13 +54,43 @@ export function ChauffeurStatus({ bookingId }: { bookingId: string }) {
   }
 
   const { booking } = ride;
-  const step = nextStepFor(booking.status);
-  const reached = stageIndex(booking.status);
+  const arrivedAt = arrivedAtOf(bookingId);
+  const stage = stageFor(booking.status, arrivedAt);
+  const action = stage ? chauffeurAction(stage) : null;
+  const reached = stage ? rideStageIndex(stage) : -1;
 
-  function advance() {
-    const next = advanceTripStatus(bookingId);
-    if (next) setJustSet(statusLabel(next));
+  /**
+   * Performs the action, whichever store it writes to.
+   *
+   * `arrival` writes a TIMESTAMP and no status, because the backend's enum has
+   * no member meaning *here*. That asymmetry is the whole of C-4 expressed as
+   * two branches of one function — see `src/lib/rideStage.ts`.
+   */
+  function perform() {
+    if (!action) return;
+    if (action.kind === 'arrival') {
+      const at = markArrivedAtPickup(bookingId);
+      if (at) setJustSet(RIDE_STAGE_LABELS.arrived_at_pickup);
+    } else {
+      const next = advanceTripStatus(bookingId);
+      if (next) setJustSet(statusLabel(next));
+    }
+    setConfirming(false);
     reload();
+  }
+
+  /*
+   * Irreversible actions ask once. A chauffeur taps this one-handed at a kerb
+   * with the engine running; "passenger on board" ends a customer's
+   * complimentary waiting window and "complete the ride" ends the ride. Neither
+   * has an undo, here or in the backend.
+   */
+  function press() {
+    if (action?.confirm && !confirming) {
+      setConfirming(true);
+      return;
+    }
+    perform();
   }
 
   return (
@@ -67,22 +98,43 @@ export function ChauffeurStatus({ bookingId }: { bookingId: string }) {
       title={formatTimeOfDay(new Date(booking.scheduled_at))}
       note={NOTE}
       footer={
-        step ? (
+        action ? (
           <View style={styles.footer}>
+            {confirming ? (
+              // Says what the customer will read, not just what the button
+              // does. The consequence is the thing worth confirming.
+              <Text style={[roleText.bodySoft, styles.confirmNote]}>
+                {`The client will see “${action.resultingHeadline}”.`}
+              </Text>
+            ) : null}
             <Pressable
-              onPress={advance}
+              onPress={press}
               accessibilityRole="button"
-              accessibilityLabel={`Mark ${step.label}`}
+              accessibilityLabel={confirming ? `Confirm: ${action.label}` : `Mark ${action.label}`}
               style={({ pressed }) => [styles.primary, pressed ? styles.pressed : null]}
             >
-              <Text style={[roleText.hero, styles.primaryLabel]}>{step.label}</Text>
+              <Text style={[roleText.hero, styles.primaryLabel]}>
+                {confirming ? `Confirm — ${action.label}` : action.label}
+              </Text>
             </Pressable>
+            {confirming ? (
+              <Pressable
+                onPress={() => setConfirming(false)}
+                accessibilityRole="button"
+                accessibilityLabel="Cancel"
+                style={({ pressed }) => [styles.cancel, pressed ? styles.pressed : null]}
+              >
+                <Text style={roleText.body}>Cancel</Text>
+              </Pressable>
+            ) : null}
           </View>
         ) : null
       }
     >
       <Text style={[roleText.label, styles.label]}>Now</Text>
-      <Text style={roleText.hero}>{statusLabel(booking.status)}</Text>
+      {/* The lifecycle stage, not the backend status — so "Arrived at Pickup"
+          can be shown, which no status can express. */}
+      <Text style={roleText.hero}>{stage ? RIDE_STAGE_LABELS[stage] : statusLabel(booking.status)}</Text>
 
       <Text style={[roleText.bodySoft, styles.route]} numberOfLines={2}>
         {[booking.pickup_address, booking.dropoff_address].filter(Boolean).join(' → ')}
@@ -97,17 +149,17 @@ export function ChauffeurStatus({ bookingId }: { bookingId: string }) {
       ) : null}
 
       <Text style={[roleText.label, styles.progressLabel]}>Progress</Text>
-      {TRIP_STAGE_ORDER.filter((s) => s !== 'pending').map((stage) => {
-        const done = stageIndex(stage) <= reached;
+      {RIDE_STAGES.map((s) => {
+        const done = rideStageIndex(s) <= reached;
         return (
-          <View key={stage} style={styles.stageRow}>
+          <View key={s} style={styles.stageRow}>
             <View style={[styles.dot, done ? styles.dotDone : null]} />
-            <Text style={done ? roleText.body : roleText.bodySoft}>{statusLabel(stage)}</Text>
+            <Text style={done ? roleText.body : roleText.bodySoft}>{RIDE_STAGE_LABELS[s]}</Text>
           </View>
         );
       })}
 
-      {!step ? (
+      {!action ? (
         <Text style={[roleText.body, styles.done]}>
           {booking.status === 'completed'
             ? 'This job is complete. Nothing further to set.'
@@ -156,4 +208,6 @@ const styles = StyleSheet.create({
   },
   primaryLabel: { color: roleColor.onAccent },
   pressed: { opacity: 0.85 },
+  confirmNote: { marginBottom: space.sm },
+  cancel: { minHeight: 44, alignItems: 'center', justifyContent: 'center', marginTop: space.xs },
 });

@@ -3,7 +3,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { radius, space } from '../../theme/ref';
 import { formatTimeOfDay } from '../../lib/format';
-import { type RoleRide, loadRides, statusLabel } from './roleData';
+import { type RoleRide, loadRides, stageLabel } from './roleData';
 import { roleColor, roleText } from './roleTheme';
 import { RoleShell } from './RoleShell';
 
@@ -177,7 +177,7 @@ function BoardRow({ ride, onPress }: { ride: RoleRide; onPress: () => void }) {
         {chauffeur?.full_name ?? 'Unassigned'}
       </Text>
       <Text style={[roleText.cell, { width: COLUMNS[7].width }, late ? styles.lateText : null]} numberOfLines={1}>
-        {statusLabel(booking.status)}
+        {stageLabel(booking)}
       </Text>
     </Pressable>
   );

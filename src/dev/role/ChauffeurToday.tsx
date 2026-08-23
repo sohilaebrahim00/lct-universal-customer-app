@@ -3,7 +3,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { space, radius } from '../../theme/ref';
 import { formatTimeOfDay } from '../../lib/format';
-import { PREVIEW_CHAUFFEUR, type RoleRide, loadRides, ridesFor, statusLabel } from './roleData';
+import { PREVIEW_CHAUFFEUR, type RoleRide, loadRides, ridesFor, stageLabel } from './roleData';
 import { roleColor, roleLayout, roleTarget, roleText } from './roleTheme';
 import { RoleShell } from './RoleShell';
 
@@ -107,7 +107,7 @@ function NextJob({ ride, onPress }: { ride: RoleRide; onPress: () => void }) {
         {customer ? <Text style={roleText.body}>{customer.full_name}</Text> : null}
       </View>
 
-      <Text style={[roleText.bodySoft, styles.statusLine]}>{statusLabel(booking.status)}</Text>
+      <Text style={[roleText.bodySoft, styles.statusLine]}>{stageLabel(booking)}</Text>
     </Pressable>
   );
 }

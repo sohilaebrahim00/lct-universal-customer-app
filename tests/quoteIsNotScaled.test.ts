@@ -56,6 +56,16 @@ const POST_QUOTE_MODULES = [
   'src/store/bookingFormStore.ts',
   'src/lib/serverFare.ts',
   'src/components/ui/PriceBreakdown.tsx',
+  /*
+   * Added with the ride lifecycle. The receipt is now the LAST screen between
+   * the quote and the customer — the final place a number could quietly change
+   * — so it is the most important entry in this list, not the newest.
+   *
+   * `rideStage.ts` is deliberately absent: it computes a waiting COUNTDOWN and
+   * touches no money at all. Adding it would imply it handles fares, and the
+   * point of that module is that it must never learn to.
+   */
+  'src/components/trip/TripReceipt.tsx',
 ];
 
 /** Anything whose name says it carries money. */

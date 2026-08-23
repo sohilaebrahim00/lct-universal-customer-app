@@ -14,8 +14,9 @@ claim is only the former, it says so.
 
 ## Read this first: present, readable, and inert
 
-Three times in this project, a safeguard was written, reviewed, read correctly by
-everyone who looked at it, and did nothing at all.
+**Four times** in this project, a safeguard was written, reviewed, read correctly
+by everyone who looked at it, and did nothing at all. Twice it was a guard, and
+twice it was the gate that was supposed to catch the guard failing.
 
 1. **The `isDemoMode` guards.** Two protections written as
    `if (!isDemoMode) return null/false`. They protected the demo and were inert
@@ -27,6 +28,17 @@ everyone who looked at it, and did nothing at all.
    the patterns were wiped. A probe file importing the fenced data linted clean.
 3. **The accessibility gate.** It reported "0 targets under 44×44, no reflow
    problems" across sixteen routes. Fifteen of the sixteen were the 404 page.
+4. **The same gate, at one width.** Once it stopped measuring 404 pages it still
+   only ever ran at 390×844. A phone — and so did the sweep, and so did the
+   reflow checks. **Every gate in this project was a phone.** A defect whose
+   trigger is a WIDE viewport could not fail any of them, and one was sitting
+   there: `TrackingMap.web.tsx` carried `paddingBottom: '58%'`, a percentage
+   that resolves against WIDTH, not height. 226px on a 390px phone — correct by
+   coincidence, within six pixels of the flat 220px someone had just rejected as
+   too small. 835px on a 1440px desktop, inside an 846px-tall box, which pushed
+   the map's designed state above the fold and left an empty rectangle on the
+   tracking screen. The first screen of a live-tracking demo, blank in a browser,
+   for as long as those gates had been green.
 
 **A check that cannot tell it is pointed at nothing is not a check.** That is the
 one failure mode here which no amount of care at the call site prevents: the call
@@ -1055,3 +1067,115 @@ The corrected fact is in `PLATFORM_RECONCILIATION.md` §7 and at the top of the
 blocked-on-the-business list in `HANDOFF.md`. The earlier section is left
 standing rather than edited, because the sequence — transcription, conclusion,
 caveat, re-read, correction — is the record.
+
+---
+
+## The ride, end to end — and the gate width that hid a blank map
+
+### The blank map: cause named before any fix
+
+Four candidates, three ruled out with evidence rather than by plausibility.
+**Not** a missing web Maps key — `verify-maps-keys web` prints *"no native map
+on web — nothing to verify"* and the web component uses no key. **Not** a
+missing web path — `TrackingMap.web.tsx` exists and renders. **Not** a failing
+import — zero console errors, the DOM node present at `opacity: 1`.
+
+It was `paddingBottom: '58%'`, resolving against **width**. Measured across four
+viewports, the computed padding was exactly 58% of the width every time —
+835.19px at 1440, 226.19px at 390 — and the placeholder's top followed it from
++260px down to **−27px**, above the fold.
+
+Fixed by making the block absolutely positioned with `bottom: '58%'`, which on
+an absolutely positioned element resolves against **height**, as intended.
+Native was never affected: `absoluteFill` genuinely constrains there.
+
+### The gate now has a viewport matrix, and a check the matrix alone would not have given it
+
+**Adding 1440 would not have caught it.** The reflow check tests horizontal
+overflow, and this bug produced none — the content was above the top, not past
+the side. So two things landed together:
+
+| | |
+|---|---|
+| `VIEWPORTS` | phone 390, large phone 430, tablet 834, desktop 1440 — each with a written reason, and the file states that the matrix is the contract |
+| `offscreenAbove()` | text positioned off the top of the screen, excluding legitimately-scrolled containers |
+
+**The detector was wrong first, and measuring the real defect is what fixed it.**
+It tested `bottom <= 0` — fully invisible. The real clipped line measured
+`top: −27, bottom: +9`: nine pixels on screen, so it would have been skipped
+while the icon and first line above it were gone. The condition is `top < 0`.
+
+Proved by reverting the fix and re-running: **phone 0, large phone 0, tablet 0,
+desktop 1** — `clipped by the top edge (top -27px)`. Restored, all four clean.
+
+The gate also lied about its own coverage: `--pass=targets` printed "0 reflow
+overflow at 1.0/1.3/1.6/2.0" about four scales it had not run. The summary now
+states only what executed, and says `[PARTIAL RUN]` when it is one.
+
+### The lifecycle: seven stages, three views, one store
+
+`src/lib/rideStage.ts` is the single state machine the customer screen, the
+chauffeur preview and the dispatcher board all read. One derivation, so an
+action in one view moves the other two by construction rather than by three
+components agreeing.
+
+**`arrived_at_pickup` is not a backend status, and none of this fixes C-4.**
+`TripStatus` runs `driver_arriving → passenger_picked_up` with no member meaning
+*here*, and `Trip` has no `arrived_at` column. So arrival is an **overlay**: a
+timestamp carried beside the booking, exactly as `assignments` is, and for the
+same reason — the backend has nowhere to put it. `stageFor()` derives the stage
+from the pair.
+
+That shape is the argument. It shows what C-4 would enable — a customer told the
+car is outside, a waiting window starting at a real moment — while making it
+structurally obvious the datum has no home in the API. When `trips.arrived_at`
+exists, the overlay is deleted and `stageFor()` reads the column; nothing else
+changes.
+
+**The waiting window is policy, never a charge.** 30 minutes standard, 60
+airport, from `servicePolicy`. It shows a clock and no money: no fee, no rate,
+no running total, and nothing at all about cost once it elapses — because what
+happens then is Q6 and nobody has answered it. Asserted twice: in the unit test
+against the sentence, and in the walk against the rendered screen.
+
+**On the timezone, precisely.** The brief called this the first thing depending
+on a clock. True — but a countdown is *duration* arithmetic, two instants
+subtracted, and is timezone-independent. There is a test asserting exactly that.
+What needs the pickup's zone is rendering an arrival *time*, and `Booking`
+carries no zone column (§8), so the receipt shows device-local time and says so
+in a comment rather than inventing `America/Chicago`.
+
+### How a state machine was verified — decided before it was built
+
+A screenshot at one moment cannot verify a sequence, for the same reason a
+screenshot at one width could not verify a layout. Three legs:
+
+1. **Transitions as pure functions** — 18 assertions, including the ones that
+   must be REFUSED: a stale arrival timestamp must not drag a moving trip back
+   to "outside", and a cancelled ride belongs nowhere on the rail.
+2. **A full run through the lifecycle** asserting the stage advances in order
+   and never skips, repeats or reverses.
+3. **`scripts/lifecycle-walk.mjs`** — the chauffeur acts, the customer and
+   dispatcher views are read back. One browser context throughout, because the
+   store is `localStorage` and a second context is a second store.
+
+**The walk found a real defect on its first run.** After the passenger was
+aboard, the customer screen still read *"Arriving in 6 min"* — stale, and worse,
+*undefined*: the socket carries one `etaMinutes` with no statement of which leg
+it measures (G-5). From arrival onward the stage now owns the headline and no
+unjustifiable number is shown.
+
+It also found a defect **in itself**: it asserted against the dispatcher's TODAY
+board for a ride scheduled tomorrow, which was correctly absent. The app was
+right and the walk was wrong — the same shape as an earlier walk that failed
+near midnight. Retargeted at the dispatcher's ride view, which has no date
+filter.
+
+### Not verified
+
+Real elapsed time — the countdown is read seconds after arrival, never after
+thirty real minutes on a device that slept. Propagation between two **devices**:
+the store is one browser's `localStorage`, and a dispatcher moving a real
+customer's screen needs the socket in G-3, which does not exist. And none of it
+runs against a backend that has an arrived-at-pickup status, because there is
+not one.

@@ -116,6 +116,26 @@ not:**
 > **Owner:** the client. Detail in `DESIGN_CHANGELOG.md` → *The SUV collapse*.
 > Pinned by `tests/publishedNameConflicts.test.ts`.
 
+**A product decision, not a defect — the web tracking screen has no map.**
+
+> `react-native-maps` has no web implementation, so on `lctapp.netlify.app` the
+> tracking screen shows a designed placeholder: *"The live map is available in
+> the iOS and Android app"*, plus the live closing distance, which is real and
+> updates. That is honest and it now renders correctly at every width.
+>
+> It also means **a client walking the demo in a browser never sees a map on the
+> screen whose entire purpose is watching a car approach.** Three options, with
+> what each costs:
+>
+> | option | cost |
+> |---|---|
+> | Keep the honest placeholder | nothing. Ships today. A browser demo with no map. |
+> | Static route image | a Google **Maps Static API** key in the Netlify environment, plus a rendered route — so it needs a polyline the app already has (`routePolyline`) and a second key to manage and bill. No live marker: a still image. |
+> | A web mapping library | a new dependency, a second map style to keep in sync with `MAP_STYLE_NIGHT`, and web-only code on the screen that matters most. Needs approval before anyone starts. |
+>
+> **Owner:** the client, or whoever owns the demo. Nothing is built on judgement
+> here — the placeholder stays until someone chooses.
+
 | # | question | why it blocks |
 |---|---|---|
 | Q1 | Is `lctuniversal.us/admin` this app's backend, or a separate product? | everything else hangs from it |

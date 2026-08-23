@@ -4,7 +4,7 @@ import { useFocusEffect } from 'expo-router';
 import { radius, space } from '../../theme/ref';
 import { formatCurrency, formatDateTime } from '../../lib/format';
 import { assignChauffeur } from '../demoApi';
-import { ALL_CHAUFFEURS, type RoleRide, loadRide, statusLabel } from './roleData';
+import { ALL_CHAUFFEURS, type RoleRide, loadRide, stageLabel } from './roleData';
 import { roleColor, roleLayout, roleText } from './roleTheme';
 import { RoleShell } from './RoleShell';
 
@@ -74,7 +74,7 @@ export function DispatcherRide({ bookingId }: { bookingId: string }) {
       ) : null}
 
       <View style={roleLayout.card}>
-        <Row label="Status">{statusLabel(booking.status)}</Row>
+        <Row label="Status">{stageLabel(booking)}</Row>
         <Row label="Client">{customer?.full_name}</Row>
         <Row label="Client phone">{customer?.phone}</Row>
         <Row label="Passenger">{booking.primary_passenger_name}</Row>

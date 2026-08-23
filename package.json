@@ -72,7 +72,8 @@
     "build:dev": "node scripts/verify-maps-keys.mjs ios,android && eas build --profile development",
     "verify:build-mode": "node scripts/verify-build-mode.mjs",
     "verify:maps-keys": "node scripts/verify-maps-keys.mjs",
-    "verify:a11y": "node scripts/a11y-gate.mjs"
+    "verify:a11y": "node scripts/a11y-gate.mjs",
+    "verify:lifecycle": "node scripts/lifecycle-walk.mjs"
   },
   "jest": {
     "preset": "ts-jest",

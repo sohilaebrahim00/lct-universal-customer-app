@@ -6,10 +6,20 @@ import { AppText } from '../ui/Typography';
 import { StatusPill } from '../ui/StatusPill';
 import { gutter, iconSize, iconStroke, radius, space, theme } from '../../theme';
 import { useMotion } from '../../lib/useMotion';
-import { TRIP_STAGE_ORDER, TRIP_STATUS_LABELS, stageIndex, type TripStatus } from '../../lib/tripStatus';
+import { TRIP_STATUS_LABELS, type TripStatus } from '../../lib/tripStatus';
 import { arrivingLabel, tripProgress } from '../../lib/tripProgress';
 import { servicePolicy } from '../../config/servicePolicy';
-import type { TripDriverInfo, TripVehicleInfo } from '../../types/api';
+import {
+  RIDE_STAGES,
+  RIDE_STAGE_LABELS,
+  customerHeadline,
+  rideStageIndex,
+  stageFor,
+  waitingSentence,
+  waitingWindow,
+  type RideStage,
+} from '../../lib/rideStage';
+import type { ServiceType, TripDriverInfo, TripVehicleInfo } from '../../types/api';
 
 /**
  * The sheet that floats over the map.
@@ -28,6 +38,28 @@ import type { TripDriverInfo, TripVehicleInfo } from '../../types/api';
  * `servicePolicy.dispatchPhone` is set — a support number the business has not
  * published is not one this app invents.
  */
+
+/**
+ * Stages where the ETA must NOT be the headline.
+ *
+ * Found by the lifecycle walk, not by reading the code: once the passenger was
+ * on board the screen still said "Arriving in 6 min". Two things are wrong with
+ * that. It is stale — the car has arrived, so an arrival countdown is answering
+ * a question nobody is asking any more. And it is *undefined*: the socket
+ * carries one `etaMinutes` with no statement of which leg it measures
+ * (`BACKEND_FOLLOWUPS.md` G-5, "ETA is whatever the driver app last said"), so
+ * after pickup there is no basis for claiming it means the destination.
+ *
+ * So from arrival onwards the stage owns the headline, and no number is shown
+ * that the app cannot justify. `confirmed`, `chauffeur_assigned` and
+ * `chauffeur_en_route` keep the ETA, where it means the one thing it reliably
+ * means: when the car reaches the customer.
+ */
+const STAGE_OWNS_HEADLINE = new Set<RideStage>([
+  'arrived_at_pickup',
+  'passenger_picked_up',
+  'trip_in_progress',
+]);
 
 export interface TrackingSheetProps {
   status: TripStatus;
@@ -48,6 +80,16 @@ export interface TrackingSheetProps {
    */
   detailUnavailable?: boolean;
   onRetryDetail?: () => void;
+  /**
+   * When the chauffeur marked ARRIVED AT PICKUP, or null.
+   *
+   * Not a field on `Trip` — the backend has no such column (C-4). Supplied by
+   * the demo layer's overlay and read through `arrivedAtFrom()`. Against a real
+   * server it is always null and this sheet behaves exactly as it did before.
+   */
+  arrivedAt?: string | null;
+  /** Decides the complimentary waiting window: 30 minutes, or 60 for airport. */
+  serviceType?: ServiceType | null;
 }
 
 export function TrackingSheet({
@@ -62,10 +104,28 @@ export function TrackingSheet({
   live,
   detailUnavailable,
   onRetryDetail,
+  arrivedAt = null,
+  serviceType = null,
 }: TrackingSheetProps) {
   const progress = tripProgress(etaMinutes, totalMinutes);
   const arriving = arrivingLabel(etaMinutes);
   const terminal = status === 'completed' || status === 'cancelled';
+  const stage = stageFor(status, arrivedAt);
+
+  /*
+   * The countdown ticks once a second while the car is outside, and not
+   * otherwise — an interval that runs on every screen for the whole trip is a
+   * battery cost for a number nobody is looking at.
+   */
+  const [now, setNow] = useState(() => new Date());
+  const counting = stage === 'arrived_at_pickup' && arrivedAt !== null;
+  useEffect(() => {
+    if (!counting) return;
+    const t = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(t);
+  }, [counting]);
+
+  const waiting = counting && arrivedAt ? waitingWindow(arrivedAt, serviceType, now) : null;
 
   return (
     <View style={styles.sheet}>
@@ -86,11 +146,48 @@ export function TrackingSheet({
           is not. Never both competing, and never an empty slot where a number
           should be.
         */}
+        {/*
+          ARRIVAL OUTRANKS THE ETA.
+
+          Once the car is at the kerb, "arriving in 4 min" is not merely stale,
+          it is wrong — and it is wrong in the direction that keeps a customer
+          sitting inside. So the arrived headline replaces the ETA rather than
+          sitting beneath it.
+        */}
         <AppText variant="title" style={styles.headline} accessibilityLiveRegion="polite">
-          {terminal ? TRIP_STATUS_LABELS[status] : (arriving ?? TRIP_STATUS_LABELS[status])}
+          {stage && STAGE_OWNS_HEADLINE.has(stage)
+            ? customerHeadline(stage)
+            : terminal
+              ? TRIP_STATUS_LABELS[status]
+              : (arriving ?? TRIP_STATUS_LABELS[status])}
         </AppText>
 
-        {progress !== null && !terminal ? <ProgressBar value={progress} /> : null}
+        {/*
+          THE COMPLIMENTARY WAITING WINDOW — a statement of policy, never a
+          charge.
+
+          It counts down from the moment the chauffeur marked arrival, using
+          `servicePolicy`'s confirmed figures. It shows NO money: no fee, no
+          rate, no running total. The fare was fixed at booking and nothing on
+          the client prices anything — a ticking charge here would be the
+          `From $65.00` defect wearing a clock.
+
+          What happens after the window ends is a business question nobody has
+          answered (PLATFORM_RECONCILIATION.md Q6), so the elapsed copy says the
+          chauffeur is still waiting and stops there.
+        */}
+        {waiting ? (
+          <View style={styles.waiting}>
+            <AppText variant="figure" accessibilityLiveRegion="polite">
+              {waiting.elapsed
+                ? 'Complimentary wait ended'
+                : `${waiting.minutesRemaining}:${String(waiting.secondsRemaining).padStart(2, '0')}`}
+            </AppText>
+            <AppText variant="caption">{waitingSentence(waiting)}</AppText>
+          </View>
+        ) : null}
+
+        {progress !== null && !terminal && stage !== 'arrived_at_pickup' ? <ProgressBar value={progress} /> : null}
 
         {/*
           Says WHICH part is missing, and offers the retry. Without this the
@@ -148,7 +245,7 @@ export function TrackingSheet({
           </View>
         ) : null}
 
-        <Timeline status={status} />
+        <Timeline status={status} arrivedAt={arrivedAt} />
 
         <View style={styles.route}>
           {pickupAddress ? <RouteLine label="Pickup" value={pickupAddress} /> : null}
@@ -225,11 +322,11 @@ function ProgressBar({ value }: { value: number }) {
  * the one thing announced — "Chauffeur Arriving" — without interrupting
  * whatever the user was reading.
  */
-function Timeline({ status }: { status: TripStatus }) {
+function Timeline({ status, arrivedAt }: { status: TripStatus; arrivedAt: string | null }) {
   const motion = useMotion();
-  const reached = stageIndex(status);
+  const current = stageFor(status, arrivedAt);
 
-  if (status === 'cancelled') {
+  if (status === 'cancelled' || current === null) {
     return (
       <AppText variant="caption" style={styles.cancelled}>
         This trip was cancelled.
@@ -237,10 +334,12 @@ function Timeline({ status }: { status: TripStatus }) {
     );
   }
 
+  const reached = rideStageIndex(current);
+
   return (
     <View style={styles.timeline}>
-      {TRIP_STAGE_ORDER.filter((s) => s !== 'pending').map((stage) => {
-        const index = stageIndex(stage);
+      {RIDE_STAGES.map((stage: RideStage) => {
+        const index = rideStageIndex(stage);
         const done = index < reached;
         const active = index === reached;
         return (
@@ -251,7 +350,7 @@ function Timeline({ status }: { status: TripStatus }) {
               color={done || active ? theme.content.primary : theme.content.tertiary}
               accessibilityLiveRegion={active ? 'polite' : 'none'}
             >
-              {TRIP_STATUS_LABELS[stage]}
+              {RIDE_STAGE_LABELS[stage]}
             </AppText>
           </View>
         );
@@ -345,6 +444,7 @@ const styles = StyleSheet.create({
     borderColor: theme.content.tertiary,
   },
   dotOn: { backgroundColor: theme.content.accent, borderColor: theme.content.accent },
+  waiting: { marginTop: space.smd, marginBottom: space.sm, gap: space.xs },
   cancelled: { marginTop: space.md },
   route: { marginTop: space.lg, gap: space.smd },
   routeLine: { gap: 2 },
