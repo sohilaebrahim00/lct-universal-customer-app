@@ -230,3 +230,84 @@ Nothing below is answerable from this repository. Each one blocks work.
 - **No quote-only change.** The two app classes with no panel counterpart —
   Mercedes Sprinter and Coach — are already quote-only, so the treatment 9B
   called for turned out to require no code at all. Computed, not assumed.
+
+---
+
+## 7. The site re-read from primary source — 2026-08-23
+
+Everything above about the marketing catalogue rested on a **transcription** in
+`BACKEND_FOLLOWUPS.md` §6, read 2026-08-22 from a source file not in this
+repository. The site was re-read directly today, from `lctuniversal.com/fleet`,
+by reading the rendered DOM. **It does not match the transcription, and the
+difference matters.**
+
+### What the site actually publishes today
+
+| class | passengers | published |
+|---|---|---|
+| Executive Sedan | 3 | From $95 |
+| First Class Sedan | 2 | $150/hour |
+| **Executive SUV** | 6 | **From $110** |
+| **Luxury SUV** | 6 | **From $130** |
+| Executive Sprinter | 14 | Quote only |
+| Executive Mini Coach | up to 39 | Quote only |
+| Executive Coach | up to 56 | Quote only |
+
+Corroborated by the fleet-inquiry form's own dropdown, which lists the same
+seven names in the same order.
+
+### Three corrections to this document
+
+1. **The site publishes SEVEN classes.** The original brief said seven and was
+   right. My "correction to the brief" above was about `publishedFleet.ts`
+   holding four typed entries plus two documented site-only classes — that part
+   stands, and it was never a statement about the site. It should not have been
+   read as one, and the seven is now confirmed from primary source.
+2. **The site's class is called "Executive SUV", not "SUV".** §1 above says the
+   site's two SUV classes are `SUV` and `Luxury SUV`, and concludes that
+   "Executive SUV" is only the backend's name from `seed.sql`. **That is wrong
+   against the live site.** Either the transcription was inexact or the site was
+   renamed between 2026-08-22 and today. Today's site is the authority.
+3. **`Motor Coach` is now `Executive Coach`, and `Mini Coach` is `Executive Mini
+   Coach`.** Capacities are unchanged at 39 and 56.
+
+### What this settles about the SUV
+
+The app's `suv` class carries **From $110**, which is exactly the site's
+**Executive SUV**. The demo row's `name` is already the literal string
+`'Executive SUV'` — **the backend's name and the site's name agree**.
+
+So the question is no longer "which of three figures is right". It is narrower
+and one-sided:
+
+> **`VEHICLE_DISPLAY_NAME.suv = 'Luxury SUV'` overrides a correct name with a
+> different published class's name.** On `/fleet` and `/corporate-info` the app
+> shows *Luxury SUV — From $110* for a class the site publishes as *Executive
+> SUV — From $110*, while the site's actual *Luxury SUV* is a separate class at
+> *From $130*.
+
+The screens reading `vehicle.name` — home, the booking picker, `PricingPreview`,
+`TrackingSheet` — have been right all along. The three screens reading
+`VEHICLE_DISPLAY_NAME` are the ones showing the wrong name.
+
+**Still not changed here.** A class name is a customer-facing value and no slice
+in this phase changes one. But the decision required of the business has shrunk
+from a pricing judgement to a confirmation, and the fix is one line.
+
+### A second collapse, previously undocumented
+
+The site has **two** coach classes — Executive Mini Coach (39) and Executive
+Coach (56). The app has **one** `coach` type, and `publishedFleet.ts` documents
+neither the pair nor the collapse. Both are quote-only, so no price is
+misstated; the capacity is. `BACKEND_FOLLOWUPS.md` §6.4 already recorded the
+symptom — "the site's Motor Coach carries 56 where the backend's Coach carries
+40" — without recording that two site classes map onto one app class.
+
+### Method, so it can be repeated
+
+Read with a headless browser against `https://lctuniversal.com/fleet`, taking
+each card's text from the DOM rather than the visible carousel slide, since only
+one card is on screen at a time. The homepage carousel independently showed
+`SUV · 6 PASSENGERS · FROM $110`, which is the same figure under a shortened
+label — worth noting as a fourth naming of the same class, on the client's own
+marketing site.

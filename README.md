@@ -2,6 +2,31 @@
 
 The customer-facing mobile app for LCT Universal Executive Transports — React Native (Expo, TypeScript), talking to the [lct-universal-backend](../lct-universal-backend) API. Real authentication, a map-driven 6-screen booking flow, live Uber-style trip tracking, Stripe payments, corporate accounts, and an AI concierge, in the same dark + champagne-gold design language as the LCT Universal website.
 
+## Deployment
+
+| | |
+|---|---|
+| **Live URL** | **https://lctapp.netlify.app/** |
+| **Host** | Netlify |
+| **Production branch** | `main` |
+| **Build command** | `npm run export:web` — see `netlify.toml` |
+| **Publish directory** | `dist` |
+| **Environment variables** | **Netlify dashboard → Site configuration → Environment variables.** They are not in this repo: `.env` is gitignored and never committed |
+
+Two things that will cost an afternoon if they are not known:
+
+- **`expo export` emits a single `index.html`.** Every deep path needs an SPA
+  fallback or it 404s. `netlify.toml` has `/* → /index.html 200`; a local static
+  server does not, so serve `dist` with `serve dist -l 5055 --single`.
+- **Metro's transform cache does not key on `EXPO_PUBLIC_*` values.** Always
+  redeploy with **Clear cache and deploy site**, and note that
+  `scripts/verify-build-mode.mjs` runs inside the build and fails it if the
+  emitted bundle disagrees with the environment. If the deployed `/fleet` is
+  empty, check `EXPO_PUBLIC_DEMO_MODE` before anything else.
+
+**Start here:** [`HANDOFF.md`](HANDOFF.md) — what is verified, what is not, and
+what is blocked on whom.
+
 ## Stack
 
 **Expo SDK 57** (React Native 0.86.2, React 19.2.3) with **Expo Router**, **TypeScript** (strict), **Supabase Auth** (encrypted session storage — see below), **Zustand**, **Stripe** (`@stripe/stripe-react-native`), **Google Maps / Places / Directions** (`react-native-maps` + a direct REST integration, no third-party autocomplete wrapper), **react-native-reanimated** for motion, **expo-notifications** for push, **expo-image-picker** + **Supabase Storage** for profile photos, and Jest (`ts-jest`) for pure-logic unit tests.

@@ -62,6 +62,38 @@ not:**
 
 > **The app describes the Luxury SUV and charges the SUV.**
 >
+> **The site was re-read from primary source on 2026-08-23, and the fact is now
+> established.** `lctuniversal.com/fleet` publishes **seven** classes.
+> The two that matter here:
+>
+> | site class | passengers | published |
+> |---|---|---|
+> | **Executive SUV** | 6 | **From $110** |
+> | **Luxury SUV** | 6 | **From $130** |
+>
+> This **overturns** the earlier reading, which came from a transcription in
+> `BACKEND_FOLLOWUPS.md` §6 and called the first class "SUV". Today's site calls
+> it **Executive SUV** — which is exactly what the app's own data already calls
+> it. See `PLATFORM_RECONCILIATION.md` §7.
+>
+> **So this is no longer a pricing judgement. It is a one-line naming bug.**
+> The app's `suv` carries From $110, which is the site's Executive SUV, and the
+> demo row's `name` is already the literal `'Executive SUV'`. The screens reading
+> `vehicle.name` — home, booking picker, `PricingPreview`, `TrackingSheet` — have
+> been right all along.
+>
+> **`VEHICLE_DISPLAY_NAME.suv = 'Luxury SUV'` is the defect.** It overrides a
+> correct name with a *different published class's* name, so `/fleet` and
+> `/corporate-info` advertise *Luxury SUV — From $110* for a product the business
+> publishes at $130.
+>
+> **What the business must do:** confirm that the app's `suv` is meant to be the
+> site's Executive SUV. If yes, the fix is changing one string to
+> `'Executive SUV'` — not a price change. If the app is instead meant to sell the
+> Luxury SUV, the published figure must become $130 and a new class is needed for
+> the Executive SUV. Unchanged here only because a class name is a customer-facing
+> value and no slice in this phase changes one.
+>
 > The site publishes two separate classes at identical capacity (6 pax, 6 bags):
 > **SUV — From $110** and **Luxury SUV — From $130**. The app has one entry. Its
 > price map is correct (`suv → From $110`, the site's SUV), but
@@ -131,10 +163,28 @@ collect. §8 is the highest risk, because it is wrong silently.
 
 ## Where things are
 
+### Deployment
+
+Written down because it was living in a chat log, which is one more single point
+of failure than it looks like.
+
 | | |
 |---|---|
-| Branch | `feat/ui-upgrade` — **`main` still holds the pre-redesign app** |
-| Netlify production branch | points at `feat/ui-upgrade` |
+| **Live URL** | **https://lctapp.netlify.app/** |
+| **Host** | Netlify |
+| **Production branch** | `main` — repointed from `feat/ui-upgrade` on 2026-08-23 |
+| **Build command** | `npm run export:web` (from `netlify.toml`) |
+| **Publish directory** | `dist` |
+| **SPA fallback** | `netlify.toml` — `/* → /index.html 200`. Required: `expo export` emits a single `index.html`, so without it every deep path 404s |
+| **Environment variables** | **Netlify dashboard → Site configuration → Environment variables.** NOT in the repo — `.env` is gitignored and never committed |
+| **The one that decides what ships** | `EXPO_PUBLIC_DEMO_MODE`. `scripts/verify-build-mode.mjs` runs inside the build and **fails it** if the emitted bundle disagrees with the environment. If `/fleet` is empty in production, check this before anything else |
+| **Redeploy** | Deploys → Trigger deploy → **Clear cache and deploy site**. Clear the cache: Metro's transform cache does not key on `EXPO_PUBLIC_*` values |
+
+### Repository
+
+| | |
+|---|---|
+| Branches | `main` and `feat/ui-upgrade` are identical at `43facfc`. `feat/ui-upgrade` retained deliberately; delete only after a verified production deploy |
 | What changed and why | `DESIGN_CHANGELOG.md` |
 | Two price sources, side by side | `PLATFORM_RECONCILIATION.md` |
 | Backend gaps, in detail | `BACKEND_FOLLOWUPS.md` |

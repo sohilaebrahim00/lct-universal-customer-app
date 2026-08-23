@@ -1005,3 +1005,53 @@ doing so for customers today. **Changing a class name or a published price is a
 customer-facing value change**, which no slice in this phase makes. It is at the
 top of the blocked-on-the-business list in `HANDOFF.md`, above the nine platform
 questions, because unlike them it has a paying customer attached to it now.
+
+---
+
+## Postscript: the site, re-read from primary source
+
+The SUV finding above rested on a **transcription** — `BACKEND_FOLLOWUPS.md` §6,
+read 2026-08-22 from a file not in this repository. Stating that caveat was
+right; acting on it was better. `lctuniversal.com/fleet` was re-read directly on
+2026-08-23, and **the transcription was wrong on the one word the whole finding
+turned on.**
+
+The site publishes **seven** classes, and calls the $110 one **Executive SUV** —
+not "SUV". Full table and method in `PLATFORM_RECONCILIATION.md` §7.
+
+**This overturns the conclusion in the section above.** I wrote that "Executive
+SUV" was only the backend's name from `seed.sql` and never appeared beside $110
+on the site. It does. The app's demo row already carries the literal string
+`'Executive SUV'`, which means **the backend name and the site name agree**, and
+have all along.
+
+So the defect narrows to one line: **`VEHICLE_DISPLAY_NAME.suv = 'Luxury SUV'`
+overrides a correct name with a different published class's name.** The screens
+reading `vehicle.name` were never wrong. The three reading `VEHICLE_DISPLAY_NAME`
+are, and they advertise a $130 product's name at a $110 price.
+
+It also surfaced a second, previously undocumented collapse: the site has
+**two** coach classes — Executive Mini Coach (39) and Executive Coach (56) — and
+the app has one `coach`.
+
+### The pattern this closes on
+
+This is the fourth time in this project that checking the artefact beat
+reasoning about it, and the second time it overturned something *I* had just
+concluded and reported with confidence:
+
+| claim | what settled it |
+|---|---|
+| "the gate is green" | loading the route and getting a 404 |
+| "the lint rule protects the fenced file" | a probe file that linted clean |
+| "the site's class is called SUV" | opening the page |
+| "no inline style objects remain" | counting them |
+
+**A caveat is not a substitute for the check it describes.** Writing "this rests
+on a transcription nobody here can re-read" was honest and it was still one
+command short of the truth. Where the source is reachable, read it.
+
+The corrected fact is in `PLATFORM_RECONCILIATION.md` §7 and at the top of the
+blocked-on-the-business list in `HANDOFF.md`. The earlier section is left
+standing rather than edited, because the sequence — transcription, conclusion,
+caveat, re-read, correction — is the record.
