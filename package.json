@@ -73,7 +73,8 @@
     "verify:build-mode": "node scripts/verify-build-mode.mjs",
     "verify:maps-keys": "node scripts/verify-maps-keys.mjs",
     "verify:a11y": "node scripts/a11y-gate.mjs",
-    "verify:lifecycle": "node scripts/lifecycle-walk.mjs"
+    "verify:lifecycle": "node scripts/lifecycle-walk.mjs",
+    "verify:admin": "node scripts/admin-walk.mjs"
   },
   "jest": {
     "preset": "ts-jest",

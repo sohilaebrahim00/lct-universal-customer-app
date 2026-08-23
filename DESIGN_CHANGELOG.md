@@ -1260,3 +1260,73 @@ inventing a fact about the ride out of a fact about the business.
 The countdown itself needed no zone at all — it is duration arithmetic, two
 instants subtracted, and there is a test asserting exactly that. The receipt
 renders device-local time and says so at the render site.
+
+---
+
+## The admin console — a preview, and what it is allowed to touch
+
+`app/_role/admin` — sixteen sections, behind the same demo fence as the other
+role previews. **The client already runs an operations panel at
+`lctuniversal.us/admin`. This is not it, does not connect to it, and is not a
+replacement for it**, and the disclosure line on every screen says so.
+
+### It writes exactly one thing
+
+**Chauffeur assignment**, through `assignChauffeur()` in Live Dispatch — the
+function the dispatcher preview has used since the role slice, which already
+moves the customer's tracking screen. Everything else **observes**: it reads the
+same `rideStage` machine the three role views read.
+
+That boundary is deliberate. A console that can quietly rewrite pricing or fleet
+data is a console that can put an unconfirmed figure in front of a customer,
+which is the thing a lint rule and two test files exist to prevent.
+
+### Class Builder reads the fenced data and cannot keep an edit
+
+It reads `observedRateCards.ts` and nothing else. The containment rule permits
+it because `src/dev/` is the preview layer; the test fails the build if the same
+import appears under `app/`. Edits live in component state, are never persisted,
+never written to `src/config`, and are lost on reload — and the screen says all
+of that in words, because a console that silently discards an operator's edit is
+worse than one that cannot edit.
+
+**The fence was verified, not asserted.** A bundle built with
+`EXPO_PUBLIC_DEMO_MODE=false` contains **no `/_role/*` route** and **zero
+occurrences of the observed rate-card data**. Not merely unimported by a
+customer screen — absent from the shipped bytes.
+
+### The class-name conflict is displayed, not resolved
+
+Class Builder shows the panel's five classes beside what this app publishes, and
+states plainly that one class carries the $110 SUV price under the $130 Luxury
+SUV's name, and is called *Luxury SUV* on some screens and *Executive SUV* on
+others. **A console that shows the business its own inconsistency is doing its
+job.** Resolving it is a business decision with a paying customer attached, and
+it stays first in `HANDOFF.md`.
+
+### Nine panels with no data, and each says which missing thing keeps it empty
+
+Users & Roles, Ratings, Revenue, Promotions, Coverage, Messages, Push Broadcast,
+Support, Settings. Not "coming soon" — each names the table, endpoint or open
+question that would fill it. *"Would need a payments or invoices table. A booking
+records a fare; nothing aggregates one. A chart here would be a number nobody
+computed."*
+
+`scripts/admin-walk.mjs` reaches all sixteen sections and asserts that the
+data-less panels render **no currency figure**. Every invented thing this project
+has deleted — a chauffeur, testimonials, a rating, a plate — would have looked at
+home on a dashboard.
+
+### A guard pushed back on my own addition, and the addition yielded
+
+I wrote a "Surge zones" empty state into Live Dispatch — a panel nobody asked
+for, saying the feature exists upstream and that its pricing effect is
+unanswered. It **failed `tests/quoteIsNotScaled.test.ts`**, which forbids that
+vocabulary anywhere in `app/` or `src/` outside comments.
+
+The guard was right and the panel was wrong. That test exists so a price
+multiplier cannot arrive quietly, and the correct response to it firing is not a
+narrow exemption for a decorative empty state. The information already lives in
+`PLATFORM_RECONCILIATION.md` Q4 and `HANDOFF.md`. **A guard that pushes back on a
+cosmetic addition is doing exactly what it was built for**, and the reason is
+recorded at the site where the panel used to be.

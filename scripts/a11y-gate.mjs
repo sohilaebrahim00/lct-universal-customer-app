@@ -101,6 +101,9 @@ const ROUTES = [
   // route covered it: /demo-trip is a different screen. Loads standalone from
   // the demo dataset, so it needs no navigation to reach.
   '/trips/demo-booking-upcoming',
+  // The admin console. Behind the demo fence, and the gate builds in demo mode,
+  // so it is reachable here and must meet the same bars as every other screen.
+  '/_role/admin',
 ];
 
 const SCALES = [1.0, 1.3, 1.6, 2.0];
