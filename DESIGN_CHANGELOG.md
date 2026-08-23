@@ -741,3 +741,140 @@ project ran in a browser against a built export, on a Windows workstation.
 
 Everything behind authentication remains unverified for a separate reason —
 see **Still unverified** above and `RUNBOOK_AUTH_VERIFICATION.md`.
+
+---
+
+## Closing entries
+
+### A test being expressible is evidence about the architecture
+
+The surge assertion in the previous slice was writable at all only because the
+quote is a single named object created in exactly one place — `draft.allInFare`,
+the structural fix for audit P0-3. Had the fare still been recomputed per screen,
+"the quote" would have been a different value in every file and there would have
+been nothing to assert *about*. **A test being expressible is evidence about the
+architecture, not just about the test.** The corollary is worth keeping: when an
+obvious invariant turns out to be unstateable, the finding is usually the shape
+of the code, not the difficulty of testing.
+
+### The gate that measured 404 pages
+
+The touch-target and reflow gate reported "0 targets under 44×44, no reflow
+problems" across sixteen routes, twice, in two separate slices. **Fifteen of the
+sixteen routes were the 404 page.**
+
+The route list used expo-router GROUP paths — `/(app)/fleet` and so on. Route
+groups organise files; they are stripped from the URL. Every assertion the gate
+made was true and none of them were about the app: a 404 page has text, so the
+blank check passes; it has one link, so the target check passes; it fits any
+viewport, so the reflow check passes.
+
+Two mechanisms now prevent the repeat. `assertRendered()` requires every route to
+prove it is the app before it is measured, and the run fails if any route 404s or
+if coverage drops below the full list. And the serving trap is written into
+`HANDOFF.md`: `expo export` emits a single `index.html`, so `dist/` must be
+served with SPA fallback or every deep path 404s.
+
+**This is the same class as the lint rule that parsed and did nothing.** A check
+that cannot tell it is pointed at nothing is not a check. Both were found by
+probing rather than by reading.
+
+### What the working gate immediately found
+
+`/onboarding` — the first screen a new customer sees — **scrolled sideways on
+web**. `ride.jpg` is 1400×2535, and the document's `scrollWidth` was exactly
+1400 against a 390 viewport. React Native Web keeps an `<Image>`'s intrinsic
+width, and every ancestor computed `overflow-x: visible`, so the photograph leaked
+past its absolutely positioned box. `body` clips, so there was no scrollbar to
+notice — but `window.scrollTo(500, 0)` moved, which on a phone is the first
+screen sliding under a thumb.
+
+Fixed with `overflow: 'hidden'` on the root view. Native was never affected.
+
+**Why only that screen:** every other full-bleed photograph goes through
+`AppImage`, whose frame already sets `overflow: 'hidden'`. `welcome.tsx` uses the
+identical `absoluteFill` pattern with a similar asset and never leaked. This was
+the last raw `<Image>` used as a background. That is an argument for the wrapper
+existing, not for hunting the next instance by hand.
+
+### The Luxury SUV, resolved as far as it can be without the client
+
+The hypothesis was that the app's `suv` might be the panel's **Premium SUV**
+wearing the **Luxury SUV**'s name — which would mean a customer booking a Luxury
+SUV is dispatched a Suburban. **Checked against the attributes rather than the
+label, and it does not hold.** The app's `suv` reads *Cadillac Escalade or
+equivalent*, 6 passengers, 6 bags, `luxury-suv.jpg`. The panel's Luxury SUV is
+*Cadillac Escalade or equivalent*, 6 and 6; its Premium SUV is *Suburban or
+equivalent*. The example-vehicle phrasing matches verbatim.
+
+So the label is right and **the price is what is out of step**: a class whose
+attributes are the Luxury SUV is published at *From $110*, against a site figure
+of $130 and a panel minimum of $120. The app under-publishes for the class it
+actually describes.
+
+**A separate defect found on the way, and not fixed here.** The app calls that
+one class by two different names: `/fleet` and `/corporate-info` render *Luxury
+SUV*; the home screen's recent trips, the booking picker, `PricingPreview` and
+`TrackingSheet` render *Executive SUV*. Both are customer-facing. Observed in the
+built export, not inferred. Not changed, because a class name is a
+customer-facing value and this slice changes none — pinned in a test instead, so
+the fix has to update it deliberately.
+
+### The duplicate-name guard is green by enumeration, and why
+
+`tests/publishedNameConflicts.test.ts` fails when two entries share a display
+name and disagree on a figure. It passes today only because the one known
+conflict is **enumerated** in `KNOWN_CONFLICTS`.
+
+The alternative was to let it stay red as a standing demand for a decision.
+Rejected: the standing rule here is green gates at all times, and a suite that is
+red for a reason nobody in this repo can fix — it needs the business to say which
+figure is right — teaches everyone to read red as normal, and the next real
+failure hides behind it. A red gate nobody can clear also gets skipped within a
+week, leaving the conflict invisible AND the test gone.
+
+Enumerating it keeps the gate usable and loses nothing: a **new** conflict turns
+it red, and **resolving** the known one turns it red as well, so the exemption has
+to be deleted on purpose. Verified in both directions.
+
+### `scripts/` is linted now, and the exclusion was hiding a broken file
+
+`npm run lint` was `eslint app src`. `scripts/` — which holds every verification
+harness this project's claims rest on — was excluded because of an unresolved
+`playwright` import.
+
+The exclusion was not protecting a false positive. **`scripts/shoot.mjs` could
+not run at all**: `import { chromium } from 'playwright'` against a package that
+is deliberately not a dependency, failing with `Cannot find package 'playwright'`.
+The linter had been reporting a true defect, and the directory was excluded to
+silence it.
+
+Fixed at the cause: `shoot.mjs` now resolves Playwright from the npx cache the
+way its five siblings always had. Two stale warnings cleared with it — a dead
+`clickAndType()` helper left behind when the walk stopped driving the app by
+selector, and a misplaced import. **No resolver exemption was needed**, and the
+lint target is now `app src scripts`.
+
+### The 181 inline styles: decision restated
+
+Not swept, not outstanding. Reasoning and the condition that reverses it are
+recorded above. If one of those host components later becomes memoised, its
+styles are hoisted as part of that change.
+
+---
+
+## The end of the redesign
+
+What is finished is finished, and what is not is written down with an owner. The
+three documents that carry it forward:
+
+- **`HANDOFF.md`** — four lists: verified, unverified, blocked on the business,
+  blocked on the backend.
+- **`DEVICE_VERIFICATION.md`** — every unverifiable claim turned into a
+  procedure with an observable pass criterion, including the one item that is
+  honestly a judgement call and names who makes it.
+- **`PLATFORM_RECONCILIATION.md`** — two catalogues, their differences, and the
+  nine questions.
+
+What remains needs a device, a client and a backend. None of those are ours to
+invent, and the project stops here rather than pretending otherwise.

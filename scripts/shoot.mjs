@@ -11,8 +11,39 @@
  * Usage: node scripts/shoot.mjs <outDir> <name>=<path> [<name>=<path> ...]
  */
 
-import { chromium } from 'playwright';
+import { createRequire } from 'node:module';
+import { existsSync, readdirSync } from 'node:fs';
+import { join } from 'node:path';
 import { mkdir } from 'node:fs/promises';
+
+/**
+ * Playwright comes from the npx cache, not from `node_modules`.
+ *
+ * It is deliberately NOT a project dependency — it is a ~300 MB browser
+ * harness used only by these scripts, and adding it to `package.json` would put
+ * it in every install of an app that never runs it.
+ *
+ * ── This file used to say `import { chromium } from 'playwright'` ───────────
+ * Which meant it could not run AT ALL: `Cannot find package 'playwright'`. The
+ * lint rule reporting it was telling the truth, and `scripts/` was excluded
+ * from the lint target *because of that error* — so the exclusion existed to
+ * silence a real defect, and then hid it for the rest of the project. The five
+ * sibling scripts had always resolved it this way; only this one had not.
+ *
+ * `PLAYWRIGHT_PATH` overrides, for a machine where the cache is elsewhere.
+ */
+function playwrightPath() {
+  if (process.env.PLAYWRIGHT_PATH) return process.env.PLAYWRIGHT_PATH;
+  const cache = join(process.env.LOCALAPPDATA ?? '', 'npm-cache', '_npx');
+  if (!existsSync(cache)) throw new Error('playwright not found; set PLAYWRIGHT_PATH');
+  for (const dir of readdirSync(cache)) {
+    const candidate = join(cache, dir, 'node_modules', 'playwright');
+    if (existsSync(candidate)) return candidate;
+  }
+  throw new Error('playwright not found in the npx cache; set PLAYWRIGHT_PATH');
+}
+
+const { chromium } = createRequire(import.meta.url)(playwrightPath());
 
 const BASE = process.env.SHOOT_BASE ?? 'http://localhost:8081';
 const [outDir, ...targets] = process.argv.slice(2);

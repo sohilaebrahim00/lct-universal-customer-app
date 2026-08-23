@@ -9,6 +9,7 @@
 import { createRequire } from 'node:module';
 import { existsSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
+import { mkdir } from 'node:fs/promises';
 
 /*
  * Playwright is NOT a dependency of this project and is not being made one —
@@ -27,8 +28,9 @@ function resolvePlaywright() {
   throw new Error('playwright not found in the npx cache; set PLAYWRIGHT_PATH');
 }
 
+// Below every static import, because ESM hoists imports regardless: a
+// `require()` written above one only LOOKS ordered.
 const { chromium } = createRequire(import.meta.url)(resolvePlaywright());
-import { mkdir } from 'node:fs/promises';
 
 const BASE = 'http://localhost:8081';
 const OUT = 'design/progress';

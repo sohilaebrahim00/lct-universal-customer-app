@@ -117,7 +117,30 @@ export default function OnboardingScreen() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: theme.background.primary },
+  /*
+   * `overflow: 'hidden'` is load-bearing on web, not tidiness.
+   *
+   * `ride.jpg` is 1400×2535. React Native Web renders `<Image>` as an element
+   * that keeps the source's intrinsic width, and every ancestor here computes
+   * `overflow-x: visible`, so the photograph leaked past its absolutely
+   * positioned box and set the DOCUMENT's scrollWidth to 1400 against a 390
+   * viewport. `body` clips, so there was no scrollbar to notice — but
+   * `window.scrollTo(500, 0)` moved, which on a phone is the first screen a new
+   * customer sees sliding sideways under their thumb.
+   *
+   * Native is unaffected: `absoluteFill` genuinely constrains there. This is a
+   * web-only leak, which is why nothing caught it until the reflow gate was
+   * pointed at the right URL.
+   *
+   * ── Why only this screen ────────────────────────────────────────────────
+   * Every other full-bleed photograph goes through `AppImage`, whose frame
+   * already sets `overflow: 'hidden'` — so `welcome.tsx`, on the same
+   * `absoluteFill` pattern with the same kind of asset, never leaked. This is
+   * the last raw `<Image>` used as a background, and it was therefore the only
+   * one exposed. That is an argument for the wrapper existing, not for hunting
+   * the next instance by hand.
+   */
+  screen: { flex: 1, backgroundColor: theme.background.primary, overflow: 'hidden' },
   /** Stands in for `saturate(.75)`; RN has no filter primitive. */
   desaturate: { position: 'absolute', top: 0, bottom: 0, left: 0, right: 0, backgroundColor: 'rgba(28,26,24,0.22)' },
   content: { flex: 1, paddingHorizontal: 26, justifyContent: 'space-between' },

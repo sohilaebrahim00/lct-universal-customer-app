@@ -32,13 +32,16 @@ async function clickText(label){
     await page.mouse.click(box.x+box.width/2,box.y+box.height/2); await page.waitForTimeout(1400); return true;}
   console.log(`    !! could not click "${label}"`); return false;
 }
-/** Click the field, then type — exactly what a person does. */
-async function clickAndType(selector,text){
-  const el=page.locator(selector).first();
-  if(!(await el.count())){console.log(`    !! no ${selector}`);return false;}
-  await el.click(); await page.waitForTimeout(300);
-  await page.keyboard.type(text,{delay:60}); await page.waitForTimeout(700); return true;
-}
+/*
+ * `clickAndType(selector, text)` was removed rather than kept unused.
+ *
+ * It targeted a field by CSS selector. `typeInVisibleTextInput()` below is what
+ * this walk actually uses, and it is the better tool for the job: it finds
+ * whichever text input is visible, which is what a person does — they do not
+ * know the selector. The dead one was left behind when the walk was rewritten
+ * to stop driving the app by selector, and it survived only because `scripts/`
+ * was outside the lint target.
+ */
 async function typeInVisibleTextInput(text){
   const inputs=page.locator('input:not([type=date]):not([type=time])'); const n=await inputs.count();
   for(let i=n-1;i>=0;i--){const el=inputs.nth(i);
