@@ -267,7 +267,7 @@ available.
 | `expo-image` everywhere, with a placeholder and a reserved box | one `AppImage`; 10 call sites converted; `aspectRatio` or an explicit height required |
 | `FlatList` rows memoised | `TripCard` and `Bubble`, each with a stable `useCallback` handler |
 | `keyExtractor` on every list | both lists already had one |
-| Styles hoisted | **NOT DONE — see the correction below** |
+| Styles hoisted | **decided against — reasoning and reversing condition below** |
 | Physical → logical properties | 33 occurrences across 15 files |
 | No physical properties can return | ESLint `no-restricted-syntax`, app-wide |
 | `textAlign` stated explicitly | `auto` on every `AppText` |
@@ -295,12 +295,26 @@ What the count does and does not mean:
 - They are static one-liners on plain host `View`/`AppText`. Each allocates
   one small object per render, which is real and is also very small.
 
-**Judgment call, stated so it can be overruled:** I did not sweep them. Hoisting
-181 single-property styles would add 100+ one-line `StyleSheet` entries for no
-measurable gain, in a codebase whose rule is *fix, do not redesign* — and the
-last 30-file mechanical sweep in this project is what produced the
-`skeletonForeground` bug. Say the word and I will do it; I am not going to do
-it quietly and call it performance work.
+#### DECISION: the 181 inline styles are not swept. Reviewed and upheld.
+
+Not outstanding work. A decision, with its reasoning, so that nobody does it
+mechanically at the worst possible time:
+
+1. **None of them defeat a `React.memo`.** That is the only mechanism by which
+   an inline style object causes a re-render, and it does not apply here.
+2. **The cost is one small allocation per render on a plain host component**,
+   with no reconciliation consequence. React Native diffs styles by value.
+3. **Hoisting makes the code worse.** A hundred-odd single-property
+   `StyleSheet` entries put every call site's spacing one indirection away from
+   the call site, to save nothing measurable.
+4. **The precedent is real.** The last thirty-file mechanical sweep in this repo
+   is what produced the `skeletonForeground` bug.
+
+**The condition that reverses it:** if one of these host components later
+becomes memoised, its styles get hoisted **at that moment, as part of that
+change** — because at that moment reason 1 stops being true and the inline
+object starts defeating the memo it was just given. Not as a sweep, and not as a
+backlog item; as part of the commit that introduces the `memo`.
 
 **The JS bundle went UP**, and that is the honest number: **5.28 MB → 5.32 MB**,
 about 40 KB, which is `expo-image`. The win is in the assets and in the work
@@ -598,3 +612,132 @@ The route is now written: **RUNBOOK_AUTH_VERIFICATION.md**. It lists the seven
 claims that need auth (A1–A7), the exact commands, and how to force the fare
 guard to fire so a guard that never fires is not mistaken for a verified one.
 Run on the owner's side; credentials never pass through this workspace.
+
+---
+
+## Two published price sources, and a shape adopted without values
+
+The client runs a live operations panel at `lctuniversal.us/admin`. Seen once,
+as a phone recording of a laptop screen, sandbox mode, test admin account. It
+carries five vehicle classes with full metered rate cards — base, per mile, per
+minute, minimum fare, per hour, seats, bags, a configured ETA.
+
+That disagrees with `publishedFleet.ts`, which came from the marketing site at
+`lctuniversal.com` and which the business confirmed verbatim. **A different
+number of classes with different figures is a different product catalogue, not a
+rounding difference.**
+
+**Nobody can say which one wins yet, so nothing chose.** What was done instead is
+the one thing that is correct under either answer: **adopt the shape, not the
+values.**
+
+A rate card is a superset of a "from" price — a minimum fare yields a starting
+figure, and a starting figure yields nothing. So the app's internal price model
+is now the rate card (`src/config/rateCard.ts`, **shape only, no numbers in the
+file**), and a marketing figure is either derived from one or sourced separately
+and reconciled. What must never happen again is a third number invented in a
+third place, which is exactly how `From $65.00` came to be printed against a
+published $95.
+
+### Zero customer-facing values changed
+
+No price, no class, no label. No class added or deleted — a catalogue is a
+business decision. The full comparison is `PLATFORM_RECONCILIATION.md`.
+
+### The containment, and why it is not a comment
+
+`observedRateCards.ts` holds the panel's figures and states in its own header
+that they are unconfirmed. That is not sufficient, because this project has now
+shipped the same defect twice with a comment already in place — `From $65.00` on
+the fleet browser, and a live-priced Sprinter against a published "Request
+Quote". Both were guarded; both guards were gated on `isDemoMode`, which is inert
+in exactly the build that matters.
+
+So the third instance is made structurally impossible:
+
+| mechanism | covers |
+|---|---|
+| ESLint `no-restricted-imports` | static imports, everywhere except `src/dev/` |
+| `tests/observedRateCardContainment.test.ts` | lazy `require()`, dynamic `import()`, re-exports, and **the continued existence of the lint rule itself** |
+
+Both were proved by probe: a screen importing the fenced file fails lint **and**
+the test; reaching it through `require()` passes lint and **fails the test**,
+which is the gap the test exists for.
+
+**A bug I introduced and caught while writing that rule.** The first version was
+its own config block above the shim block. It parsed, it read correctly, and it
+did nothing — ESLint flat config **replaces** a rule when a later block sets the
+same rule name, so the shim block's `no-restricted-imports` silently wiped the
+patterns. A probe file importing the fenced data linted clean. That is the same
+failure mode as the `isDemoMode` guards the rule was written to replace: present,
+readable, inert. The patterns are now named once and spread into every block that
+sets the rule, with the trap written down next to them.
+
+### The catalogue difference, computed rather than recalled
+
+Both app classes with no counterpart in the panel — **Mercedes Sprinter and
+Coach** — are **already quote-only**. The 9B treatment therefore required no code
+change: the existing rule already covers exactly the right set. Worth computing
+rather than assuming, and worth reporting as "no change needed" rather than
+quietly doing nothing.
+
+Computing it also corrected the brief: `publishedFleet.ts` holds **four**
+`VehicleType` entries plus two documented site-only classes, not seven classes.
+
+And the two catalogues **disagree in opposite directions** on the two classes
+they share — published $95 against a panel minimum of $85, and published $110
+against a minimum of $120. Whatever the relationship between these systems is, it
+is not a single markup rule, which is why nothing derives one figure from the
+other. Pinned in `tests/catalogueIntegrity.test.ts`.
+
+### Surge — one assertion, and what it does not cover
+
+The panel has a surge-zones feature; the business says there is no surge. The
+panel's wording reads as dispatch visibility rather than a multiplier — **that
+reading is a guess and is filed as a question**, not recorded here as a finding.
+
+What is asserted is the rule the app already holds: the quote is computed once,
+fixed at booking, and never adjusted afterwards. `tests/quoteIsNotScaled.test.ts`
+walks the TypeScript AST of every module between quote and confirmation and fails
+on any `*`, `/`, `*=` or `/=` applied to a money-bearing expression, and on any
+surge vocabulary in code anywhere under `app/` or `src/`.
+
+Three honest limits. The one permitted multiplication is by the literal `100`
+(dollars to cents in `fareDiffers()`), allowed by the literal rather than by
+filename, because a file-level exemption would also permit `total * 100 * 1.5`.
+The assertion is **client-side only** — the customer is charged what the server
+decides. And it was written on the AST rather than by grep because the first
+attempt returned import statements: JSDoc is full of `*` and every import path is
+full of `/`.
+
+**Why it was writable at all is the more useful finding.** The quote is a single
+named object created in exactly one place — `draft.allInFare`, the structural fix
+for audit P0-3. Had the fare still been recomputed per screen, "the quote" would
+be a different value in every file and there would be nothing to assert about. A
+correctness fix from four slices ago is why a pricing-integrity test can exist
+now.
+
+---
+
+## Never verified on a device
+
+The complete list, in one place, so no reader has to assemble it from context.
+**Not one of these has been observed on real hardware.** Everything in this
+project ran in a browser against a built export, on a Windows workstation.
+
+| | why it cannot be claimed |
+|---|---|
+| **Frame rates** | nothing measured a single frame |
+| **Scroll smoothness on mid-range Android** | memoisation is correct by construction; whether it is perceptible is unmeasured |
+| **Cold start**, before and after `expo-image` | never timed |
+| **Sheet detents** | the bottom sheet's snap behaviour has never been dragged by a thumb |
+| **Haptics** | `expo-haptics` calls are wired and have never been felt. A no-op on web |
+| **Maps on hardware** | `PROVIDER_GOOGLE` on iOS is inert without `GOOGLE_MAPS_API_KEY_IOS`; the Google Maps iOS SDK's binary weight is unmeasured pending a first EAS build |
+| **The OLED surface step** | the near-black palette's separation between page, card and sheet has only been seen on an LCD monitor, which is the display least able to show it |
+| **Screen-reader coherence** | labels and roles are asserted structurally. Whether a screen is *navigable* by someone who cannot see it needs VoiceOver and TalkBack |
+| **Whether an Arabic layout reads correctly** | no Arabic fonts are loaded and there is no RTL dev build. The logical-property conversion is a precondition for correctness, not a demonstration of it |
+| **`expo-blur` cost** | not installed. There is nothing to measure |
+| **Whether any of it feels fast** | the only claim a customer has, and nothing here touches it |
+
+Everything behind authentication remains unverified for a separate reason —
+see **Still unverified** above and `RUNBOOK_AUTH_VERIFICATION.md`.

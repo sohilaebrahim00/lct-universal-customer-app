@@ -41,10 +41,39 @@
  * backend and delete this file.
  */
 
+/**
+ * PROVENANCE. Read this next to `OBSERVED_RATE_CARD_SOURCE`.
+ *
+ * There are now TWO price sources in this repo and they do not agree. This
+ * block exists so nobody can confuse them, because the difference between them
+ * is the difference between a published figure and a number read off a video:
+ *
+ *   this file                   lctuniversal.com, the public marketing site.
+ *                               CONFIRMED by the business, verbatim.
+ *                               "From" figures and quote-only status.
+ *
+ *   `observedRateCards.ts`      lctuniversal.us/admin, the operations panel.
+ *                               UNCONFIRMED, transcribed from a phone
+ *                               recording. Full metered rate cards.
+ *                               Fenced off by lint rule and test.
+ *
+ * Which of the two is authoritative for what a customer is charged is an open
+ * question for the business — `PLATFORM_RECONCILIATION.md` Q2. Nothing in this
+ * repo decides it, and this file's values are unchanged by that question being
+ * raised.
+ */
 export const PUBLISHED_FLEET_SOURCE = {
   source: 'LCT Universal website — VERIFIED_LIVE_VEHICLE_CLASSES',
+  /** The public marketing site these figures are published on. */
+  domain: 'lctuniversal.com',
   /** ISO date the labels were read. */
   readOn: '2026-08-22',
+  /**
+   * The business confirmed these labels verbatim. That is what separates this
+   * file from `observedRateCards.ts`, and it is why these values may be shown
+   * to a customer while those may not.
+   */
+  confirmedByBusiness: true,
 } as const;
 
 /**
