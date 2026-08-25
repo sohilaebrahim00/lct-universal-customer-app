@@ -49,7 +49,44 @@ code does, which is precisely why the mid-range device is the one specified.
 
 ---
 
-## 1. Frame rate during map pan and list scroll
+## 1. Dynamic type — FIRST, and it is not here for tidiness
+
+> **`AppText`'s line-height scaling has never run with a value other than 1.**
+> It is a code path in the SHIPPED app that will execute for the first time on a
+> real person's phone with the text size turned up. Untested code that only runs
+> for the users who most need it working is a worse risk than anything else on
+> this list, which is why it sits above the frame rates.
+
+**Why it is here and not in the gate.** The layout gate used to claim "no reflow
+problems at 1.0/1.3/1.6/2.0" by varying the root font size. React Native Web
+emits absolute `px`, so that changed nothing and the claim was void. **OS-level
+text scaling is a native behaviour and there is no browser substitute.**
+
+`AppText` multiplies each role's line height by `PixelRatio.getFontScale()`
+precisely because RN's `lineHeight` is absolute and does not scale with the OS
+setting — so an unscaled leading clips as soon as the user raises text size.
+That code has never run with a value other than 1.
+
+**iOS:** Settings → Accessibility → Display & Text Size → Larger Text. Test at
+default, at the largest non-accessibility size, and at **AX5**.
+**Android:** Settings → Display → Font size, largest setting.
+
+**Observe, on `/`, `/fleet`, `/book/vehicle`, `/trips/[id]` and `/account`:**
+
+| | pass |
+|---|---|
+| Every line of text | fully visible — no glyph clipped at the top or bottom of its box |
+| Headlines that wrap | wrap rather than truncate, and the container grows |
+| The tab bar | labels remain legible, or truncate gracefully; icons do not collide |
+| Buttons | grow with their label; no label overflows its pill |
+| The tracking sheet | the stage timeline stays scrollable and nothing is pushed under the dispatch bar |
+
+**Pass at AX5 is the one that matters** — it is where an absolute line height
+fails, and it is the setting a partially-sighted customer actually uses.
+
+---
+
+## 2. Frame rate during map pan and list scroll
 
 **Why.** The tracking screen animates a marker and a camera simultaneously; the
 trips and concierge lists were memoised in slice 8 on the argument that it would
@@ -87,7 +124,7 @@ the gradient overlays and the shadow on `elevation.card`, in that order.
 
 ---
 
-## 2. Cold start to first interactive frame
+## 3. Cold start to first interactive frame
 
 **Why.** `expo-image` added ~40 KB to the bundle. Whether that costs startup
 time is unmeasured, and startup is the one performance number a customer
@@ -115,7 +152,7 @@ before `7b06591` and state both.
 
 ---
 
-## 3. Sheet detents and dismissal
+## 4. Sheet detents and dismissal
 
 **Why.** `BottomSheet.tsx` was written and has never been dragged by a thumb.
 Snap behaviour, momentum and the dismissal threshold are all feel, and all of
@@ -139,7 +176,7 @@ review.
 
 ---
 
-## 4. Haptics fire on the intended events, and only those
+## 5. Haptics fire on the intended events, and only those
 
 **Why.** `src/lib/haptics.ts` is wired and is a no-op on web, so every haptic in
 this app is unfelt. A haptic on the wrong event is worse than none: it teaches
@@ -167,7 +204,7 @@ count.
 
 ---
 
-## 5. Maps render with real keys, on both platforms
+## 6. Maps render with real keys, on both platforms
 
 **Why.** `PROVIDER_GOOGLE` is now set on iOS so the custom night style applies —
 Apple Maps ignores `customMapStyle` entirely. Without
@@ -194,7 +231,7 @@ npm run verify:maps-keys ios,android    # must pass before the build
 
 ---
 
-## 6. The OLED surface step is distinguishable at low brightness
+## 7. The OLED surface step is distinguishable at low brightness
 
 **Why.** The palette separates page (`#020201`), card (`#221d16`) and sheet
 (`#2e2820`) by luminance alone. All of it has only been seen on an LCD monitor,
@@ -215,7 +252,7 @@ A border is a workaround for a surface that does not separate.
 
 ---
 
-## 7. `expo-blur`, if it is ever installed
+## 8. `expo-blur`, if it is ever installed
 
 **Not installed.** There is nothing to measure today, and no blur ships.
 
@@ -227,7 +264,7 @@ almost always adopted without measurement.
 
 ---
 
-## 8. Screen-reader traversal of the two lists
+## 9. Screen-reader traversal of the two lists
 
 **Why.** `tests/a11yStatic.test.ts` asserts that roles and labels are *present*.
 It cannot judge whether a screen is navigable, whether the reading order makes
@@ -260,7 +297,7 @@ this procedure exists to trigger.
 
 ---
 
-## 9. Whether an Arabic layout reads correctly
+## 10. Whether an Arabic layout reads correctly
 
 **Blocked on two things that do not exist yet:** no Arabic font is loaded, and
 there is no RTL dev build. The logical-property conversion and its lint rule are
@@ -295,37 +332,6 @@ I18nManager.forceRTL(true);   // then restart the app
 judged by someone matching shapes — "does this read naturally" is not a check a
 non-speaker can perform, and pretending otherwise is how a translated app ends
 up fluent-looking and wrong.
-
----
-
-## 10. Dynamic type — moved here because the browser cannot test it
-
-**Why it is here and not in the gate.** The layout gate used to claim "no reflow
-problems at 1.0/1.3/1.6/2.0" by varying the root font size. React Native Web
-emits absolute `px`, so that changed nothing and the claim was void. **OS-level
-text scaling is a native behaviour and there is no browser substitute.**
-
-`AppText` multiplies each role's line height by `PixelRatio.getFontScale()`
-precisely because RN's `lineHeight` is absolute and does not scale with the OS
-setting — so an unscaled leading clips as soon as the user raises text size.
-That code has never run with a value other than 1.
-
-**iOS:** Settings → Accessibility → Display & Text Size → Larger Text. Test at
-default, at the largest non-accessibility size, and at **AX5**.
-**Android:** Settings → Display → Font size, largest setting.
-
-**Observe, on `/`, `/fleet`, `/book/vehicle`, `/trips/[id]` and `/account`:**
-
-| | pass |
-|---|---|
-| Every line of text | fully visible — no glyph clipped at the top or bottom of its box |
-| Headlines that wrap | wrap rather than truncate, and the container grows |
-| The tab bar | labels remain legible, or truncate gracefully; icons do not collide |
-| Buttons | grow with their label; no label overflows its pill |
-| The tracking sheet | the stage timeline stays scrollable and nothing is pushed under the dispatch bar |
-
-**Pass at AX5 is the one that matters** — it is where an absolute line height
-fails, and it is the setting a partially-sighted customer actually uses.
 
 ---
 

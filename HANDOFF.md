@@ -41,17 +41,17 @@ Every item has a procedure in **`DEVICE_VERIFICATION.md`**.
 
 | what | section |
 |---|---|
-| Frame rate, map pan and list scroll, mid-range Android | 1 |
-| Cold start to first interactive frame | 2 |
-| Sheet detents, momentum, scroll-to-drag handoff | 3 |
-| Haptics firing on the intended events and no others | 4 |
-| Maps rendering with real keys on both platforms | 5 |
-| Google Maps iOS SDK binary weight | 5 |
-| OLED surface step at low brightness | 6 |
-| `expo-blur` cost, if ever installed | 7 |
-| Screen-reader traversal of trips and concierge | 8 |
-| Whether an Arabic layout reads correctly | 9 |
-| OS-level dynamic type (text scaling to AX5) | 10 — moved here from the gate, which could not test it |
+| **OS-level dynamic type (text scaling to AX5)** | **1 — FIRST. `AppText`'s line-height scaling has never run with a value other than 1: shipped code that will execute for the first time on the phone of the user who most needs it working** |
+| Frame rate, map pan and list scroll, mid-range Android | 2 |
+| Cold start to first interactive frame | 3 |
+| Sheet detents, momentum, scroll-to-drag handoff | 4 |
+| Haptics firing on the intended events and no others | 5 |
+| Maps rendering with real keys on both platforms | 6 |
+| Google Maps iOS SDK binary weight | 6 |
+| OLED surface step at low brightness | 7 |
+| `expo-blur` cost, if ever installed | 8 |
+| Screen-reader traversal of trips and concierge | 9 |
+| Whether an Arabic layout reads correctly | 10 |
 | Whether a stage change reaches a second device | 11.1 — expected NO; this is G-3 |
 | The waiting countdown across a locked screen and a real 30 minutes | 11.2 |
 | The receipt total matching the booked total, twenty minutes apart | 11.3 |
@@ -59,8 +59,8 @@ Every item has a procedure in **`DEVICE_VERIFICATION.md`**.
 | Whether it feels fast | 12 — a judgement call, not a measurement |
 | Everything behind authentication | `RUNBOOK_AUTH_VERIFICATION.md` A1–A7 |
 
-**Owner:** whoever holds a device and the credentials. Items 1–8 need an
-engineer with a mid-range Android and an iPhone. Item 9 needs a native Arabic
+**Owner:** whoever holds a device and the credentials. Items 1–9 need an
+engineer with a mid-range Android and an iPhone. Item 10 needs a native Arabic
 reader. Item 12 is the client's call. A1–A7 need the repository owner, because
 credentials never pass through this workspace.
 

@@ -145,9 +145,15 @@ async function assertRendered(page, route, tag) {
    * be empty at the first measurement — CPU contention, not a defect. The first
    * concurrent run reported seven false blanks on screens that render perfectly.
    *
-   * A single bounded re-check is the honest amount of patience: it removes the
-   * race without removing the assertion, and a screen that is still empty after
-   * four seconds is empty.
+   * ── The repair that was NOT made ─────────────────────────────────────────
+   * The tempting fix is to soften this assertion — lower the threshold, or drop
+   * the blank check. **That would have quietly reintroduced the 404 problem
+   * from the other direction:** a gate that no longer notices an empty screen
+   * is a gate that passes one.
+   *
+   * A single bounded re-check is the honest amount of patience instead. It
+   * removes the race without removing the assertion, and a screen that is still
+   * empty after four seconds is empty.
    */
   let text = (await page.evaluate(() => document.body.innerText || '')).trim();
   if (text.length < 20) {

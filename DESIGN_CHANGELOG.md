@@ -1409,3 +1409,73 @@ that line and exit code 2, with no verdict printed.
 This project has now found three checkers whose output described more than their
 execution. The ledger is the structural answer: the claim is *derived from* the
 record of work done, rather than written next to it.
+
+---
+
+## What review missed
+
+Three claims in this project were reported, accepted, and void:
+
+1. **The 404 routes** — fifteen of sixteen, across two accepted slices.
+2. **`--pass=targets`** printing a reflow result for four font scales it never
+   loaded.
+3. **The reflow pass itself**, which varied a root font size nothing downstream
+   reads. Every reflow number from Slice 7 onward.
+
+**Each was found by measuring, not by reviewing.** The reports were read and
+agreed with; the errors were of a kind only the person who wrote the check could
+find, and each surfaced when somebody loaded the page, injected the probe, or
+compared the two numbers.
+
+So the honest record is that **acceptance has never been evidence.** A project
+that writes down what its checks missed but not what its review missed is doing
+the same thing the gates were doing — reporting on work it did not perform. That
+sentence belongs here next to the corrections, not as modesty but as the same
+correction applied one level up.
+
+### The reflow check was aimed at the wrong thing, not merely broken
+
+Worth separating, because "we fixed the reflow check" understates it. Varying
+`documentElement.style.fontSize` was **never** what WCAG 1.4.10 asks for. The
+criterion is content at **320 CSS pixels** without horizontal scrolling —
+equivalent to 400% zoom on a 1280px desktop — which is a **width** test, not a
+font test.
+
+The old check was therefore broken *and* pointed at the wrong criterion, and
+only measuring it surfaced both. A repair that had kept the font-scale approach
+working would have produced a check that ran correctly and still tested nothing
+anybody had asked for.
+
+### The false blanks, and the repair that was not made
+
+Running five viewports at once starved the render, and the gate reported seven
+blanks on screens that render perfectly.
+
+**The tempting repair is to soften the blank assertion** — lower the threshold,
+or drop it. That would have quietly reintroduced the 404 problem from the other
+direction: a gate that no longer notices an empty screen is a gate that passes
+one. What landed instead is a single bounded re-check, which removes the race
+without removing the assertion. A screen still empty after four seconds is
+empty, and the gate still says so.
+
+---
+
+## The rule this project ends on
+
+Five safeguards here were present, readable, and inert, or live and calibrated
+against an assumption. Individually each had its own fix — a probe, a
+measurement, a wider matrix, one predicate instead of two. But there is one
+property underneath all of them, and it is the thing worth carrying to the next
+project:
+
+> **The claim is now derived from the record of work done rather than written
+> beside it.**
+
+A gate that computes its verdict from a completion ledger cannot report on work
+it did not do, in the way that a gate printing a verdict next to its assertions
+always can. `INCOMPLETE — 0/5 viewports finished`, exit 2, neither a pass nor a
+fail, proved by injecting an unreachable route.
+
+That is the shape every checker in this repository should have, and the one that
+would have prevented all three void claims without anybody having to remember
+why.
