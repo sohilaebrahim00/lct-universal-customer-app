@@ -19,11 +19,17 @@ Four lists. Every item names who can unblock it.
 | Roles and labels are present app-wide | `tests/a11yStatic.test.ts` (presence only — see list 2) |
 | Error and offline states are reached, not just rendered | a real CORS failure produced them during slice 1 |
 | No blank screens, no `NaN`/`undefined`, no console errors | 20-screen sweep against the production export |
-| Every touch target ≥ 44×44 | measured in-browser across 20 routes |
-| No horizontal overflow at 1.0/1.3/1.6/2.0 | measured in-browser across 20 routes |
+| Every touch target ≥ 44×44 | measured in-browser across 22 routes at 5 widths |
+| ~~No horizontal overflow at 1.0/1.3/1.6/2.0~~ | **VOID — that check varied the root font size, which React Native Web ignores. One layout measured four times. Replaced by the 320px row below; see the changelog.** |
 | Role preview renders on all five views | driven with real pointer events and a real ride id |
 | Build mode matches what shipped | `scripts/verify-build-mode.mjs`, greps the emitted bundle |
 | The verification scripts themselves compile and lint | `npm run lint` now covers `scripts/` |
+| The ride lifecycle, all seven stages across three roles | `tests/rideStage.test.ts` (21 assertions incl. the transitions that must be REFUSED) plus `npm run verify:lifecycle`, which drives the chauffeur view and reads the customer and dispatcher views back |
+| An ETA is never rendered where it cannot be attributed | `etaIsAttributable()`, asserted over the full stage list so a new stage cannot default to showing one |
+| The admin console reaches all 16 sections and fabricates nothing | `npm run verify:admin` — asserts the data-less panels render no currency figure |
+| Unconfirmed rate cards are absent from a production bundle | built with `EXPO_PUBLIC_DEMO_MODE=false`: no `/_role/*` route, zero occurrences of the rate-card data. Absent from the bytes, not merely unimported |
+| Layout holds at 320 CSS px (WCAG 1.4.10 Reflow) | `npm run verify:a11y` at five widths |
+| The gate cannot report on a partial run | completion ledger; verified by injecting an unreachable route, which produced `INCOMPLETE — no result reported` and exit 2 |
 
 **Owner:** nobody. These are closed.
 
@@ -45,12 +51,17 @@ Every item has a procedure in **`DEVICE_VERIFICATION.md`**.
 | `expo-blur` cost, if ever installed | 7 |
 | Screen-reader traversal of trips and concierge | 8 |
 | Whether an Arabic layout reads correctly | 9 |
-| Whether it feels fast | 10 — a judgement call, not a measurement |
+| OS-level dynamic type (text scaling to AX5) | 10 — moved here from the gate, which could not test it |
+| Whether a stage change reaches a second device | 11.1 — expected NO; this is G-3 |
+| The waiting countdown across a locked screen and a real 30 minutes | 11.2 |
+| The receipt total matching the booked total, twenty minutes apart | 11.3 |
+| The chauffeur controls one-handed at a kerb | 11.4 |
+| Whether it feels fast | 12 — a judgement call, not a measurement |
 | Everything behind authentication | `RUNBOOK_AUTH_VERIFICATION.md` A1–A7 |
 
 **Owner:** whoever holds a device and the credentials. Items 1–8 need an
 engineer with a mid-range Android and an iPhone. Item 9 needs a native Arabic
-reader. Item 10 is the client's call. A1–A7 need the repository owner, because
+reader. Item 12 is the client's call. A1–A7 need the repository owner, because
 credentials never pass through this workspace.
 
 ---
@@ -210,7 +221,7 @@ of failure than it looks like.
 | Backend gaps, in detail | `BACKEND_FOLLOWUPS.md` |
 | Device procedures | `DEVICE_VERIFICATION.md` |
 | Authenticated verification | `RUNBOOK_AUTH_VERIFICATION.md` |
-| Gates | `npm run typecheck`, `npm run lint`, `npm test`, then against a `serve dist -l 5055 --single`: `node scripts/sweep.mjs` and `npm run verify:a11y` |
+| Gates | `npm run typecheck`, `npm run lint`, `npm test`, then against a `serve dist -l 5055 --single`: `node scripts/sweep.mjs`, `npm run verify:a11y`, `npm run verify:lifecycle`, `npm run verify:admin` |
 
 **One trap worth knowing:** `expo export` emits a single `index.html`. Serving
 `dist/` without SPA fallback 404s every deep path, and a 404 page passes a

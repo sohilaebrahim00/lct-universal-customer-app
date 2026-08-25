@@ -14,7 +14,7 @@ claim is only the former, it says so.
 
 ## Read this first: present, readable, and inert
 
-**Four times** in this project, a safeguard was written, reviewed, read correctly
+**Five times** in this project, a safeguard was written, reviewed, read correctly
 by everyone who looked at it, and did nothing at all. Twice it was a guard, and
 twice it was the gate that was supposed to catch the guard failing.
 
@@ -39,6 +39,14 @@ twice it was the gate that was supposed to catch the guard failing.
    the map's designed state above the fold and left an empty rectangle on the
    tracking screen. The first screen of a live-tracking demo, blank in a browser,
    for as long as those gates had been green.
+
+5. **The reflow check tested nothing.** It set the root font size to
+   16/20.8/25.6/32px and re-measured, reporting "0 reflow overflow at
+   1.0/1.3/1.6/2.0" from Slice 7 onward. **React Native Web emits absolute
+   `px` font sizes**, so the root font size changes nothing. Measured on
+   `/about`: a rendered heading was `39px` at BOTH 1.0 and 2.0, the tallest
+   scroller was `1398` at both, every value byte-identical. Four scales, one
+   layout, measured four times.
 
 **A check that cannot tell it is pointed at nothing is not a check.** That is the
 one failure mode here which no amount of care at the call site prevents: the call
@@ -1330,3 +1338,74 @@ narrow exemption for a decorative empty state. The information already lives in
 `PLATFORM_RECONCILIATION.md` Q4 and `HANDOFF.md`. **A guard that pushes back on a
 cosmetic addition is doing exactly what it was built for**, and the reason is
 recorded at the site where the panel used to be.
+
+---
+
+## Two rules, and a second correction to the record
+
+### Any visual encoding of a number is that number
+
+The ETA fix gated the headline and left the progress bar drawing from the same
+unattributable figure. **A progress bar drawn from an unattributable number is
+not a softer version of the claim — it is the same assertion with the audit
+trail taken off.** A customer reading a bar at four fifths believes the journey
+is four fifths done exactly as firmly as they would believe "6 min", and now
+cannot check it. Removing the digits removed the evidence, not the claim.
+
+Bars, dots, arcs, a marker's position on a route — all of them assert, and all
+of them must satisfy the same predicate the text would. `etaIsAttributable()`
+gates both render sites for that reason, and it lives in `rideStage.ts` rather
+than in the sheet so a third render site cannot re-decide it.
+
+### Two failure categories, now requirements for anything added to the gate
+
+| category | what it looks like | the fix |
+|---|---|---|
+| **Inert** | present, readable, doing nothing — the `isDemoMode` guards, the wiped lint rule, the gate on 404 pages, the reflow check on identical layouts | **probe it**: run the guard against a case it must fail |
+| **Calibrated against an assumption** | live, running, tuned to what you *think* the defect looks like — `offscreenAbove()` testing `bottom <= 0` when the real element was `top −27, bottom +9` | **measure the real case** before writing the predicate |
+
+Both are now stated in `scripts/a11y-gate.mjs` as conditions on anything added
+to it. They are different disciplines and neither substitutes for the other: a
+probe proves a check runs, and only a measurement proves it is looking at the
+right thing.
+
+### The reflow claim was never true
+
+**Every report from Slice 7 onward stated "0 reflow overflow at
+1.0/1.3/1.6/2.0". That was measuring one layout four times, and those claims are
+void.**
+
+- **Reported by:** Claude, in every slice report that quoted the gate.
+- **Accepted by:** the project owner, on the strength of those reports.
+- **Cause:** the check varied `documentElement.style.fontSize`. React Native Web
+  emits absolute `px`, so nothing downstream responds to it.
+- **Caught by:** measuring a rendered heading at 1.0 and at 2.0 before
+  parallelising the pass, and finding both `39px`.
+- **What is true instead:** horizontal overflow is now checked at five widths
+  including **320 CSS px**, which is WCAG 1.4.10's actual criterion and
+  equivalent to 400% zoom on a 1280px desktop. The app holds at all five.
+- **What moved:** OS-level dynamic type is a native behaviour —
+  `PixelRatio.getFontScale()` returns 1 on web forever — so it is now a device
+  procedure rather than a browser check.
+
+### The gate completes in one invocation, or reports nothing
+
+It ran in two halves before, each honestly labelled `[PARTIAL RUN]`. That
+handling was right and the situation was not: a gate that cannot finish in one
+go gets run half by somebody in a hurry, and the honest label is what makes that
+comfortable.
+
+Now: five viewports run concurrently, two at a time, and the whole matrix
+finishes in about two minutes. More importantly it keeps a **completion
+ledger** — every viewport is planned up front and marked done only on full route
+coverage — and if the ledger is short it prints
+
+> `INCOMPLETE — no result reported. 0/5 viewports finished`
+
+and exits 2. Not a pass, not a fail: an admission that the run is not a basis for
+either. **Verified by injecting an unreachable route**, which produced exactly
+that line and exit code 2, with no verdict printed.
+
+This project has now found three checkers whose output described more than their
+execution. The ledger is the structural answer: the claim is *derived from* the
+record of work done, rather than written next to it.

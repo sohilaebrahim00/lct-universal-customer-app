@@ -3,48 +3,56 @@
  * production export.
  *
  * ══════════════════════════════════════════════════════════════════════════
- *  THE CONTRACT: EVERY CHECK IN THIS FILE MUST HOLD AT EVERY VIEWPORT IN
- *  `VIEWPORTS`. If you add a check, it runs across the whole matrix. If you
- *  cannot make it hold at every width, that is a finding, not a reason to
- *  narrow the matrix.
+ *  THE CONTRACT
+ *  1. Every check runs at every viewport in `VIEWPORTS`.
+ *  2. ONE invocation runs everything. There is no partial mode.
+ *  3. It REFUSES TO REPORT A RESULT unless every planned unit of work
+ *     completed. A gate that can report on half of itself is not a gate.
  * ══════════════════════════════════════════════════════════════════════════
  *
- * ── Two bugs this file has already shipped, and what each one taught ───────
+ * ── Three bugs this file has shipped, and what each one taught ─────────────
  *
  * 1. **It measured 404 pages.** The route list used expo-router GROUP paths —
- *    `/(app)/fleet` — and groups are stripped from the URL. Fifteen of sixteen
- *    routes served the not-found page, and every assertion passed: a 404 page
- *    has text, so the blank check passed; it has one link, so the target check
- *    passed; it fits any viewport, so the reflow check passed. Two slices were
- *    reported and accepted green on that.
- *    → `assertRendered()` now makes every route prove it is the app first.
+ *    `/(app)/fleet` — which are stripped from the URL. Fifteen of sixteen
+ *    routes served the not-found page and every assertion passed: a 404 page
+ *    has text, one link, and fits any viewport. Two slices were reported and
+ *    accepted green on that.
+ *    → `assertRendered()`.
  *
- * 2. **It only ever ran at 390×844.** A phone. So did the sweep, and so did
- *    the reflow checks. A defect whose trigger is a WIDE viewport could not
- *    fail any gate in this project. `TrackingMap.web.tsx` carried
- *    `paddingBottom: '58%'`, a percentage that resolves against WIDTH rather
- *    than height — 226px on a 390px phone (correct by coincidence) and 835px
- *    on a 1440px desktop, which pushed the map's designed state above the fold
- *    and left an empty rectangle on the tracking screen.
- *    → `VIEWPORTS` below, and `offscreenAbove()`.
+ * 2. **It only ran at 390×844.** Every gate in this project was a phone, so a
+ *    defect triggered by a WIDE viewport could not fail any of them —
+ *    `paddingBottom: '58%'` resolved against width, correct at 390 by
+ *    coincidence and 835px of padding at 1440.
+ *    → `VIEWPORTS`, and `offscreenAbove()`, because adding 1440 alone would
+ *    not have caught it: that bug produced no horizontal overflow.
  *
- * **Adding 1440 alone would NOT have caught bug 2.** The reflow check tests
- * horizontal overflow, and that bug was content positioned above the top of
- * the screen — no overflow at all. A wider viewport plus the same checks would
- * still have passed. That is why the matrix and `offscreenAbove()` land
- * together: the width matrix finds layouts that only work at one size, and the
- * off-screen check finds content that is present, styled, non-erroring and
- * unreachable.
+ * 3. **THE REFLOW CHECK TESTED NOTHING.** It set `documentElement.style
+ *    .fontSize` to 16/20.8/25.6/32px and re-measured, and reported
+ *    "0 reflow overflow at 1.0/1.3/1.6/2.0" for months. **React Native Web
+ *    emits absolute `px` font sizes**, so the root font size changes nothing:
+ *    measured on `/about`, a rendered heading was `39px` at BOTH 1.0 and 2.0,
+ *    the tallest scroller was `1398` at both, and every measured value was
+ *    byte-identical. Four scales, one layout, measured four times.
+ *    → replaced with WIDTH, below.
  *
- * Which is the same shape as everything else this project has caught: present,
- * readable, and inert.
+ * ── What replaced it, and why width is the honest test ────────────────────
+ * WCAG 1.4.10 (Reflow) is specified as **320 CSS pixels** of width without
+ * horizontal scrolling — which is also what 400% zoom on a 1280px desktop
+ * produces. Width is something this app genuinely responds to, so `320` is now
+ * the first entry in the matrix and horizontal overflow is checked at every
+ * width rather than at four identical font scales.
+ *
+ * **OS-level dynamic type is a NATIVE behaviour and cannot be tested here at
+ * all.** `AppText` scales its line height by `PixelRatio.getFontScale()`, which
+ * returns 1 on web forever. That check moved to `DEVICE_VERIFICATION.md`, where
+ * it needs a real phone with the text-size slider moved.
  *
  * ── Serving ────────────────────────────────────────────────────────────────
  * Requires the export served with SPA fallback — `serve dist -l 5055 --single`.
  * `expo export` emits a single index.html, so a plain static server 404s every
  * deep path and this gate will (correctly) fail on all of them.
  *
- * Usage:  node scripts/a11y-gate.mjs [--pass=targets|reflow]
+ * Usage:  node scripts/a11y-gate.mjs
  */
 import { createRequire } from 'node:module';
 import { existsSync, readdirSync } from 'node:fs';
@@ -67,22 +75,28 @@ const BASE = 'http://localhost:5055';
  */
 const VIEWPORTS = [
   {
+    name: 'narrow',
+    width: 320,
+    height: 800,
+    why: 'WCAG 1.4.10 Reflow: content must work at 320 CSS px with no horizontal scrolling. Equivalent to 400% zoom on a 1280px desktop. The width where a fixed-width element shows up first.',
+  },
+  {
     name: 'phone',
     width: 390,
     height: 844,
-    why: 'iPhone 14/15. The design target, and the tightest width — text wraps and touch targets collide here first.',
+    why: 'iPhone 14/15. The design target.',
   },
   {
     name: 'large phone',
     width: 430,
     height: 932,
-    why: 'iPhone Pro Max. Catches layouts pinned to the smaller phone width, and the safe-area differences that come with it.',
+    why: 'iPhone Pro Max. Catches layouts pinned to the smaller phone width.',
   },
   {
     name: 'tablet',
     width: 834,
     height: 1112,
-    why: 'iPad portrait. The first width where a phone-shaped layout stops being plausible and percentage-of-width values start to diverge visibly.',
+    why: 'iPad portrait. The first width where a phone-shaped layout stops being plausible and percentage-of-width values diverge visibly.',
   },
   {
     name: 'desktop',
@@ -97,25 +111,49 @@ const ROUTES = [
   '/book/payment', '/book/confirmed', '/trips', '/account', '/concierge',
   '/fleet', '/about', '/airport', '/corporate-info', '/account/settings',
   '/account/saved-locations', '/account/payment-methods', '/demo-trip', '/login',
-  // The live tracking screen. Added because the map bug lived here and no gate
-  // route covered it: /demo-trip is a different screen. Loads standalone from
-  // the demo dataset, so it needs no navigation to reach.
+  // The live tracking screen. The map bug lived here and no gate route covered
+  // it — /demo-trip is a different screen.
   '/trips/demo-booking-upcoming',
-  // The admin console. Behind the demo fence, and the gate builds in demo mode,
-  // so it is reachable here and must meet the same bars as every other screen.
+  // The admin console. Behind the demo fence, and the gate builds in demo mode.
   '/_role/admin',
 ];
 
-const SCALES = [1.0, 1.3, 1.6, 2.0];
-
-const only = (process.argv.find((a) => a.startsWith('--pass=')) ?? '').split('=')[1] ?? 'all';
 const problems = [];
 
-const browser = await chromium.launch({ channel: 'chrome' });
+/**
+ * THE COMPLETION LEDGER.
+ *
+ * Every unit of work is planned up front and marked done only when it actually
+ * finishes. The summary refuses to print a verdict unless `done` covers
+ * `planned`.
+ *
+ * This project has twice found a checker whose OUTPUT DESCRIBED MORE THAN ITS
+ * EXECUTION — the gate reporting on 404 pages, and `--pass=targets` printing a
+ * reflow result for scales it never loaded. The ledger is the structural fix:
+ * it is not possible to report a clean run without having done the work,
+ * because the claim is derived from the ledger rather than written next to it.
+ */
+const planned = new Set(VIEWPORTS.map((v) => v.name));
+const done = new Set();
 
 /** Prove the route is the app, not the 404 page and not a blank frame. */
 async function assertRendered(page, route, tag) {
-  const text = (await page.evaluate(() => document.body.innerText || '')).trim();
+  /*
+   * Re-checked once before declaring a blank.
+   *
+   * With several viewports rendering at once, a React Native Web tree can still
+   * be empty at the first measurement — CPU contention, not a defect. The first
+   * concurrent run reported seven false blanks on screens that render perfectly.
+   *
+   * A single bounded re-check is the honest amount of patience: it removes the
+   * race without removing the assertion, and a screen that is still empty after
+   * four seconds is empty.
+   */
+  let text = (await page.evaluate(() => document.body.innerText || '')).trim();
+  if (text.length < 20) {
+    await page.waitForTimeout(2600);
+    text = (await page.evaluate(() => document.body.innerText || '')).trim();
+  }
   if (/could not be found/i.test(text)) {
     problems.push(`[404] ${tag} ${route} served the not-found page — measurement is meaningless`);
     return false;
@@ -132,20 +170,18 @@ async function assertRendered(page, route, tag) {
  *
  * Content below the fold is skipped: that is what scrolling is for. Content
  * inside an ancestor that has been scrolled is skipped too — the concierge
- * transcript legitimately scrolls to its latest message, which puts earlier
- * messages above the fold on purpose.
+ * transcript legitimately scrolls to its latest message.
  *
- * ── The condition is `top < 0`, not `bottom <= 0`, and that matters ────────
- * The first version of this check tested `bottom <= 0` — fully invisible — and
- * IT WOULD NOT HAVE CAUGHT THE BUG IT WAS WRITTEN FOR. The map placeholder's
- * clipped line measured `top: -27, bottom: +9`: nine pixels of it were on
- * screen, so `bottom > 0` and the check skipped it, while the icon and the
- * first line above it were gone entirely.
+ * ── The condition is `top < 0`, not `bottom <= 0` ─────────────────────────
+ * The first version tested `bottom <= 0` — fully invisible — and WOULD NOT HAVE
+ * CAUGHT THE BUG IT WAS WRITTEN FOR. The map placeholder's clipped line
+ * measured `top: -27, bottom: +9`: nine pixels on screen, so it would have been
+ * skipped while the icon above it was gone entirely.
  *
- * Content that is partially clipped by the top edge is still content the
- * reader cannot see and cannot scroll to. Caught before this check ever ran,
- * by measuring the real defect instead of assuming what its signature would
- * be — which is the only reason it is written this way.
+ * That is a different failure from an inert check. This one was LIVE and
+ * calibrated against an ASSUMPTION about the defect rather than the defect.
+ * The fix for inertness is a probe; the fix for this is measuring the real case
+ * before writing the predicate.
  */
 async function offscreenAbove(page) {
   return page.evaluate(() => {
@@ -156,7 +192,7 @@ async function offscreenAbove(page) {
       if (!text) continue;
       const r = el.getBoundingClientRect();
       if (r.width === 0 || r.height === 0) continue;
-      if (r.top >= -1) continue; // fully visible, or below the fold
+      if (r.top >= -1) continue;
 
       let scrolledAncestor = false;
       for (let p = el.parentElement; p; p = p.parentElement) {
@@ -185,95 +221,99 @@ async function smallTargets(page) {
   });
 }
 
-// ── Pass 1: routes render, targets are big enough, nothing is off the top ──
-if (only === 'all' || only === 'targets') {
-  for (const vp of VIEWPORTS) {
-    const ctx = await browser.newContext({
-      viewport: { width: vp.width, height: vp.height },
-      deviceScaleFactor: 2,
-      colorScheme: 'dark',
+const browser = await chromium.launch({ channel: 'chrome' });
+
+/**
+ * One viewport, every route, every check.
+ *
+ * Viewports run CONCURRENTLY. The gate used to take longer than a single
+ * command would allow, so it was run in halves and each half honestly labelled
+ * a partial run — which is the correct handling of a situation that should not
+ * exist. A gate that cannot finish in one go gets run half by someone in a
+ * hurry.
+ */
+async function runViewport(vp) {
+  const ctx = await browser.newContext({
+    viewport: { width: vp.width, height: vp.height },
+    deviceScaleFactor: 2,
+    colorScheme: 'dark',
+  });
+  const page = await ctx.newPage();
+  let measured = 0;
+  let offscreen = 0;
+  let overflow = 0;
+
+  for (const route of ROUTES) {
+    await page.goto(BASE + route, { waitUntil: 'load', timeout: 120000 });
+    await page.waitForTimeout(1700);
+    if (!(await assertRendered(page, route, vp.name))) continue;
+    measured += 1;
+
+    for (const s of await smallTargets(page)) problems.push(`[target ${vp.name}] ${route} :: ${s}`);
+
+    const above = await offscreenAbove(page);
+    offscreen += above.length;
+    for (const a of above) problems.push(`[offscreen ${vp.name}] ${route} :: ${a}`);
+
+    const bad = await page.evaluate(() => {
+      const d = document.documentElement;
+      return { over: d.scrollWidth > d.clientWidth + 2, sw: d.scrollWidth, cw: d.clientWidth };
     });
-    const page = await ctx.newPage();
-    let measured = 0;
-    let offscreen = 0;
-    for (const route of ROUTES) {
-      await page.goto(BASE + route, { waitUntil: 'load', timeout: 120000 });
-      await page.waitForTimeout(1700);
-      if (!(await assertRendered(page, route, vp.name))) continue;
-      measured += 1;
-
-      for (const s of await smallTargets(page)) problems.push(`[target ${vp.name}] ${route} :: ${s}`);
-
-      const above = await offscreenAbove(page);
-      offscreen += above.length;
-      for (const a of above) problems.push(`[offscreen ${vp.name}] ${route} :: ${a}`);
-    }
-    console.log(`${vp.name.padEnd(12)} ${String(vp.width).padStart(4)}x${vp.height}  routes ${measured}/${ROUTES.length}  offscreen-above ${offscreen}`);
-    if (measured !== ROUTES.length) {
-      problems.push(`[coverage ${vp.name}] only ${measured}/${ROUTES.length} routes measured`);
-    }
-    await ctx.close();
-  }
-}
-
-// ── Pass 2: no horizontal overflow, at each font scale, at each width ──────
-if (only === 'all' || only === 'reflow') {
-  for (const vp of VIEWPORTS) {
-    for (const scale of SCALES) {
-      const ctx = await browser.newContext({
-        viewport: { width: vp.width, height: vp.height },
-        deviceScaleFactor: 2,
-        colorScheme: 'dark',
-      });
-      const page = await ctx.newPage();
-      await page.addInitScript((s) => {
-        document.addEventListener('DOMContentLoaded', () => {
-          document.documentElement.style.fontSize = `${16 * s}px`;
-        });
-      }, scale);
-      let horiz = 0;
-      let measured = 0;
-      for (const route of ROUTES) {
-        await page.goto(BASE + route, { waitUntil: 'load', timeout: 120000 });
-        await page.waitForTimeout(1400);
-        if (!(await assertRendered(page, route, `${vp.name} ${scale}x`))) continue;
-        measured += 1;
-        const bad = await page.evaluate(() => {
-          const d = document.documentElement;
-          return { over: d.scrollWidth > d.clientWidth + 2, sw: d.scrollWidth, cw: d.clientWidth };
-        });
-        if (bad.over) {
-          horiz += 1;
-          problems.push(`[reflow ${vp.name} ${scale}x] ${route} scrollWidth ${bad.sw} > clientWidth ${bad.cw}`);
-        }
-      }
-      console.log(`${vp.name.padEnd(12)} ${scale}x  overflow ${horiz}  routes ${measured}/${ROUTES.length}`);
-      await ctx.close();
+    if (bad.over) {
+      overflow += 1;
+      problems.push(`[reflow ${vp.name}] ${route} scrollWidth ${bad.sw} > clientWidth ${bad.cw}`);
     }
   }
+
+  await ctx.close();
+
+  if (measured !== ROUTES.length) {
+    problems.push(`[coverage ${vp.name}] only ${measured}/${ROUTES.length} routes measured`);
+  } else {
+    // Marked done ONLY on full coverage. A viewport that skipped a route has
+    // not run, whatever else it reported.
+    done.add(vp.name);
+  }
+  console.log(`${vp.name.padEnd(12)} ${String(vp.width).padStart(4)}x${vp.height}  routes ${measured}/${ROUTES.length}  offscreen ${offscreen}  overflow ${overflow}`);
 }
 
+/**
+ * Viewports run concurrently, but only CONCURRENCY at a time.
+ *
+ * All five at once starved the render and produced false blanks. Two at a time
+ * keeps the whole run inside a single invocation without the contention.
+ */
+const CONCURRENCY = 2;
+const queue = [...VIEWPORTS];
+await Promise.all(
+  Array.from({ length: CONCURRENCY }, async () => {
+    for (;;) {
+      const vp = queue.shift();
+      if (!vp) return;
+      await runViewport(vp);
+    }
+  }),
+);
 await browser.close();
+
+const missing = [...planned].filter((p) => !done.has(p));
+
 console.log('\n=== GATE RESULT ===');
-if (problems.length === 0) {
-  /*
-   * The summary states ONLY what actually ran.
-   *
-   * The first version printed the full sentence — targets, off-screen AND
-   * reflow — unconditionally, so `--pass=targets` reported "0 reflow overflow
-   * at 1.0/1.3/1.6/2.0" about four scales it had not loaded. A gate that
-   * overstates its own coverage is the same defect as a gate that measures 404
-   * pages, one level up: the number is true, and it is not about what the
-   * sentence says it is about.
-   */
-  const widths = VIEWPORTS.map((v) => v.width).join('/');
-  const ran = [];
-  if (only === 'all' || only === 'targets') ran.push('0 targets under 44x44', '0 content above the fold');
-  if (only === 'all' || only === 'reflow') ran.push(`0 reflow overflow at ${SCALES.join('/')}`);
-  const skipped = only === 'all' ? '' : `  [PARTIAL RUN: --pass=${only}; the other pass did NOT run]`;
-  console.log(`clean: ${ROUTES.length} routes at ${VIEWPORTS.length} viewports (${widths}) — ${ran.join(', ')}${skipped}`);
-} else {
-  console.log(`${problems.length} problems`);
-  for (const p of problems.slice(0, 60)) console.log('  ' + p);
+if (missing.length > 0) {
+  // The refusal. Not a pass, not a fail — an admission that the run is not a
+  // basis for either.
+  console.log(`INCOMPLETE — no result reported. ${done.size}/${planned.size} viewports finished; missing: ${missing.join(', ')}`);
+  for (const p of problems.slice(0, 20)) console.log('  ' + p);
+  process.exit(2);
 }
-process.exit(problems.length ? 1 : 0);
+if (problems.length === 0) {
+  const widths = VIEWPORTS.map((v) => v.width).join('/');
+  console.log(
+    `clean: ${ROUTES.length} routes at ${VIEWPORTS.length} viewports (${widths}) — ` +
+      '0 targets under 44x44, 0 content above the fold, 0 horizontal overflow (incl. WCAG 1.4.10 at 320px)',
+  );
+  process.exit(0);
+}
+console.log(`${problems.length} problems`);
+for (const p of problems.slice(0, 60)) console.log('  ' + p);
+process.exit(1);

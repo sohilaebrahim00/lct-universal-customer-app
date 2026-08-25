@@ -298,7 +298,100 @@ up fluent-looking and wrong.
 
 ---
 
-## 10. Whether it feels fast — a judgement call, named
+## 10. Dynamic type — moved here because the browser cannot test it
+
+**Why it is here and not in the gate.** The layout gate used to claim "no reflow
+problems at 1.0/1.3/1.6/2.0" by varying the root font size. React Native Web
+emits absolute `px`, so that changed nothing and the claim was void. **OS-level
+text scaling is a native behaviour and there is no browser substitute.**
+
+`AppText` multiplies each role's line height by `PixelRatio.getFontScale()`
+precisely because RN's `lineHeight` is absolute and does not scale with the OS
+setting — so an unscaled leading clips as soon as the user raises text size.
+That code has never run with a value other than 1.
+
+**iOS:** Settings → Accessibility → Display & Text Size → Larger Text. Test at
+default, at the largest non-accessibility size, and at **AX5**.
+**Android:** Settings → Display → Font size, largest setting.
+
+**Observe, on `/`, `/fleet`, `/book/vehicle`, `/trips/[id]` and `/account`:**
+
+| | pass |
+|---|---|
+| Every line of text | fully visible — no glyph clipped at the top or bottom of its box |
+| Headlines that wrap | wrap rather than truncate, and the container grows |
+| The tab bar | labels remain legible, or truncate gracefully; icons do not collide |
+| Buttons | grow with their label; no label overflows its pill |
+| The tracking sheet | the stage timeline stays scrollable and nothing is pushed under the dispatch bar |
+
+**Pass at AX5 is the one that matters** — it is where an absolute line height
+fails, and it is the setting a partially-sighted customer actually uses.
+
+---
+
+## 11. The ride lifecycle on real devices
+
+The lifecycle is verified three ways in the repository — pure transition tests, a
+full-sequence assertion, and `scripts/lifecycle-walk.mjs` driving the browser.
+**None of them leave one machine**, and that is the limit worth testing.
+
+### 11.1 Does a stage change reach another device at all?
+
+**This is G-3 and the honest expectation is NO.** The demo store is one
+browser's `localStorage`; two views in one tab share it, two phones do not.
+`driver_locations` is never written during a trip, so there is no live channel
+carrying a status change between devices.
+
+**Procedure.** Two devices, same trip. Advance the stage on device A.
+**Pass:** device B reflects it within a stated number of seconds.
+**Expected result today: it does not, ever.** Record how long you waited before
+concluding that, because "we watched for two minutes" is the useful form of this
+finding when it goes to whoever owns the backend.
+
+### 11.2 The arrival timestamp and the waiting countdown
+
+`arrived_at_pickup` is a demo overlay — the backend has no such status (C-4) — so
+this tests the *behaviour*, not the integration.
+
+1. Drive a ride to **arrived** in the chauffeur preview.
+2. **Pass:** the customer screen headline becomes *"Your chauffeur is outside"*
+   and a countdown appears.
+3. **Lock the phone for five minutes, then reopen it.** **Pass:** the countdown
+   shows roughly five fewer minutes — not a frozen value, and not a restarted
+   one. A JS interval does not run while the screen is off; the value is
+   recomputed from the arrival timestamp, and this is the test of that.
+4. **Let it run past the window** — 30 minutes standard, 60 for an airport ride.
+   **Pass:** it says the complimentary wait ended and that the chauffeur is
+   still waiting, and shows **no money at all** — no fee, no rate, no total.
+5. Repeat on an **airport** booking. **Pass:** 60 minutes, not 30.
+
+Step 3 and step 4 both need real elapsed time and neither is testable in CI.
+
+### 11.3 The receipt
+
+**Pass:** the total on the receipt is character-for-character the total shown on
+the payment screen when the ride was booked. Photograph both. A receipt that
+recomputes is the one defect this whole project is built to prevent, and the
+only way to see it is to compare two screens taken twenty minutes apart.
+
+**Also observe:** the time on the receipt is the **device's** local time, not the
+pickup's — `bookings` carries no timezone column (C-4b). Change the phone's
+timezone and reload. **Pass:** the time changes, which is the defect, and
+confirms C-4b is real rather than theoretical.
+
+### 11.4 The chauffeur controls, one-handed
+
+The confirmation on irreversible actions exists because a chauffeur taps these
+at a kerb with the engine running.
+
+**Pass:** every action reachable and tappable **with one thumb, without looking
+away for more than a second**; "Passenger on board" and "Complete the ride" both
+ask before acting; and neither can be triggered twice by a double tap.
+
+---
+
+
+## 12. Whether it feels fast — a judgement call, named
 
 There is **no observation** for this, and no proxy that honestly substitutes.
 Items 1 and 2 measure frames and milliseconds; a product can pass both and still
