@@ -126,3 +126,52 @@ export const WEBSITE_CLASSES_WITHOUT_BACKEND_EQUIVALENT = [
   { name: 'Luxury SUV', priceLabel: 'From $130' },
   { name: 'First Class Sedan', priceLabel: '$150/hour' },
 ] as const;
+
+/**
+ * ── RE-READ FROM PRIMARY SOURCE, 2026-08-26 ────────────────────────────────
+ *
+ * Every page of `lctuniversal.com` was read directly rather than from any
+ * transcription. **The values above were confirmed unchanged and nothing in
+ * this file was edited as a result.** `From $95`, `From $110`, and Request
+ * Quote for the Sprinter and the Coach all match the site.
+ *
+ * ── WHAT THE RE-READ FOUND INSTEAD: THE SITE CONTRADICTS ITSELF ───────────
+ * Two pages, read the same day, publish the same prices and capacities under
+ * DIFFERENT NAMES for four of seven classes:
+ *
+ *   price          /fleet                  /rates
+ *   From $95       Executive Sedan         Sedan
+ *   From $110      Executive SUV           SUV
+ *   From $130      Luxury SUV              Luxury SUV
+ *   $150/hour      First Class Sedan       First Class Sedan
+ *   Request Quote  Executive Sprinter      Executive Sprinter
+ *   Request Quote  Executive Mini Coach    Mini Coach
+ *   Request Quote  Executive Coach         Motor Coach
+ *
+ * `/fleet` prefixes "Executive"; `/rates` does not. Both are the client's own
+ * site and neither is marked authoritative.
+ *
+ * **This SHARPENS the open naming defect rather than resolving it.** Both pages
+ * reserve the name "Luxury SUV" for the $130 class. The app displays its $110
+ * class as "Luxury SUV" (`VEHICLE_DISPLAY_NAME.suv`), which is wrong under
+ * EITHER page's naming — so that is no longer ambiguous. What remains open is
+ * only whether the $110 class should read "SUV" or "Executive SUV", which is a
+ * choice between the client's own two pages.
+ *
+ * Not changed here: a class name is a customer-facing value. See
+ * `OPEN_QUESTIONS.md` question 2.
+ *
+ * ── Capacities, newly published on /rates ─────────────────────────────────
+ * The rates page states luggage capacity, which /fleet does not:
+ *   Sedan 3 pax / 2 bags · SUV 6/6 · Luxury SUV 6/6 · First Class 2/2 ·
+ *   Sprinter 14/10 · Mini Coach 39 · Motor Coach 56
+ * The demo Executive Sedan carries `capacity_luggage: 3` against the site's 2.
+ * Recorded, not changed — capacity is served by the API, not by this file.
+ */
+export const PUBLISHED_FLEET_REREAD = {
+  readOn: '2026-08-26',
+  pagesRead: ['/fleet', '/rates', '/services', '/airport', '/corporate', '/events', '/faq', '/terms', '/cancellation-policy', '/service-areas', '/reviews', '/about', '/contact'],
+  valuesChanged: false,
+  /** The two pages disagree on four of seven class names. See the note above. */
+  siteIsSelfInconsistentOnNames: true,
+} as const;

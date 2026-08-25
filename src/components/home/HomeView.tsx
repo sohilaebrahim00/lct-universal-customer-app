@@ -14,7 +14,6 @@ import type { Booking, ServiceType, TripDriverInfo, TripVehicleInfo } from '../.
 import type { AsyncState } from '../../lib/asyncState';
 import { isDemoMode } from '../../lib/env';
 import { formatCurrency, formatPickupWhen } from '../../lib/format';
-import { reputationSentence } from '../../config/reputation';
 
 /**
  * Home's presentation, with no data fetching in it.
@@ -222,14 +221,25 @@ export function HomeView({
 
       <View style={styles.footer}>
         {/*
-          Real aggregate figures with a named source and a read date — see
-          src/config/reputation.ts. One line, no stars graphic, no testimonial
-          text. Deliberately not the invented ReviewsSection that used to sit
-          on this screen; that file is deleted.
+          THE RATING LINE IS GONE, and this is the reason.
+
+          It read "4.93 from 55 reviews" — real figures, hand-read from a
+          third-party reputation dashboard, with a source and a date. Not
+          invented.
+
+          But `lctuniversal.com/reviews`, re-read from primary source on
+          2026-08-26, says the company publishes NO verified reviews yet and has
+          deliberately chosen not to imply otherwise: "Rather than publish
+          placeholder quotes, we choose to leave this page honest."
+
+          An app making a public claim its own company has decided not to make
+          is the `From $65.00` defect pointed at reputation instead of price,
+          and the exposure lands on the client. Removing a claim is the safe
+          direction; restoring it needs one sentence from the business.
+
+          The constant survives with both dates — see src/config/reputation.ts
+          and OPEN_QUESTIONS.md question 1.
         */}
-        <AppText variant="captionSm" center style={styles.reputation}>
-          {reputationSentence}
-        </AppText>
         <Button label="Book a car" haptic onPress={() => onStartBooking('point_to_point')} />
       </View>
     </View>

@@ -141,3 +141,59 @@ export const servicePolicy = {
  * of this whole redesign in five words. Used verbatim.
  */
 export const PRICING_STATEMENT = 'Priced at the moment you book.';
+
+/**
+ * ── CONFIRMED AGAINST PRIMARY SOURCE, 2026-08-26 ───────────────────────────
+ *
+ * `lctuniversal.com/cancellation-policy`, read directly. **Every cancellation
+ * figure above matches the site and nothing was edited.**
+ *
+ *   Sedans & SUVs         more than 12 hours — full refund   → matches 12
+ *   Airport transfers     at least 6 hours to avoid charges  → matches 6
+ *   Hourly & events       at least 48 hours — full refund    → matches 48
+ *   Modifications         less than 6 hours may incur fees   → matches 6
+ *
+ * The dispatch number matches too: +1 (888) 615-4065.
+ *
+ * ── What the site publishes that this app does not yet state ──────────────
+ * The FEE TIERS beyond the free window. Recorded here as published fact,
+ * deliberately NOT rendered: putting a charge on a screen is a commitment, and
+ * which screen it belongs on is a design decision nobody has made.
+ *
+ * ── The waiting policy is NOT stated on the site ───────────────────────────
+ * The FAQ says only "We accommodate reasonable delays without additional
+ * charge" for delayed flights. No minutes anywhere. So the 30/60 figures above
+ * remain business-confirmed rather than site-published, and the site does not
+ * contradict them.
+ */
+export const CANCELLATION_FEE_TIERS_PUBLISHED = {
+  source: 'lctuniversal.com/cancellation-policy',
+  readOn: '2026-08-26',
+  /** Not rendered anywhere. Published fact, held for whoever designs the screen. */
+  sedansAndSuvs: ['More than 12 hours before pickup — full refund', 'Within 12 hours — 50% of the fare', 'Within 2 hours or no-show — full charge'],
+  airport: ['Notify at least 6 hours before pickup to avoid charges', 'Less than 6 hours — 50% of the fare', 'Airport no-show without notice — 100% of the fare'],
+  hourlyAndEvents: ['At least 48 hours in advance — full refund', 'Within 48 hours — 50% of the fare', 'Same-day cancellation or no-show — full charge'],
+  weather: 'In cases of severe weather or verified emergencies, fees may be waived at the company’s discretion.',
+} as const;
+
+/**
+ * Answers the app previously had as open questions, now published on the site.
+ * Recorded rather than rendered — each needs a design decision about where it
+ * belongs, and none of them contradicts anything the app currently shows.
+ */
+export const SITE_ANSWERS_2026_08_26 = {
+  /** FAQ: "Book any vehicle by the hour with as-directed service: same driver, multiple stops, NO METER TO WATCH." */
+  hourlyIsAsDirectedNotMetered: true,
+  /** FAQ + /service-areas: a uniformed chauffeur meets you curbside OR at baggage claim, by preference. No separate charge stated. */
+  meetAndGreetIsAPreferenceNotAnExtra: true,
+  /** FAQ: "We monitor your inbound flight and adjust pickup accordingly." */
+  flightTrackingIsPublished: true,
+  /** FAQ: "The total fare must be authorized before the scheduled pickup time." */
+  fareAuthorisedBeforePickup: true,
+  /** /service-areas: Dallas–Fort Worth Metroplex and Grapevine, with a named city list. */
+  coverageIsPublished: true,
+  /** Terms: wheelchair accessibility available in all vehicles on request. */
+  accessibilityOnRequest: true,
+  /** Terms: 18+; all reservations confirmed by a concierge; same-day subject to availability. */
+  minimumAge: 18,
+} as const;
