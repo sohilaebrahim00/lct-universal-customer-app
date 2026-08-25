@@ -9,6 +9,7 @@ import { tripsApi } from '../../src/api/trips';
 import type { Booking, ServiceType, Vehicle } from '../../src/types/api';
 import { isTerminalStatus } from '../../src/lib/tripStatus';
 import { asyncState, type AsyncState } from '../../src/lib/asyncState';
+import { rebookDraftFrom } from '../../src/lib/rebook';
 
 /**
  * HOME — the storefront. Data only; the presentation is in `HomeView`.
@@ -103,18 +104,10 @@ export default function HomeScreen() {
   }
 
   function rebook(booking: Booking) {
+    // The mapping is shared with the Journeys screen — see src/lib/rebook.ts
+    // for what it carries forward and, more importantly, what it does not.
     resetDraft();
-    updateDraft({
-      serviceType: booking.service_type,
-      pickupAddress: booking.pickup_address,
-      pickupLat: booking.pickup_lat ?? undefined,
-      pickupLng: booking.pickup_lng ?? undefined,
-      dropoffAddress: booking.dropoff_address ?? '',
-      dropoffLat: booking.dropoff_lat ?? undefined,
-      dropoffLng: booking.dropoff_lng ?? undefined,
-      passengerCount: booking.passenger_count,
-      luggageCount: booking.luggage_count,
-    });
+    updateDraft(rebookDraftFrom(booking));
     router.push('/(app)/book/pickup');
   }
 

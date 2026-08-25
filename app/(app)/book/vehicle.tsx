@@ -10,8 +10,8 @@ import { ProgressRail } from '../../../src/components/ui/ProgressRail';
 import { Skeleton } from '../../../src/components/ui/Skeleton';
 import { Surface } from '../../../src/components/ui/Surface';
 import { AppText } from '../../../src/components/ui/Typography';
-import { ChevronLeft, ChevronRight } from 'lucide-react-native';
-import { gutter, radius, space, theme } from '../../../src/theme';
+import { Briefcase, ChevronLeft, ChevronRight, Users } from 'lucide-react-native';
+import { gutter, iconSize, iconStroke, radius, space, theme } from '../../../src/theme';
 import { useBookingFormStore } from '../../../src/store/bookingFormStore';
 import { vehiclesApi } from '../../../src/api/vehicles';
 import type { Vehicle } from '../../../src/types/api';
@@ -316,9 +316,29 @@ function VehicleCard({
               {vehicle.description ?? ''}
             </AppText>
 
+            {/*
+              CAPACITY AS ICONS, not only as words.
+              *
+              Both numbers were already here as text. The icons are the change:
+              seats and bags are the two facts a customer scans when choosing
+              between two cars that cost different amounts, and a row of small
+              grey words is read last or not at all.
+              *
+              The numbers come from `vehicle.capacity_passengers` and
+              `capacity_luggage` — real columns on `GET /vehicles`, verified
+              against a live response. NOT from `observedRateCards`, which
+              carries seats and bags for the client's five classes and is
+              fenced off from every customer-facing screen.
+            */}
             <View style={styles.metaRow}>
-              <AppText variant="captionSm">{`${vehicle.capacity_passengers} guests`}</AppText>
-              <AppText variant="captionSm">{`${vehicle.capacity_luggage} bags`}</AppText>
+              <View style={styles.capacity}>
+                <Users size={iconSize.xs} color={theme.content.tertiary} strokeWidth={iconStroke.decorative} />
+                <AppText variant="captionSm">{String(vehicle.capacity_passengers)}</AppText>
+              </View>
+              <View style={styles.capacity}>
+                <Briefcase size={iconSize.xs} color={theme.content.tertiary} strokeWidth={iconStroke.decorative} />
+                <AppText variant="captionSm">{String(vehicle.capacity_luggage)}</AppText>
+              </View>
               {fare && !quoteOnly ? (
                 <AppText variant="micro" style={styles.allIn}>
                   All-in
@@ -369,6 +389,7 @@ const styles = StyleSheet.create({
   titleRow: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', gap: space.sm },
   name: { flex: 1 },
   description: { marginTop: 4, marginBottom: 7 },
+  capacity: { flexDirection: 'row', alignItems: 'center', gap: space.xs },
   metaRow: {
     flexDirection: 'row',
     alignItems: 'center',

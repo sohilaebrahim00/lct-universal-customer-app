@@ -20,6 +20,17 @@ interface Props {
   actions?: ReactNode;
   onPress?: () => void;
   /**
+   * Offers Book again on this row.
+   *
+   * A CALLBACK TAKING THE ID, not a rendered node, for the same reason
+   * `onOpen` is: this component is memoised, and an inline element passed as
+   * `actions` would be a new object on every render and would defeat the memo
+   * entirely. The memo and the id-taking callbacks are one design, not two.
+   */
+  onBookAgain?: (id: string) => void;
+  /** Label for the Book again control. Named so the caller can say Book again or Rebook. */
+  bookAgainLabel?: string;
+  /**
    * The stable alternative to `onPress` for list rows.
    *
    * A memoised row is only memoised if its props hold their identity between
@@ -57,6 +68,8 @@ function TripCardBase({
   onPress,
   id,
   onOpen,
+  onBookAgain,
+  bookAgainLabel = 'Book again',
 }: Props) {
   const live = !isTerminalStatus(status) && status !== 'pending';
   const fare = formatCurrency(totalFare, currency);
@@ -80,6 +93,19 @@ function TripCardBase({
         </AppText>
 
         {actions ? <View style={styles.actions}>{actions}</View> : null}
+
+        {onBookAgain && id ? (
+          <Pressable
+            onPress={() => onBookAgain(id)}
+            accessibilityRole="button"
+            accessibilityLabel={`${bookAgainLabel}: ${route}`}
+            style={({ pressed }) => [styles.bookAgain, pressed ? styles.bookAgainPressed : null]}
+          >
+            <AppText variant="caption" color={theme.content.accent}>
+              {bookAgainLabel}
+            </AppText>
+          </Pressable>
+        ) : null}
       </View>
     </Card>
   );
@@ -112,6 +138,10 @@ const styles = StyleSheet.create({
   },
   topRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: space.sm },
   route: { marginBottom: space.xs },
+  /* 44 high: this sits inside a row that is itself tappable, so it must be a
+     target in its own right rather than a word that happens to be touchable. */
+  bookAgain: { minHeight: 44, justifyContent: 'center', marginTop: space.xs },
+  bookAgainPressed: { opacity: 0.7 },
   actions: {
     flexDirection: 'row',
     gap: space.sm,

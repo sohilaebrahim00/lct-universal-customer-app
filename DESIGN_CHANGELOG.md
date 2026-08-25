@@ -1479,3 +1479,93 @@ fail, proved by injecting an unreachable route.
 That is the shape every checker in this repository should have, and the one that
 would have prevented all three void claims without anybody having to remember
 why.
+
+---
+
+## The Blacklane comparison — three tiers, and what the codebase already had
+
+A competitor recording arrived with "add all of these features". Split three
+ways before anything was built: what must not be copied, what is buildable with
+data the app already has, and what needs a decision or a backend field.
+
+### Four of the seven Tier 1 items were already built
+
+Checking before building is the whole finding here.
+
+| asked for | what was actually there |
+|---|---|
+| Seats and bags on class cards | **already rendered as text** — `3 guests · 3 bags`. The change is icons, so the two facts are scannable rather than read last. Much smaller than "highest value per line of code" implied |
+| Recent and suggested locations | **already there** — `LocationPickerScreen` loads saved locations and `recentPlacesFrom(bookings)` |
+| Ride type surfaced as a step | **already there**, and broader: the booking entry is a six-service picker, a superset of Blacklane's one-way/by-the-hour sheet |
+| Journeys: Upcoming / Past | **already there** as a `SegmentedControl`; Book again already existed on Home |
+
+Genuinely missing: **Cancelled as its own tab**, **Book again on the Journeys
+rows**, a **fourth journey tile**, an **estimated drop-off time**, and the
+**swap**.
+
+### The swap control: the premise did not fit the flow
+
+Blacklane puts a swap between two address fields on one screen. **This app has
+no two-field screen** — pickup and drop-off are two sequential full-screen
+pickers, so there was nowhere to put it. Building one would be a redesign of the
+booking flow, not "one control".
+
+It went on the **details step** instead, and the placement is the reasoning:
+that is the only screen where both addresses are known and **no price exists
+yet**. Swapping a journey changes its route, and a route change must produce a
+**new quote** rather than move an existing one. On the vehicle or review screen
+a swap would invalidate a fare the customer had already been shown.
+
+So it clears `distanceMiles`, `durationMinutes`, `routePolyline`, the chosen
+`vehicle` and `allInFare`, then re-routes. **A→B and B→A are not the same
+drive** — one-way streets and turn restrictions differ — so reusing the old
+distance would price the new journey with the old journey's number. If the
+re-route fails the fields stay null and the vehicle screen says what is missing,
+rather than quoting against a stale figure.
+
+### The fourth tile is point_to_point, because city-to-city does not exist
+
+Blacklane's grid is Airport, Hourly, City-to-City, Corporate. `ServiceType` is
+airport, corporate, events, point_to_point, hourly, custom — **there is no
+intercity service**, and a tile for one would be a tile for something LCT does
+not sell. `point_to_point` takes the slot: the site's own "single private pickup
+and drop-off, door to door".
+
+Events and Custom Request are real and deliberately left off. Four is the grid;
+both stay one tap away in the picker, and six tiles at 320px is a menu.
+
+### rebookDraftFrom, and what it refuses to carry
+
+Home and Journeys now share one mapping, so they cannot drift when a field is
+added to the booking form. It carries the route, service type and party size. It
+**does not** carry the date, the vehicle or the fare: a repeated journey is the
+same route, not the same ride, and the old fare was computed for a different day
+— the late-night surcharge alone can move it.
+
+### What was refused
+
+Blacklane's **15-minute wait** and **one-hour cancellation** are Blacklane's
+policy. LCT's are 30/60 and 12/6/48, confirmed, in `servicePolicy.ts`.
+
+**By-the-hour with included mileage contradicts the fare rule.** Their hourly
+product charges for extra distance and time; LCT's fare is fixed at booking and
+`quoteIsNotScaled` exists to keep it that way. An included-mileage model is a
+change to what the business sells — `HANDOFF.md` §6.2, a business decision.
+
+The chauffeur **offer system** is an operating model, not a feature.
+
+### Verified, and not
+
+**Verified:** typecheck, lint, 1,894 tests, the sweep, 22 routes at 5 viewports,
+the lifecycle walk and the admin walk. The four journey tiles and the three
+Journeys tabs were **observed rendering**.
+
+**NOT observed rendering:** the swap row, the arrival estimate and the capacity
+icons. All three need a booking draft in memory, and the walker could not reach
+those screens reliably — expo-router keeps prior screens mounted, so text
+queries match the screen underneath and the URL lags the visible view. The gates
+load `/book/details` and `/book/vehicle` directly, where both correctly render
+their *no-draft* guard states, so **the gates do not cover these three**.
+
+Proved: they compile, they lint, the strings ship in the bundle. Not proved:
+that they appear when a customer walks the flow. Stated rather than implied.

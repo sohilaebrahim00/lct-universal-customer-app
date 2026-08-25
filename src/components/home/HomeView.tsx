@@ -52,10 +52,30 @@ interface Props {
   onOpenTrip: (bookingId: string) => void;
 }
 
+/**
+ * THE FOUR WAYS IN.
+ *
+ * Blacklane's home grid offers Airport transfers, Hourly and full day hire,
+ * City-to-City journeys, and Corporate journeys. Three of those four have a
+ * real equivalent in LCT's own `ServiceType`. The fourth does not.
+ *
+ * **There is no city-to-city service.** `ServiceType` is airport, corporate,
+ * events, point_to_point, hourly and custom, and nothing LCT publishes offers
+ * intercity travel. A tile for it would be a tile for a service the business
+ * does not sell — the invented-fact defect with a booking flow attached.
+ * `point_to_point` takes the slot instead: the site's own "single private
+ * pickup and drop-off, door to door", and the service the main Book a car
+ * button already starts.
+ *
+ * Events and Custom Request are real services and are deliberately NOT here.
+ * Four tiles is the grid; both remain one tap away in the booking picker, and a
+ * six-tile grid at 320px stops being a way in and becomes a menu.
+ */
 const SERVICE_TILES: { type: ServiceType; label: string }[] = [
   { type: 'airport', label: 'Airport' },
-  { type: 'corporate', label: 'Corporate' },
+  { type: 'point_to_point', label: 'Point to point' },
   { type: 'hourly', label: 'Hourly' },
+  { type: 'corporate', label: 'Corporate' },
 ];
 
 /**

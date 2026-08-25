@@ -13,7 +13,7 @@ import { gutter, iconSize, iconStroke, radius, space, theme } from '../../../src
 import { useBookingFormStore } from '../../../src/store/bookingFormStore';
 import { calculateFarePreview, type FareBreakdown } from '../../../src/lib/pricingPreview';
 import { fareDiffers, serverFareFrom, type ServerFare } from '../../../src/lib/serverFare';
-import { formatCurrency, formatDateTime, formatServiceType } from '../../../src/lib/format';
+import { formatCurrency, formatDateTime, formatEstimatedArrival, formatServiceType } from '../../../src/lib/format';
 import { isStripeConfigured } from '../../../src/lib/env';
 import { useStripeCheckout } from '../../../src/lib/useStripeCheckout';
 import { AuthGate } from '../../../src/components/AuthGate';
@@ -72,6 +72,9 @@ export default function PaymentStep() {
 
   /** The figure the customer chose on, carried forward — not re-derived. */
   const carried = draft.allInFare;
+
+  // Presented, not computed here — see formatEstimatedArrival().
+  const arrivesApprox = formatEstimatedArrival(draft.scheduledAt, draft.durationMinutes);
 
   /**
    * A last-resort preview, for a draft that somehow arrives with no carried
@@ -238,6 +241,22 @@ export default function PaymentStep() {
             value={draft.scheduledAt ? formatDateTime(draft.scheduledAt.toISOString()) : 'Confirmed on booking'}
             chevron={false}
           />
+          {/*
+            THE QUESTION AN AIRPORT PASSENGER ACTUALLY ASKS.
+
+            The routing duration was already computed to price the journey; this
+            presents a number the app has rather than fetching a new one. It is
+            an ESTIMATE and the label says so — the source is a live-traffic
+            figure for the moment the route was fetched, not a promise about a
+            drive that has not started.
+
+            Absent entirely when there is no duration — an hourly booking has no
+            drop-off, and a manual-entry fallback with no Maps key has no route.
+            No figure, no row.
+          */}
+          {arrivesApprox ? (
+            <ListRow title="Arrives approx." value={arrivesApprox} chevron={false} />
+          ) : null}
           <ListRow title="Car" value={draft.vehicle?.name ?? '—'} chevron={false} divider={false} />
         </Card>
 

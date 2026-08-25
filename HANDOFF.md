@@ -227,3 +227,123 @@ of failure than it looks like.
 `dist/` without SPA fallback 404s every deep path, and a 404 page passes a
 blank-screen check, a touch-target check and a reflow check. Always
 `serve dist -l 5055 --single`.
+
+---
+
+## 5 · Specified, not built — from the Blacklane comparison
+
+Each of these was asked for after a competitor review. None is implemented, each
+names what it needs and who can unblock it.
+
+### 5.1 Book for a guest — **backend field + notification path**
+
+Blacklane: *"arrange their ride in a few taps and we'll keep them informed every
+step of the way."* That is not a screen. It is a passenger record separate from
+the account holder, and notifications going to a phone number that is not the
+payer's.
+
+**Needs:** a passenger name and phone on the booking (`primaryPassengerName` and
+`primaryPassengerPhone` already exist in the draft and are already sent), plus a
+notification route that targets that number rather than the account. The second
+half does not exist.
+**Owner:** backend. Related to C-1 (name-sign text) and C-5 (messaging).
+
+### 5.2 Promotion codes — **endpoint + rules, and a sequencing decision**
+
+The client's own operations panel has a Promotions section, so the concept
+exists on their side. The backend has a `promo_codes` table and
+`discount_amount` arrives on a priced booking.
+
+**Missing:** an endpoint to validate or apply a code, and the rules — who issues
+them, what they discount, whether they stack.
+
+**The sequencing matters more than the screen.** A discount applied *after* a
+quote is still a change to a number the app promised not to change. Either the
+code is entered **before** the fare is shown, so the quoted figure already
+includes it, or the app has to explain a total that moved — which is the exact
+interstitial `fareDiffers()` exists to raise. Decide the order first.
+**Owner:** the business, then the backend.
+
+### 5.3 Apple Pay and Google Pay — **an identifier, a config, and a device**
+
+`app.config.ts` already declares `STRIPE_MERCHANT_IDENTIFIER` and **it is
+unset**.
+
+**Needs:** an Apple merchant identifier registered to LCT, the matching Stripe
+dashboard configuration, and a physical device — neither wallet can be verified
+in a browser, so this cannot be signed off from this workspace at all.
+**Owner:** whoever holds the Apple developer and Stripe accounts.
+**Verification:** a new section in `DEVICE_VERIFICATION.md` when it is turned on.
+
+### 5.4 A support conversation thread — **decide which product LCT wants**
+
+The app has a **Concierge**: an assistant that answers and can act. Blacklane's
+Help tab is a **support conversation with history** — a persistent thread with a
+human, plus help topics.
+
+Those are different products with different backends. Extending the Concierge
+into a support inbox, or building a support thread beside it, are both real
+projects and they do not merge cleanly.
+**Owner:** the business. Nothing should be built until it is answered.
+
+### 5.5 Digital pickup sign — **small, visible, and blocked on one field**
+
+The chauffeur's phone displaying the passenger's name at an airport. Genuinely
+useful and cheap to build.
+
+**Blocked on:** the passenger name reaching the chauffeur view.
+`BACKEND_FOLLOWUPS.md` C-1 records that no such field exists on the trip payload
+the driver app would read. Until it does, a pickup sign would either be blank or
+show a name the app made up.
+**Owner:** backend. One field.
+
+---
+
+## 6 · Asked for, and deliberately refused
+
+Recorded because a refusal that is not written down gets re-litigated.
+
+### 6.1 Blacklane's policy figures
+
+Their app states **15 minutes** of complimentary waiting and free cancellation up
+to **one hour** before pickup. LCT's confirmed policy is **30 and 60 minutes** of
+waiting and cancellation tiered at **12, 6 and 48 hours**, and those live in
+`servicePolicy.ts` with their source.
+
+Copying a competitor's numbers into LCT's screens would be the invented-fact
+defect with a contractual consequence attached. **Not done, and not a judgement
+call.**
+
+### 6.2 By-the-hour with included mileage — **a business decision, not a UI task**
+
+Blacklane's hourly product states *"40 km per hour included — extra distance or
+time incurs extra charges"*, and its chauffeur app advertises that additional
+distance and waiting time can be added to a chauffeur's compensation.
+
+**LCT's fare is fixed at booking, all-inclusive, with no post-trip adjustment.**
+A screen saying extra distance incurs extra charges would make the app
+contradict its own contract, and `tests/quoteIsNotScaled.test.ts` exists
+precisely to stop a fare moving after it is quoted.
+
+LCT already sells an hourly service (`ServiceType` includes `hourly`, priced by
+`per_hour_rate`). What it does not have is an *included-mileage* model with
+overage.
+
+**If the business wants one, that is a change to what LCT sells** — a new
+pricing model, a new contract term, and a decision about whether the fixed-fare
+promise survives it. It is not a feature to add to a screen.
+**Owner:** the business.
+
+### 6.3 The chauffeur offer system — **an operating model, not a feature**
+
+Blacklane's chauffeurs choose rides from offers. The client's own panel
+**assigns** chauffeurs from dispatch. Those are different businesses with
+different economics, and the app should not acquire an offer system on the
+strength of a competitor's screenshot.
+**Owner:** the business, if it ever wants to change how it operates.
+
+### 6.4 The visual language
+
+Blacklane is light, blue and sans-serif. LCT is near-black, champagne gold and
+Cormorant Garamond. What the recording is worth studying for is **information
+architecture** — what appears on which screen, in what order — not the skin.

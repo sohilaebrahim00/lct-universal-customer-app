@@ -55,3 +55,31 @@ export function formatServiceType(serviceType: string): string {
 export function formatVehicleType(vehicleType: string): string {
   return formatServiceType(vehicleType);
 }
+
+/**
+ * "Arrives approximately 7:42 PM", or null.
+ *
+ * ── Why this is a function and not two lines on the review screen ───────────
+ * The screen it feeds is `book/payment.tsx`, which is covered by
+ * `tests/quoteIsNotScaled.test.ts` — the assertion that nothing between quote
+ * and confirmation multiplies a fare. Keeping the minutes-to-milliseconds
+ * arithmetic out of that file keeps the screen's own code free of any
+ * multiplication at all, which is easier to read and easier to keep true.
+ *
+ * ── Precision, deliberately limited ────────────────────────────────────────
+ * The duration comes from the routing service and is a live-traffic estimate
+ * for the moment it was fetched, not a promise about a journey that has not
+ * started. So the copy says "approximately", and the time is rendered to the
+ * minute because that is the precision the source has — never to the second.
+ *
+ * Null when either input is missing. No figure, no line — the same rule the
+ * rest of this app follows rather than showing a dash.
+ */
+export function formatEstimatedArrival(scheduledAt: Date | null, durationMinutes: number | null): string | null {
+  if (!scheduledAt || durationMinutes === null || !Number.isFinite(durationMinutes) || durationMinutes <= 0) {
+    return null;
+  }
+  const arrival = new Date(scheduledAt.getTime() + durationMinutes * 60_000);
+  if (Number.isNaN(arrival.getTime())) return null;
+  return formatTimeOfDay(arrival);
+}

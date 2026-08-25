@@ -16,8 +16,10 @@ import { isUpcomingBookingStatus } from '../../../src/lib/tripStatus';
 import { AuthGate } from '../../../src/components/AuthGate';
 import { useAuthStore } from '../../../src/store/authStore';
 import { asyncState, type AsyncState } from '../../../src/lib/asyncState';
+import { rebookDraftFrom } from '../../../src/lib/rebook';
+import { useBookingFormStore } from '../../../src/store/bookingFormStore';
 
-type Tab = 'upcoming' | 'past';
+type Tab = 'upcoming' | 'past' | 'cancelled';
 
 /**
  * Slice 2 replaces this screen's LOCAL `TripCard` — a worse copy of the shared
@@ -38,10 +40,37 @@ export default function TripsScreen() {
   const router = useRouter();
   /** Stable across renders — see the note at the FlatList's renderItem. */
   const openTrip = useCallback((id: string) => router.push(`/(app)/trips/${id}`), [router]);
+
   const status = useAuthStore((s) => s.status);
   const [tab, setTab] = useState<Tab>('upcoming');
   const [state, setState] = useState<AsyncState<Booking[]>>(asyncState.idle<Booking[]>());
   const [refreshing, setRefreshing] = useState(false);
+
+  const resetDraft = useBookingFormStore((s) => s.reset);
+  const updateDraft = useBookingFormStore((s) => s.update);
+
+  /**
+   * Book again, from a past or cancelled journey.
+   *
+   * Offered on Past and Cancelled only — a ride that has not happened yet is
+   * not one to book again. `useCallback`'d and id-taking so `TripCard`'s memo
+   * is not defeated, exactly as `openTrip` is.
+   *
+   * The draft mapping is the SHARED one, so this screen and Home cannot drift
+   * apart when a field is added to the booking form. See `src/lib/rebook.ts`
+   * for what it carries and — more importantly — what it refuses to carry: the
+   * old date, the old car and the old fare.
+   */
+  const bookAgain = useCallback(
+    (id: string) => {
+      const booking = (state.status === 'success' ? state.data : []).find((b) => b.id === id);
+      if (!booking) return;
+      resetDraft();
+      updateDraft(rebookDraftFrom(booking));
+      router.push('/(app)/book/pickup');
+    },
+    [state, resetDraft, updateDraft, router],
+  );
 
   const load = useCallback(async () => {
     if (status !== 'signed-in') {
@@ -74,9 +103,22 @@ export default function TripsScreen() {
   }
 
   const bookings = state.status === 'success' ? state.data : [];
+  /*
+   * CANCELLED IS ITS OWN TAB, not a row buried inside Past.
+   *
+   * It used to be that `past` meant "everything not upcoming", which swept
+   * cancelled rides in beside completed ones. A customer scanning Past for a
+   * receipt was reading a list where some rows carry a fare that was charged
+   * and some carry a fare that never was — told apart only by a status pill.
+   *
+   * All three lists derive from the SAME statuses the rest of the app uses. No
+   * status is invented for the tab: cancelled is `cancelled`, past is anything
+   * else terminal, upcoming is everything still live.
+   */
   const upcoming = bookings.filter((b) => isUpcomingBookingStatus(b.status));
-  const past = bookings.filter((b) => !isUpcomingBookingStatus(b.status));
-  const rows = tab === 'upcoming' ? upcoming : past;
+  const cancelled = bookings.filter((b) => b.status === 'cancelled');
+  const past = bookings.filter((b) => !isUpcomingBookingStatus(b.status) && b.status !== 'cancelled');
+  const rows = tab === 'upcoming' ? upcoming : tab === 'cancelled' ? cancelled : past;
 
   function routeOf(booking: Booking): string {
     const from = (booking.pickup_address.split(',')[0] ?? '').trim();
@@ -92,6 +134,7 @@ export default function TripsScreen() {
           segments={[
             { value: 'upcoming', label: 'Upcoming', count: upcoming.length },
             { value: 'past', label: 'Past', count: past.length },
+            { value: 'cancelled', label: 'Cancelled', count: cancelled.length },
           ]}
           value={tab}
           onChange={setTab}
@@ -138,6 +181,7 @@ export default function TripsScreen() {
                 currency={item.currency}
                 id={item.id}
                 onOpen={openTrip}
+                onBookAgain={tab === 'upcoming' ? undefined : bookAgain}
               />
             )}
             ListEmptyComponent={
@@ -147,6 +191,14 @@ export default function TripsScreen() {
                   title="No upcoming trips"
                   message="When you book a car, it will show up here."
                   action={<Button label="Book a car" onPress={() => router.push('/(app)/book/pickup')} />}
+                />
+              ) : tab === 'cancelled' ? (
+                /* Its own copy. "No past trips" on the Cancelled tab reads as a
+                   bug, and an empty Cancelled list is good news, not an absence. */
+                <EmptyState
+                  icon={Clock}
+                  title="Nothing cancelled"
+                  message="Rides you cancel will be listed here, with the option to book them again."
                 />
               ) : (
                 <EmptyState icon={Clock} title="No past trips" message="Your completed trips will appear here." />
