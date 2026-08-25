@@ -4,11 +4,13 @@ import { ActivityIndicator, View } from 'react-native';
 import { theme } from '../src/theme';
 import { useAuthStore } from '../src/store/authStore';
 import { hasSeenOnboarding } from '../src/lib/onboarding';
+import { accountKindOf, landingRouteFor } from '../src/lib/accountRole';
 
 export default function Index() {
   const status = useAuthStore((s) => s.status);
   const isGuest = useAuthStore((s) => s.isGuest);
   const guestModeChecked = useAuthStore((s) => s.guestModeChecked);
+  const profile = useAuthStore((s) => s.profile);
   const [onboardingChecked, setOnboardingChecked] = useState(false);
   const [needsOnboarding, setNeedsOnboarding] = useState(false);
 
@@ -27,11 +29,24 @@ export default function Index() {
     );
   }
 
-  // Signed in and guest browsing both land directly in the app shell — the
-  // app is never fully locked behind auth. Specific actions (booking
-  // confirmation, payment methods, trip history) prompt for an account
-  // only when the guest actually reaches them — see AuthGate.tsx.
-  if (status === 'signed-in' || isGuest) return <Redirect href="/(app)" />;
+  /*
+   * ONE LOGIN, THREE DESTINATIONS.
+   *
+   * A chauffeur and an operator sign in on the same screen as a customer and
+   * land somewhere different, because `Profile.role` says so. That field has
+   * been in the API contract since the project started and no screen had ever
+   * read it — `src/lib/accountRole.ts` is the first thing that does.
+   *
+   * A GUEST IS ALWAYS A CUSTOMER, checked before the role: a guest has no
+   * profile, and `accountKindOf(null)` returns customer, but ordering it this
+   * way means a future change to that default cannot route a signed-out
+   * visitor into an operations console.
+   *
+   * Everything else is unchanged: the app is never fully locked behind auth,
+   * and specific actions prompt for an account when a guest reaches them.
+   */
+  if (isGuest) return <Redirect href="/(app)" />;
+  if (status === 'signed-in') return <Redirect href={landingRouteFor(accountKindOf(profile))} />;
   if (needsOnboarding) return <Redirect href="/onboarding" />;
   return <Redirect href="/welcome" />;
 }

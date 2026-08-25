@@ -97,3 +97,152 @@ settles the competitor's included-mileage model as *not what LCT sells*; and
 - First FAQ read returned the questions with all answers collapsed and I nearly
   recorded "the FAQ answers nothing". Expanding the accordion changed the
   outcome of two questions.
+
+---
+
+# Part 1 — the chauffeur as an account
+
+## The field was already there
+
+`Profile.role` is `UserRole = 'customer' | 'driver' | 'admin' |
+'corporate_admin'`, declared in `src/types/api.ts` since the project started,
+served by the real backend, and **read by no screen in the app**.
+`src/lib/accountRole.ts` is the first thing to use it.
+
+So there was no overlay to build and no contract to change — the honest
+implementation was to read a field that had been sitting there unused. One
+login, three destinations, decided by the account.
+
+The backend's word is `driver`; every label a person reads says **chauffeur**,
+the same rule the trip statuses already follow.
+
+## The mapping decision worth naming
+
+**`corporate_admin` is a customer.** A corporate booker manages a company's
+travellers; they do not drive and they do not dispatch. Matching on the word
+"admin" would have dropped them into an operations console. Pinned as its own
+test.
+
+## The chauffeur sees no money
+
+Not a zero, not a placeholder, not an empty row. `CHAUFFEUR_SEES_FARES = false`
+is exported as a named constant with the reason attached, so that anyone adding
+a fare to a chauffeur screen finds the question before they add the prop — and a
+test fails if it is flipped.
+
+The whole site was read on 2026-08-26, including `/join-our-team`. Nothing states
+whether chauffeurs are employees or contractors or what they see.
+`OPEN_QUESTIONS.md` 8.
+
+## A bug I introduced and found by measuring
+
+The first `landingRouteFor()` returned the `_role` paths unconditionally.
+Grepping a build made with `EXPO_PUBLIC_DEMO_MODE=false` showed the screens
+correctly absent — **and the route strings still present**, because the function
+contains them.
+
+A path naming a route that is not in the bundle resolves to the not-found
+screen. **A chauffeur or operator signing into a production build would have
+landed on a 404.**
+
+They now fall back to the customer app: the only surface that exists in that
+build, and `hasStaffRole()` still reports the truth. A designed "not available
+in this build" screen is the better answer and needs copy nobody has written —
+recorded in `HANDOFF.md` §7 rather than guessed.
+
+**This is the second time this project has found a fence that was right about
+screens and wrong about strings.** Absent and unimported are different claims;
+so are "the screens are gone" and "nothing references them".
+
+## What was NOT verified
+
+- **That a chauffeur account can sign in.** There is no auth project confirmed
+  to exist, so the role has never been exercised against a real user. The
+  routing is tested as a pure function; the sign-in it depends on is not.
+- **That the board shows a real schedule.** It shows seeded demo bookings. The
+  layout, ordering and controls are real; the contents are a demonstration.
+- **Anything on a second device.** G-3.
+
+## What was NOT built, and why
+
+**The chauffeur screens themselves were not rebuilt.** `ChauffeurToday`,
+`ChauffeurJob` and `ChauffeurStatus` already exist from Slice 11 with the stage
+controls, the confirmations on irreversible actions, and the arrival overlay.
+Part 1 asked for a role, not a rewrite, and rebuilding working screens to prove
+they were built would have been the largest possible waste of a night.
+
+**Navigation to the phone's maps app WAS added**, after first writing that it
+had not been. `src/lib/mapsLink.ts` builds a `maps:` / `geo:` / web-fallback
+URL from the destination, falling back to the pickup, and the job screen hands
+off with it.
+
+It started inside the component reading `Platform.OS` directly, and a test
+importing it pulled React Native into a node environment and failed to run at
+all. A URL builder is arithmetic on a string: it moved to `src/lib` with the
+platform as an argument, which is what made it testable without a renderer.
+Address-based rather than coordinate-based, because the manual-entry fallback
+reports no coordinates and a coordinate link would open an empty map at exactly
+the moment the app had degraded.
+
+---
+
+# Part 2 — the operator as an account
+
+Same mechanism, one line of the same map: `role: 'admin'` lands on
+`/_role/admin`. The console built in Slice 12 is unchanged — it still writes
+exactly one thing (chauffeur assignment via `assignChauffeur()`), Class Builder
+still reads `observedRateCards.ts` and keeps edits in memory, and the nine empty
+sections still name the missing table, endpoint or open question.
+
+## The fence, verified by absence
+
+Built with `EXPO_PUBLIC_DEMO_MODE=false` and grepped the emitted bundle:
+
+| checked for | found |
+|---|---|
+| `/_role/*` route registrations | **none** |
+| `observed_executive_sedan` (the unconfirmed rate-card data) | **0** |
+| `Preview of a chauffeur app` | **0** |
+| `Preview of an admin console` | **0** |
+| `class attachment unknown` | **0** |
+| bare `_role/...` path strings | **3** — and that is the bug above |
+
+Absent and unimported are different claims, and only one of them is checkable.
+The screens are absent. The strings were not, and that is now handled.
+
+---
+
+# Part 3 — the seven Blacklane additions
+
+**Already delivered in commit `9d1784a`, before this brief arrived.** Checked
+against the seven-item list rather than assumed:
+
+| # | asked | state |
+|---|---|---|
+| 1 | Passenger and luggage counts on class cards | **done** — icons added; the numbers were already there as text |
+| 2 | Swap pickup and drop-off | **done** — on the details step, the only screen where both addresses exist and no price does |
+| 3 | Estimated arrival on review | **done** — `formatEstimatedArrival`, worded as an estimate, absent when there is no duration |
+| 4 | Journeys: upcoming, past, cancelled, book again | **done** — Cancelled is its own tab; Book again on past and cancelled rows |
+| 5 | Journey-types grid, fourth only if the business sells one | **done** — Airport, Point to point, Hourly, Corporate. **No city-to-city tile**: `ServiceType` has no such member and the site sells no intercity service |
+| 6 | Recent and suggested locations | **already existed** before the brief |
+| 7 | Ride type made explicit | **already existed**, and broader — a six-service picker |
+
+One correction to the brief's premise, from Part 0: item 5 says "airport,
+hourly, corporate, and a fourth only if the business sells one". The site's own
+service list is Airport Transfers, Corporate Travel, Events, Group
+Transportation. **"Point to point" is not a name the site uses** — it is
+`ServiceType.point_to_point` and the app's own label for the door-to-door
+service the main Book button already starts. The service is real; the *name* is
+the app's, not the site's. Worth aligning when the class-name question is
+answered.
+
+## What must not be copied — recorded, not built
+
+Blacklane's 15-minute wait and one-hour cancellation; their metered hourly
+product; their chauffeur offer system; their visual language. All four are in
+`HANDOFF.md` §6 with owners.
+
+**Part 0 closed the hourly one.** The FAQ says LCT's hourly is as-directed with
+"no meter to watch", so the competitor's included-mileage model is *not what LCT
+sells*, and nothing needs to change. `OPEN_QUESTIONS.md` 9 now asks only whether
+the business *wants* that model.

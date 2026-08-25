@@ -347,3 +347,63 @@ strength of a competitor's screenshot.
 Blacklane is light, blue and sans-serif. LCT is near-black, champagne gold and
 Cormorant Garamond. What the recording is worth studying for is **information
 architecture** — what appears on which screen, in what order — not the skin.
+
+---
+
+## 7 · The chauffeur and operator roles — what they cannot do yet
+
+One app, one login. `Profile.role` decides where an account lands —
+`'driver'` → the chauffeur board, `'admin'` → the operations console,
+`'customer'` and `'corporate_admin'` → the customer app.
+
+**The field was already in the contract.** `UserRole` has been in
+`src/types/api.ts` since the project started and **no screen had ever read
+it**. `src/lib/accountRole.ts` is the first thing that does. Nothing was
+invented and nothing in the contract changed.
+
+### C-4 is now the single blocking backend item for the chauffeur role
+
+It used to be one entry on a list. It is not any more.
+
+The chauffeur's most important action is **arrived at pickup** — it is what
+tells a waiting customer the car is outside and what starts the complimentary
+waiting window. `TripStatus` has no member for it, so the app records a
+timestamp beside the booking instead. That worked as a demonstration. **Now a
+real chauffeur account is the thing pressing it**, and the datum it produces has
+nowhere to go.
+
+Everything else the chauffeur role needs already exists in the schema. **C-4 is
+the one thing standing between this feature and being real.**
+
+### Three things it cannot do, each with what would unblock it
+
+| what | why | unblocked by |
+|---|---|---|
+| **Sign in as a real chauffeur** | Sign-in runs against whatever auth exists today. A real chauffeur account needs a real user carrying `role: 'driver'`, which needs the Supabase auth project that **has never been confirmed to exist** | the repository owner, then the backend. `RUNBOOK_AUTH_VERIFICATION.md` A1–A7 |
+| **Show a real schedule** | Jobs are seeded demo bookings. The board is a **shape**, not a schedule — the layout, ordering and controls are real; the contents are a demonstration and are labelled as one | a backend with real bookings |
+| **Move a passenger's screen** | A stage marked by a chauffeur on one device does not reach a passenger on another. There is no live channel: `driver_locations` is never written during a trip | **G-3** |
+
+**A role that looks complete and is not connected is the most convincing thing
+in this app and the easiest to misread.** All three limits are stated on the
+screens themselves as well as here.
+
+### A bug found by measuring the fence, not by reading the code
+
+The `_role` screens are stripped from a build made without
+`EXPO_PUBLIC_DEMO_MODE` — verified by grepping the emitted bundle, which
+contains no screen strings and no observed rate-card data.
+
+But the route **strings** ship, because `landingRouteFor()` contains them. A
+path naming a route that is not in the bundle resolves to the not-found screen,
+so **a chauffeur or operator signing into a production build would have landed
+on a 404.**
+
+They now land in the customer app instead — the only surface that exists in that
+build. That is a routing fallback, not a claim that they are customers;
+`hasStaffRole()` still reports the truth.
+
+**A better answer exists** — a designed "not available in this build" screen —
+and it needs a decision about what it should say. Recorded here rather than
+guessed at.
+**Owner:** the business, for the copy. Low urgency: it only fires in a build
+that has no staff surfaces at all.

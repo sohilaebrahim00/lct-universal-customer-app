@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { Linking, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Linking, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { radius, space } from '../../theme/ref';
 import { formatTimeOfDay } from '../../lib/format';
@@ -13,6 +13,7 @@ import {
 } from './roleData';
 import { roleColor, roleLayout, roleTarget, roleText } from './roleTheme';
 import { RoleShell } from './RoleShell';
+import { mapsUrlFor } from '../../lib/mapsLink';
 
 /**
  * CHAUFFEUR — JOB DETAIL.
@@ -61,6 +62,8 @@ export function ChauffeurJob({ bookingId }: { bookingId: string }) {
   const phone = contactPhone(ride);
   const name = contactName(ride);
   const sign = nameSignText(ride);
+  // Destination first, kerb second. See the note at the control below.
+  const navTarget = booking.dropoff_address || booking.pickup_address || null;
 
   return (
     <RoleShell
@@ -109,6 +112,32 @@ export function ChauffeurJob({ bookingId }: { bookingId: string }) {
       <Field label="Client">{name}</Field>
       <Field label="Pick up">{booking.pickup_address}</Field>
       <Field label="Drop off">{booking.dropoff_address}</Field>
+
+      {/*
+        NAVIGATION IS THE PHONE'S OWN MAPS APP, not turn-by-turn in here.
+
+        `geo:` on Android and `maps:` on iOS are the OS handlers, the same way
+        Call and Message use `tel:` and `sms:`. A chauffeur already has a
+        navigation app they trust and a mount they use it in; building routing
+        inside this app would be a large piece of work to produce a worse
+        version of something they have.
+
+        Destination first, falling back to the pickup — before the passenger is
+        aboard the kerb is where the chauffeur is going, and after it the
+        drop-off is. Rendered only when there is an address to hand over; a
+        button that opens an empty map is worse than no button.
+      */}
+      {navTarget ? (
+        <Pressable
+          onPress={() => void Linking.openURL(mapsUrlFor(navTarget, Platform.OS))}
+          accessibilityRole="button"
+          accessibilityLabel={`Navigate to ${navTarget}`}
+          style={({ pressed }) => [styles.navigate, pressed ? styles.navigatePressed : null]}
+        >
+          <Text style={roleText.body}>Navigate in Maps</Text>
+        </Pressable>
+      ) : null}
+
       <Field label="Flight">{booking.flight_number}</Field>
       <Field label="Vehicle">{vehicleName}</Field>
       <Field label="Passengers and bags">
@@ -192,6 +221,16 @@ const styles = StyleSheet.create({
   },
   field: { marginBottom: space.mdl },
   fieldValue: { marginTop: space.xs },
+  navigate: {
+    minHeight: roleTarget.min,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: roleColor.hairline,
+    marginBottom: space.mdl,
+  },
+  navigatePressed: { opacity: 0.85 },
   statusLink: {
     minHeight: roleTarget.min,
     justifyContent: 'center',
