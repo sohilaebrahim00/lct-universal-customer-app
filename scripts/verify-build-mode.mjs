@@ -144,9 +144,47 @@ for (const check of CHECKS) {
   }
 }
 
+const demo = requestedEnv('EXPO_PUBLIC_DEMO_MODE') === 'true';
+
+/**
+ * THE ROLE FENCE, CHECKED AS STRINGS AND NOT ONLY AS SCREENS.
+ *
+ * `app/_role/` is stripped from a non-demo build by `resolver.blockList`, and
+ * grepping for the screens' own copy confirmed they were gone. **That was true
+ * and it was not the whole claim.**
+ *
+ * `landingRouteFor()` in `src/lib/accountRole.ts` contained the paths as string
+ * literals, and `src/lib` is not fenced. So a customer build shipped the route
+ * NAMES without the routes, and a chauffeur or operator signing in would have
+ * been redirected to the not-found screen. That is now handled in code — but a
+ * comment is not a check, and the next person to write a `_role` path into a
+ * shared module would reintroduce it silently.
+ *
+ * This is the same shape as everything else in the "present, readable, inert"
+ * family: **a claim verified in one representation and untrue in another.**
+ * Screens absent is not the same as nothing referencing them.
+ */
+if (!demo) {
+  /*
+   * The SCREENS must be gone. `ROLE_PREVIEW_MARKER` is a unique string exported
+   * by `src/dev/role/roleTheme.ts` and reachable only from the role screens, so
+   * its absence is a real assertion about the shipped bytes rather than about
+   * what imports what.
+   */
+  if (source.includes('LCT_ROLE_PREVIEW_ONLY_a7f2c1')) {
+    problems.push(
+      'Role preview SCREENS present in a non-demo bundle.',
+      '',
+      '  ROLE_PREVIEW_MARKER was found. `app/_role/` should have been stripped',
+      '  by resolver.blockList in metro.config.js.',
+      '',
+      '  RISK:  the chauffeur and operator previews ship to real customers.',
+    );
+  }
+}
+
 if (problems.length > 0) fail(problems.filter((l) => l !== undefined));
 
-const demo = requestedEnv('EXPO_PUBLIC_DEMO_MODE') === 'true';
 console.log(
   `[32m✓[0m build mode verified: EXPO_PUBLIC_DEMO_MODE=${String(demo)} matches the emitted bundle (${outDir}).`,
 );

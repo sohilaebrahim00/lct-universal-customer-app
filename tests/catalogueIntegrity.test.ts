@@ -44,6 +44,17 @@ function appVehicleTypes(): string[] {
 
 const APP_TYPES = appVehicleTypes();
 
+/** The app's display names, read from source rather than duplicated here. */
+function displayNames(): Record<string, string> {
+  const source = readFileSync('src/lib/vehicleImages.ts', 'utf8');
+  const block = (source.split('VEHICLE_DISPLAY_NAME')[1] ?? '').split('};')[0] ?? '';
+  const out: Record<string, string> = {};
+  for (const m of block.matchAll(/(\w+):\s*'([^']+)'/g)) {
+    if (m[1] !== undefined && m[2] !== undefined) out[m[1]] = m[2];
+  }
+  return out;
+}
+
 describe('catalogue integrity', () => {
   it('reads the app catalogue from the API contract', () => {
     // Guards the parse itself. A silently-empty list would make every
@@ -97,7 +108,7 @@ describe('the two catalogues, as observed', () => {
     expect(OBSERVED_RATE_CARDS).toHaveLength(5);
   });
 
-  it('leaves the two app classes with no panel counterpart unpriced', () => {
+  it('records which app classes have no panel counterpart by name', () => {
     /*
      * Display-name matching is the ONLY join available — the panel exposes
      * display names, not identifiers, and no mapping has been agreed. It is a
@@ -109,21 +120,56 @@ describe('the two catalogues, as observed', () => {
      * existing rule already covers exactly the right set, which was worth
      * computing rather than assuming.
      */
-    const appDisplayNames: Record<string, string> = {
-      executive_sedan: 'Executive Sedan',
-      suv: 'Luxury SUV',
-      sprinter: 'Mercedes Sprinter',
-      coach: 'Coach',
-    };
+    /*
+     * PARSED, not retyped — and this block is why.
+     *
+     * It used to carry its own copy of the four display names. When `suv` was
+     * renamed from "Luxury SUV" to "Executive SUV" on 2026-08-28, this test
+     * kept PASSING against its stale copy: it was asserting about a value the
+     * app no longer held, and said nothing while that was true.
+     *
+     * A test that duplicates the thing it checks stops checking it the moment
+     * the thing changes.
+     */
+    const appDisplayNames = displayNames();
     const unmatched = APP_TYPES.filter((t) => !panelNames.includes(appDisplayNames[t] ?? ''));
-    expect(unmatched).toEqual(['sprinter', 'coach']);
-    for (const t of unmatched) expect(isQuoteOnly(t)).toBe(true);
+
+    /*
+     * THREE, not two — and the change is the rename, not the product.
+     *
+     * `suv` used to be called "Luxury SUV", which happened to match a panel
+     * class of that name. Renaming it to "Executive SUV" — the name
+     * `lctuniversal.com/fleet` publishes for the $110 class — means the app and
+     * the panel now share exactly ONE display name: Executive Sedan.
+     *
+     * That is the join getting weaker, not the catalogue getting worse. The
+     * join was always a guess: the panel exposes display names, not
+     * identifiers, and no mapping has been agreed. It is now a guess that
+     * matches less, which is more honest than one that matched on a name the
+     * site says belongs to a different class.
+     */
+    expect(unmatched).toEqual(['suv', 'sprinter', 'coach']);
+
+    /*
+     * Unmatched BY NAME does not imply unpriced, and asserting that it did was
+     * wrong. `sprinter` and `coach` are quote-only; `suv` is priced from a
+     * PUBLISHED figure (From $110, on both of the site's pages). The invariant
+     * that actually matters — every class either published-priced or
+     * quote-only, never neither — is asserted above and is unaffected.
+     */
+    expect(isQuoteOnly('sprinter')).toBe(true);
+    expect(isQuoteOnly('coach')).toBe(true);
+    expect(isQuoteOnly('suv')).toBe(false);
+    expect(publishedStartingLabel('suv')).toBe('From $110');
   });
 
-  it('records that three panel classes have no app equivalent', () => {
-    const appDisplayNames = ['Executive Sedan', 'Luxury SUV', 'Mercedes Sprinter', 'Coach'];
+  it('records that FOUR panel classes now have no app equivalent', () => {
+    const appDisplayNames = Object.values(displayNames());
     const panelOnly = panelNames.filter((n) => !appDisplayNames.includes(n));
-    expect(panelOnly).toEqual(['Premium SUV', 'First Class', 'Large Group Transports']);
+    // Four since the rename. Luxury SUV joins the list because the app no
+    // longer uses that name for anything -- correctly: the app does not sell
+    // the site's  class at all.
+    expect(panelOnly).toEqual(['Premium SUV', 'Luxury SUV', 'First Class', 'Large Group Transports']);
   });
 
   it('records that the two sources disagree on every class they share', () => {

@@ -1569,3 +1569,87 @@ their *no-draft* guard states, so **the gates do not cover these three**.
 
 Proved: they compile, they lint, the strings ship in the bundle. Not proved:
 that they appear when a customer walks the flow. Stated rather than implied.
+
+---
+
+## The Luxury SUV label, and three notes from the role work
+
+### The label was changed. It was wrong under either of the site's namings
+
+`VEHICLE_DISPLAY_NAME.suv` was **"Luxury SUV"** on a class published at
+**From $110**. Both `lctuniversal.com/fleet` and `/rates`, read 2026-08-26,
+reserve that name for the **$130** class.
+
+Leaving a known-wrong customer-facing label in production is itself a decision,
+and the worse one. It now reads **"Executive SUV"** — `/fleet`'s name, the
+catalogue page, as against `/rates` which is a pricing page that happens to list
+classes. The price did not move. Reversible in one line, and
+`OPEN_QUESTIONS.md` 2 now asks *which of two published names*, not *is this one
+right*.
+
+**It also made the app internally consistent**, which nobody had noticed was
+broken: `DEMO_VEHICLES` already carried the literal `'Executive SUV'`, so Home,
+the booking picker, `PricingPreview` and `TrackingSheet` had been showing that
+while Fleet and Corporate showed "Luxury SUV". One class, two names, one app.
+
+**The duplicate-name guard went red on the fix**, exactly as its comment
+promised, and the exemption was deleted deliberately rather than quietly
+starting to pass. That is why it was written to fail in both directions.
+
+**And a second test was found passing against a stale copy.**
+`catalogueIntegrity` carried its own hardcoded map of the four display names.
+After the rename it kept passing — asserting about a value the app no longer
+held, and saying nothing while that was true. It now parses the names from
+source. *A test that duplicates the thing it checks stops checking it the moment
+the thing changes.*
+
+### Provenance is per PAGE, not per site
+
+`PUBLISHED_FLEET_SOURCE.domain` said `lctuniversal.com`. There is no such single
+thing: two pages publish the same prices under different names for four of seven
+classes. `PUBLISHED_NAMES_BY_PAGE` now records both names with both source pages
+and the date.
+
+**Second time in this project a source turned out to be less solid than the
+field describing it.** The first was a transcription that was accurate about a
+page nobody had recorded — and the Slice 10 "correction" that overturned it was
+page-blind in exactly the same way. The old note said "SUV", `/fleet` says
+"Executive SUV", and **both were right about different pages**. A correction can
+be as page-blind as the thing it corrects.
+
+### SECURITY: `corporate_admin` maps to customer, and that is not a naming choice
+
+A corporate booker books for colleagues. They do not dispatch. Matching a role
+on the substring **"admin"** would have put them in an operations console —
+**privilege escalation by string similarity**, arriving through a field nobody
+wrote for that purpose.
+
+`accountKindFor()` matches exact role values with an exhaustive switch, and the
+mapping is pinned by its own test. **The next role name somebody adds is the
+moment that mistake becomes available again**, which is why this is recorded as
+a security note rather than a mapping detail.
+
+### The fence was right about screens and wrong about strings — and only half fixable
+
+`app/_role/` is stripped from a customer build. The **screens** are provably
+gone: `ROLE_PREVIEW_MARKER` is unique to them and absent from the bytes, and
+`verify-build-mode.mjs` now asserts that on every non-demo export.
+
+The **route strings** are not gone, and could not be made to go. They live in
+`landingRouteFor()` and in the Account screen's preview links, both outside the
+fence and both behind runtime guards.
+
+**I tried to remove them and it made the code worse.** Moving the paths behind a
+constant condition — `process.env.EXPO_PUBLIC_DEMO_MODE === 'true' ? {…} : {}`,
+which Metro inlines and a minifier can fold — did not fold, broke a unit test
+that could no longer see the mapping, and would not have covered the Account
+screen's copies anyway. Reverted.
+
+So the check asserts what is true and valuable — the screens are absent — and
+the residue is recorded rather than asserted away: **dead string literals naming
+routes that do not exist.** The runtime is guarded and tested; a staff account in
+a customer build lands in the customer app, not on a 404.
+
+That is the honest end of it: *screens absent* is checkable and checked;
+*nothing references them* is neither, and claiming it would have been the
+fourth instance of a claim true in one representation and untrue in another.

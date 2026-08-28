@@ -107,7 +107,22 @@ function conflicts(): Conflict[] {
  * **Delete this entry when the conflict is resolved.** The test will tell you
  * to: it fails when the actual conflicts stop matching this list.
  */
-const KNOWN_CONFLICTS: Conflict[] = [{ displayName: 'Luxury SUV', figures: ['From $110', 'From $130'] }];
+/**
+ * ── EMPTY, AS OF 2026-08-28. THE GUARD DID ITS JOB IN BOTH DIRECTIONS ──────
+ *
+ * This list held one entry: `Luxury SUV` carrying both `From $110` and
+ * `From $130`, because the app applied the $130 class's name to its $110 class.
+ *
+ * The site was re-read from primary source on 2026-08-26 and **both** its pages
+ * reserve "Luxury SUV" for the $130 class, so the label was wrong under either
+ * naming. `VEHICLE_DISPLAY_NAME.suv` is now `'Executive SUV'`, the name
+ * `/fleet` publishes for the $110 class.
+ *
+ * **This test went red on the fix**, exactly as its comment promised it would,
+ * and the exemption is being deleted deliberately rather than quietly starting
+ * to pass. That is the whole reason it was written to fail in both directions.
+ */
+const KNOWN_CONFLICTS: Conflict[] = [];
 
 describe('published display names must not carry conflicting figures', () => {
   it('has exactly the known conflicts, and no others', () => {
@@ -119,13 +134,19 @@ describe('published display names must not carry conflicting figures', () => {
     expect(conflicts()).toEqual(KNOWN_CONFLICTS);
   });
 
-  it('names the conflict loudly enough to act on', () => {
-    // Not decoration: this is the assertion that the recorded conflict is the
-    // real one, with the real figures, rather than a stale label.
-    const luxurySuv = conflicts().find((c) => c.displayName === 'Luxury SUV');
-    expect(luxurySuv).toBeDefined();
-    expect(luxurySuv?.figures).toContain('From $110');
-    expect(luxurySuv?.figures).toContain('From $130');
+  it('no longer applies the $130 class name to the $110 class', () => {
+    /*
+     * The conflict this file was written for, asserted as RESOLVED rather than
+     * simply deleted — so that reintroducing it fails here with the reason
+     * attached rather than only tripping the generic check above.
+     *
+     * "Luxury SUV" belongs to the $130 class on both of the site's pages. It
+     * must never again be the name attached to `From $110`.
+     */
+    const luxurySuvFigures = publishedEntries()
+      .filter((e) => e.displayName === 'Luxury SUV')
+      .map((e) => e.figure);
+    expect(luxurySuvFigures).toEqual(['From $130']);
   });
 
   it('every published figure is either a From price or a quote request', () => {
@@ -150,8 +171,19 @@ describe('published display names must not carry conflicting figures', () => {
  * name wins — has to update this test on purpose.
  */
 describe('the two names for the suv class', () => {
-  it('still disagrees, and both names are still in the code', () => {
-    expect(displayNames().suv).toBe('Luxury SUV');
+  it('now agrees with itself, and with the page that names the catalogue', () => {
+    /*
+     * It used to disagree: `VEHICLE_DISPLAY_NAME.suv` said "Luxury SUV" while
+     * the demo row's `name` said "Executive SUV", so Fleet and Corporate showed
+     * one name while Home, the booking picker, PricingPreview and TrackingSheet
+     * showed another — one class, two names, in one app.
+     *
+     * Both now read "Executive SUV", which is what `lctuniversal.com/fleet`
+     * publishes for the $110 class. `/rates` calls the same class "SUV"; which
+     * of the two the business wants is OPEN_QUESTIONS.md 2, and changing it is
+     * one line.
+     */
+    expect(displayNames().suv).toBe('Executive SUV');
     const demoData = readFileSync('src/dev/demoData.ts', 'utf8');
     expect(demoData).toContain("name: 'Executive SUV'");
   });

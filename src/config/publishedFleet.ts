@@ -175,3 +175,36 @@ export const PUBLISHED_FLEET_REREAD = {
   /** The two pages disagree on four of seven class names. See the note above. */
   siteIsSelfInconsistentOnNames: true,
 } as const;
+
+/**
+ * ── PROVENANCE IS PER PAGE, NOT PER SITE ───────────────────────────────────
+ *
+ * `PUBLISHED_FLEET_SOURCE.domain` says `lctuniversal.com`. **That is now known
+ * to be insufficiently precise**, because there is no single "the site":
+ * `/fleet` and `/rates`, read the same day, publish the same prices under
+ * different names for four of seven classes.
+ *
+ * A provenance field has to be as specific as the disagreement it might have to
+ * explain. This is the second time in this project that a source turned out to
+ * be less solid than the field describing it — the first was a transcription
+ * that was accurate about a page nobody had recorded.
+ *
+ * So each class records BOTH published names with BOTH source pages. Where the
+ * two agree there is one name; where they disagree, both are kept, and no code
+ * picks between them except `VEHICLE_DISPLAY_NAME`, which records its choice
+ * and its reason at the point of the choice.
+ */
+export const PUBLISHED_NAMES_BY_PAGE = {
+  readOn: '2026-08-26',
+  pages: { fleet: 'lctuniversal.com/fleet', rates: 'lctuniversal.com/rates' },
+  /** price → what each page calls it. Identical entries mean the pages agree. */
+  classes: [
+    { published: 'From $95', fleet: 'Executive Sedan', rates: 'Sedan', appType: 'executive_sedan' },
+    { published: 'From $110', fleet: 'Executive SUV', rates: 'SUV', appType: 'suv' },
+    { published: 'From $130', fleet: 'Luxury SUV', rates: 'Luxury SUV', appType: null },
+    { published: '$150/hour', fleet: 'First Class Sedan', rates: 'First Class Sedan', appType: null },
+    { published: 'Request Quote', fleet: 'Executive Sprinter', rates: 'Executive Sprinter', appType: 'sprinter' },
+    { published: 'Request Quote', fleet: 'Executive Mini Coach', rates: 'Mini Coach', appType: 'coach' },
+    { published: 'Request Quote', fleet: 'Executive Coach', rates: 'Motor Coach', appType: 'coach' },
+  ],
+} as const;

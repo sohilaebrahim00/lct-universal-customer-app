@@ -9,36 +9,52 @@ Nothing here can be answered from inside this repository.
 
 ---
 
-## 1 · The app was publishing a rating the company's own site declines to publish
+## 1 · May the app display your aggregate rating? **Nobody has asked you.**
 
-**This one is new, it is customer-facing, and it has already been acted on.**
+The home screen was showing **"4.93 from 55 reviews"** — real figures, read by
+hand from a third-party reputation dashboard on 2026-08-22, with a source and a
+date. Not invented.
 
-The home screen showed **"4.93 from 55 reviews"** — real figures, hand-read from
-a third-party reputation dashboard on 2026-08-22, with a source and a date.
-
-`lctuniversal.com/reviews`, read 2026-08-26, says in the company's own words:
+`lctuniversal.com/reviews`, read 2026-08-26, says:
 
 > "LCT Universal only publishes verified reviews from our own clients. As we
 > collect and verify them, they will appear on this page."
 > **"Rather than publish placeholder quotes, we choose to leave this page
 > honest."**
 
-So the business has no verified reviews to publish yet and has deliberately
-chosen not to imply otherwise, while its app was implying otherwise on the first
-screen a customer sees.
+**What that sentence actually says:** the site declines to publish **fabricated
+testimonials**, and no verified reviews are published there yet.
 
-**Action taken:** the line is **no longer rendered**. The constant is kept with
-both dates in `src/config/reputation.ts`. Removing a claim is the safe
-direction; restoring it needs one sentence.
+**What it does not say:** that you have decided against stating your rating. An
+aggregate from your own dispatch system is not a placeholder quote, and it is
+entirely possible you would be happy to publish 4.93 from 55 real rides and
+simply have never been asked. Reading "we will not invent testimonials" as "we
+have chosen not to state our rating" is a reasonable guess, and it is still a
+guess.
 
-**The question:** may the app publish the dashboard rating, given the site does
-not? If yes, say so and it goes back. If the figure should come from somewhere
-else, name the source.
+**Action taken, pending your answer:** the line is **not currently rendered**.
+The app was making a claim about the business that the business had not made
+about itself, and while that is unresolved the conservative direction is not to
+make it. The constant is kept with both dates in `src/config/reputation.ts`.
+
+**The question:** may the app display the dashboard aggregate? If yes, one
+sentence restores it. If you would rather it came from somewhere else, name the
+source. **Nobody has said no — nobody has asked.**
 **Owner:** the business.
 
 ---
 
-## 2 · The $110 SUV class carries the $130 class's name — and the site contradicts itself
+## 2 · Which of your two published names should the $110 class use?
+
+**Not** "is the current name wrong" — that part is settled and fixed. The app
+called its **$110** class *"Luxury SUV"*, and both your pages reserve that name
+for the **$130** class. It was wrong under either naming, so it was changed to
+**"Executive SUV"** on 2026-08-28. **The price did not move.**
+
+`/fleet` was chosen because it is the catalogue — the page whose job is naming
+the classes — while `/rates` is a pricing page that happens to list them. It is
+one line to change and `src/lib/vehicleImages.ts` records both candidates, both
+source pages and the date.
 
 **Checked:** `/fleet` and `/rates`, both read 2026-08-26.
 
@@ -56,16 +72,16 @@ of seven classes:
 **Why this does not settle it:** neither page is marked authoritative, and they
 disagree.
 
-**But it does sharpen it.** Both pages reserve **"Luxury SUV"** for the **$130**
-class. The app displays its **$110** class as "Luxury SUV"
-(`VEHICLE_DISPLAY_NAME.suv`), which is wrong under *either* naming. That part is
-no longer ambiguous.
-
-**The question is now only:** should the $110 class read **"SUV"** or
+**The question is one word:** should the $110 class read **"SUV"** or
 **"Executive SUV"**? A choice between your own two pages, not a pricing
-decision.
-**Not changed here** — a class name is a customer-facing value.
-**Owner:** the business. One word.
+decision. The app currently shows `/fleet`'s.
+
+**A second, smaller one while you are there:** the same disagreement covers your
+two coach classes — `/fleet` calls them *Executive Mini Coach* and *Executive
+Coach*, `/rates` calls them *Mini Coach* and *Motor Coach*. The app collapses
+both into one quote-only `coach` class, so nothing is mispriced, but whichever
+naming you settle on should be the one both pages use.
+**Owner:** the business.
 
 ---
 

@@ -246,3 +246,71 @@ product; their chauffeur offer system; their visual language. All four are in
 "no meter to watch", so the competitor's included-mileage model is *not what LCT
 sells*, and nothing needs to change. `OPEN_QUESTIONS.md` 9 now asks only whether
 the business *wants* that model.
+
+---
+
+# Follow-up — the label decision, and a fence I could only half fix
+
+## The Luxury SUV label was changed, and I agreed with the reasoning
+
+Changed `VEHICLE_DISPLAY_NAME.suv` from `'Luxury SUV'` to `'Executive SUV'`.
+The price did not move.
+
+I agreed, and there is an argument I had not made: **`DEMO_VEHICLES` already
+carried the literal `'Executive SUV'`**, so Home, the booking picker,
+`PricingPreview` and `TrackingSheet` were already showing that name while Fleet
+and Corporate showed "Luxury SUV". The rename did not just move to a published
+name — it made the app internally consistent, which nobody had listed as a
+defect.
+
+**Two guards fired, and one of them was itself stale:**
+
+- `publishedNameConflicts` went **red on the fix**, exactly as designed, so the
+  `KNOWN_CONFLICTS` exemption had to be deleted deliberately.
+- `catalogueIntegrity` **kept passing** — it carried its own hardcoded copy of
+  the display names and was asserting about a value the app no longer held. It
+  now parses from source. A test that duplicates the thing it checks stops
+  checking it the moment the thing changes, and says nothing while that is true.
+
+Fixing the parse then surfaced a real consequence: the app and the panel now
+share exactly **one** display name (Executive Sedan), down from two. That is the
+name-join getting weaker, not the catalogue getting worse — and the join was
+always documented as a guess.
+
+## Question 1 was over-inferred and is now narrower
+
+I had written the reviews question as though the site had *chosen not to state
+its rating*. It says it will not publish **placeholder quotes** — fabricated
+testimonials. An aggregate from their own dispatch system is not that, and they
+may simply never have been asked.
+
+The removal stands, because the conservative direction while it is unresolved is
+not to make a claim the business has not made. But the question now says plainly:
+**nobody has said no — nobody has asked.**
+
+## The fence: right about screens, and I could not make it right about strings
+
+Asked to assert the absence of the route strings as well as the screens. I added
+the check, it **failed**, and it was correct to fail: `_role/chauffeur`,
+`_role/admin` and `_role/dispatcher` are all in a customer bundle.
+
+**I tried to remove them and made the code worse.** Moving the paths behind
+`process.env.EXPO_PUBLIC_DEMO_MODE === 'true' ? {…} : {}` — a constant condition
+Metro inlines and a minifier can fold — did **not** fold, broke a unit test that
+could no longer see the mapping, and would not have covered the second source
+anyway: the Account screen's preview links hold the same paths.
+
+Reverted. The check now asserts what is **true and checkable** — the screens are
+absent, via `ROLE_PREVIEW_MARKER`, on every non-demo export — and the residue is
+recorded rather than asserted away: dead string literals naming routes that do
+not exist. The runtime is guarded and tested; a staff account in a customer
+build lands in the customer app, not on a 404.
+
+**Claiming "nothing references them" would have been the fourth instance** of a
+claim true in one representation and untrue in another. I would rather ship the
+weaker assertion and say so.
+
+## What I did NOT do
+
+Nothing else. The brief said to stop rather than find work, and there is no
+honest next slice here: nine questions for the client, a device, and a backend.
