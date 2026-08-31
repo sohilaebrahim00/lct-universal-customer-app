@@ -36,7 +36,18 @@ import type { Booking } from '../../types/api';
  * has no rating the backend can supply (`BACKEND_FOLLOWUPS.md` §2), and
  * `reputation.ts` holds the company's own figure with its source and read-date.
  * Inventing a per-chauffeur score here would be the fourth invented fact this
- * project has had to delete. It records the tap and says thank you.
+ * project has had to delete.
+ *
+ * ── The tap is NOT sent anywhere, and the confirmation used to lie about it ──
+ * `onRate` is optional and the only real caller (`app/(app)/trips/[id].tsx`)
+ * never passes one, so the tap sets local component state and nothing else —
+ * it does not even survive leaving this screen and coming back, let alone
+ * reach a server. The confirmation used to read "your rating has been
+ * recorded," which is untrue in every sense that matters to the person
+ * reading it. Found and fixed 2026-09-01, the night before a client sees this
+ * exact screen: a failure rendering as a success is worse than the missing
+ * feature it's standing in for, because a crash gets reported and a false
+ * "recorded" does not.
  */
 
 export interface TripReceiptProps {
@@ -124,7 +135,7 @@ export function TripReceipt({ booking, chauffeurName, onRate }: TripReceiptProps
           </View>
         ) : (
           <AppText variant="body" style={styles.thanks} accessibilityLiveRegion="polite">
-            Thank you — your rating has been recorded.
+            Thank you — this preview doesn&apos;t save ratings yet.
           </AppText>
         )}
       </Surface>

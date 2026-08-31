@@ -18,6 +18,9 @@ import { useAuthStore } from '../../../src/store/authStore';
 import { asyncState, type AsyncState } from '../../../src/lib/asyncState';
 import { rebookDraftFrom } from '../../../src/lib/rebook';
 import { useBookingFormStore } from '../../../src/store/bookingFormStore';
+import { isDemoMode } from '../../../src/lib/env';
+import { copy } from '../../../src/copy/strings';
+import { AppText } from '../../../src/components/ui/Typography';
 
 type Tab = 'upcoming' | 'past' | 'cancelled';
 
@@ -130,6 +133,11 @@ export default function TripsScreen() {
     <View style={styles.screen}>
       <View style={styles.header}>
         <ScreenHeader title="Trips" />
+        {isDemoMode ? (
+          <AppText variant="caption" style={{ marginBottom: space.sm }}>
+            {copy.common.demoDataNotice}
+          </AppText>
+        ) : null}
         <SegmentedControl<Tab>
           segments={[
             { value: 'upcoming', label: 'Upcoming', count: upcoming.length },

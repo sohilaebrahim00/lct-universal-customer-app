@@ -745,3 +745,51 @@ showed a new bundle hash and contained the AdminPanels.tsx fix's own text
 ("disagrees with itself"). **The deploy is confirmed current as of this
 push, checked from the artifact itself, not from elapsed time or a
 dashboard status.**
+
+---
+
+# Two things on the demo path, 2026-09-01
+
+## 1 · The rating input — told the truth instead of a false success
+
+Confirmed: `TripReceipt`'s five-star control called `onRate?.(n)`, and the
+only real caller (`app/(app)/trips/[id].tsx`) never passes `onRate`. The tap
+set local component state — invisible even to a page reload, let alone a
+server — and then displayed "Thank you — your rating has been recorded."
+That sentence was false in every sense the person reading it would assume.
+
+**Kept the input, fixed the sentence** (option A of the two offered): the
+stars are a real, working, accessible interaction worth keeping in the demo,
+and replacing them with a static state would have removed a genuinely
+finished piece of UI to solve a copy problem. Now reads "Thank you — this
+preview doesn't save ratings yet." Verified by driving an actual completed
+trip's receipt and tapping a star — screenshotted before and after, not
+inferred from the source.
+
+## 2 · Realistic customer data with no signal it's a preview — found to be real, fixed narrowly
+
+Checked the specific question asked: **could a person walking the app tomorrow
+mistake demonstration bookings, names, and addresses for their own real
+ones?** Answer: close enough to yes that it was worth the smallest possible
+fix. The `_role/*` previews all say "preview" in their own copy — Home,
+Trips, Saved Locations and Saved Passengers say nothing. Saved Passengers in
+particular shows full names and phone numbers with the same visual weight a
+real address book would have.
+
+**One line, gated by the same `isDemoMode` flag already used for "Reset
+demo," on exactly those four screens** — "Preview data — for this
+walkthrough only." Added to `src/copy/strings.ts` rather than hardcoded four
+times. No banner, no redesign, nothing on screens that don't carry this kind
+of data. Screenshotted all four before writing this up: quiet, sits under
+the existing title where an eyebrow or caption already lives, doesn't
+compete with anything else on screen.
+
+## Then stopped
+
+No other changes. Full gate suite re-run once, complete, all clean: `tsc`,
+`eslint app src scripts`, `npm test` (1,894/1,894, 18 suites), `export:web`,
+`sweep.mjs` (now completing the full booking path — the earlier fix held),
+`verify:a11y` (22×5, zero failures), `verify:lifecycle`, `verify:admin`
+(class-builder conflict panel still renders correctly). Pushed, then polled
+the live bundle for both fixes' own text rather than assuming the push was
+enough.

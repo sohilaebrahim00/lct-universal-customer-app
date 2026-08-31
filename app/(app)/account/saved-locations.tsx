@@ -12,6 +12,8 @@ import { AppText } from '../../../src/components/ui/Typography';
 import { profilesApi } from '../../../src/api/profiles';
 import type { SavedLocation } from '../../../src/types/api';
 import { space, theme } from '../../../src/theme';
+import { isDemoMode } from '../../../src/lib/env';
+import { copy } from '../../../src/copy/strings';
 
 export default function SavedLocationsScreen() {
   const [locations, setLocations] = useState<SavedLocation[]>([]);
@@ -54,9 +56,14 @@ export default function SavedLocationsScreen() {
       {loadError ? (
         <ErrorState title="We couldn't load your saved locations" message="This is our end, not yours." onRetry={load} />
       ) : null}
-      <AppText variant="title" style={{ marginBottom: space.lg }}>
+      <AppText variant="title" style={{ marginBottom: isDemoMode ? 2 : space.lg }}>
         Saved Locations
       </AppText>
+      {isDemoMode ? (
+        <AppText variant="caption" style={{ marginBottom: space.lg }}>
+          {copy.common.demoDataNotice}
+        </AppText>
+      ) : null}
 
       {locations.map((loc) => (
         <Card key={loc.id} row style={{ marginBottom: space.sm }}>

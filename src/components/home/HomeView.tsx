@@ -14,6 +14,7 @@ import type { Booking, ServiceType, TripDriverInfo, TripVehicleInfo } from '../.
 import type { AsyncState } from '../../lib/asyncState';
 import { isDemoMode } from '../../lib/env';
 import { formatCurrency, formatPickupWhen } from '../../lib/format';
+import { copy } from '../../copy/strings';
 
 /**
  * Home's presentation, with no data fetching in it.
@@ -138,6 +139,7 @@ export function HomeView({
             <AppText variant="title" numberOfLines={1}>
               {firstName ?? 'Welcome'}
             </AppText>
+            {isDemoMode ? <AppText variant="caption">{copy.common.demoDataNotice}</AppText> : null}
           </View>
           <Avatar name={fullName} uri={avatarUrl} size="md" />
         </View>

@@ -17,6 +17,14 @@ export const copy = {
     save: 'Save',
     retry: 'Try Again',
     loading: 'Loading…',
+    /**
+     * Shown only when `isDemoMode` — never in a real build. The names, trips,
+     * addresses and contacts on these screens are realistic enough to be
+     * mistaken for someone's actual records with no other signal on screen
+     * saying otherwise (unlike the `_role/*` previews, which say "preview" in
+     * their own copy). One quiet line, not a banner. Added 2026-09-01.
+     */
+    demoDataNotice: 'Preview data — for this walkthrough only.',
   },
   settings: {
     title: 'Settings',
