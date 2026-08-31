@@ -736,3 +736,12 @@ way.
 See the reply to the user for the three-list handover report — kept out of
 this file because it belongs in the conversation the client will actually
 read, not buried in a document named after engineering slices.
+
+## 7 · The final push, reverified live
+
+Pushed `5143e02` and polled the deployed bundle rather than assuming a
+build-time delay had passed: first check, ~30 seconds after push, already
+showed a new bundle hash and contained the AdminPanels.tsx fix's own text
+("disagrees with itself"). **The deploy is confirmed current as of this
+push, checked from the artifact itself, not from elapsed time or a
+dashboard status.**
