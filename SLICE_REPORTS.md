@@ -550,11 +550,35 @@ re-confirmation note above, and the five-line "what today could not produce"
 table now at the very top, each with a named owner), `DEVICE_VERIFICATION.md`
 and `DEMO_GUIDE.md` (Arabic item voided, not silently dropped — see Part C).
 
-## Pushed to `main`, and confirmed by loading the deployed build
+## Pushed to `main` — the deploy could NOT be confirmed by loading it, and I'm saying so rather than the deploy report
 
-Pushed after every gate above was green. `netlify.toml` builds `main` via
-`npm run export:web` and auto-deploys to `https://lctapp.netlify.app/` on
-push — confirmed the deploy actually shipped what was just pushed by loading
-that URL afterward and checking the served bundle for evidence of today's
-specific changes, not by reading Netlify's own "deploy succeeded" status,
-which proves a build ran and nothing about what it contains.
+Pushed after every gate above was green (`c3affab..c6cd28f`). `netlify.toml`
+builds `main` via `npm run export:web` and auto-deploys to
+`https://lctapp.netlify.app/` — this is the step I could not close today.
+
+**Every attempt to load that URL failed at the connection level, not the HTTP
+level:** `curl` over IPv4 and IPv6 (connection timed out, 15-25s, curl exit
+28), a verbose TCP trace showing no SYN-ACK from either resolved IP on port
+443 within 10s, `ping` to the resolved address (100% packet loss), and
+`WebFetch` (failed outright, no response at all — a harder failure than
+`lctuniversal.com`'s empty-but-200 response earlier in Part B). DNS resolves
+the hostname to real IPs, so this isn't a typo or a dead domain.
+
+**Isolated to this one site, not a blanket block:** `lctuniversal.com` —
+reachable, HTTP 200, in the same few minutes on the same connection — so
+whatever is wrong is specific to `lctapp.netlify.app`, not outbound HTTPS,
+not Netlify's own infrastructure in general (`netlify.com` and
+`app.netlify.com` both answered fine too).
+
+**What this does and does not mean:** it does not mean the deploy failed —
+Netlify's dashboard may show it succeeded, and per this brief's own rule that
+is exactly the claim not to trust. It also does not mean the deploy is
+broken; I have no evidence either way. What I have is a URL I could not load
+from this environment, by four independent methods, in a session with no
+Netlify credentials to check deploy status any other way.
+
+**Not silently left as "done."** Recorded as its own line, with an owner, at
+the top of `HANDOFF.md`: someone with network access to that URL (or Netlify
+dashboard access) needs to load it and confirm it reflects `c6cd28f` — the
+push itself is real and already on GitHub regardless of what that check
+finds.

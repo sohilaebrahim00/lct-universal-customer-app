@@ -11,6 +11,18 @@ useful than a document that ends on the word "done":**
 | Anything verified on hardware | Whoever holds a device — see `DEVICE_VERIFICATION.md`, text scaling first |
 | A resolved price or class name | The business — see `OPEN_QUESTIONS.md` #2 and #9 |
 
+**A sixth, found today rather than pre-listed:** today's push (`c6cd28f`) was
+**not** confirmed live at `https://lctapp.netlify.app/`. Every attempt to load
+it — `curl` (IPv4 and IPv6), a verbose TCP trace, `ping`, `WebFetch` — timed
+out at the connection level, while `lctuniversal.com` and Netlify's own sites
+answered fine seconds apart on the same connection, so this is specific to
+that one URL, not a general network block. This does not mean the deploy
+failed; it means it was not checked, and per this document's own standard
+that distinction matters. **Owner:** whoever has network access to that URL
+or Netlify dashboard access to `lctapp.netlify.app` — confirm it serves
+`c6cd28f` (build-mode marker, or just that Settings no longer shows a
+language switcher). Full diagnostic trail in `SLICE_REPORTS.md`, Part D.
+
 Four lists follow. Every item in them names who can unblock it too.
 
 ---
