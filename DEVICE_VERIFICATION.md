@@ -16,6 +16,28 @@ no observation could be found, the item says so and names who decides.
 
 ## 0. Prerequisites — do these once
 
+**Tooling, before any command below will work.** This assumes none of it is
+installed yet — skip what you already have.
+
+- **Node.js** (any recent LTS) and **npm** — if `npm install` below fails
+  before it even starts, this is why.
+- **Xcode** (from the Mac App Store, Mac only) — required for iOS builds and
+  for Instruments (items 2, 3, 6). Open it once after installing and accept
+  its license before anything else touches it.
+- **Android Studio** — installing it also installs `adb` (Android Debug
+  Bridge), which items 2 and 3's commands require. After installing, add
+  `platform-tools` to your `PATH` (Android Studio's own setup wizard offers
+  to do this) and confirm with `adb devices` — it should list your phone once
+  connected with USB debugging enabled (Settings → About phone → tap "Build
+  number" 7 times → Developer options → USB debugging).
+- **An Expo account and the EAS CLI** (`npm install -g eas-cli`, then
+  `eas login`) — `npm run build:dev` below calls `eas build`, which needs
+  both. If nobody has this project's EAS project linked yet, `eas build`
+  will prompt to create one on first run.
+- **One iPhone and one mid-range Android**, both with a cable or the same
+  Wi-Fi network as the machine running these commands. See "Devices needed"
+  below for why mid-range specifically matters.
+
 ```bash
 npm install
 npx expo-doctor                 # confirms SDK 57 alignment before you burn a build
@@ -42,6 +64,17 @@ npm run verify:maps-keys ios,android
 ```bash
 npm run build:dev               # runs the maps-key check, then eas build --profile development
 ```
+
+**Getting the build onto the phone.** `eas build` uploads to Expo's servers
+and, when it finishes (several minutes — it prints progress and a URL), gives
+you a link and a QR code for that specific build. Open the link on the phone
+itself (or scan the QR with its camera) to install it directly — no App
+Store, no Play Store, no cable required for the install step itself. Once
+installed, open the app on the phone, then on the machine run
+`npx expo start --dev-client` and either scan the terminal's QR code from
+inside the app or tap the dev server it should auto-detect on the same
+Wi-Fi. If that connection doesn't happen, both devices are very likely on
+different networks — check that first before anything more elaborate.
 
 **Devices needed.** One iPhone, and one **mid-range** Android — a Pixel 6a, a
 Galaxy A5x or similar. A flagship Android will pass items 1 and 2 whatever the
@@ -321,10 +354,12 @@ full-sequence assertion, and `scripts/lifecycle-walk.mjs` driving the browser.
 
 ### 11.1 Does a stage change reach another device at all?
 
-**This is G-3 and the honest expectation is NO.** The demo store is one
-browser's `localStorage`; two views in one tab share it, two phones do not.
-`driver_locations` is never written during a trip, so there is no live channel
-carrying a status change between devices.
+**The honest expectation is NO — this is gap G-3**
+(`BACKEND_FOLLOWUPS.md` §G-3: `driver_locations` is never written during a
+trip). The demo store is one browser's `localStorage`; two views in one tab
+share it, two phones do not. There is no live channel carrying a status
+change between devices — this procedure exists to demonstrate that gap
+concretely, not to find a bug that might not be there.
 
 **Procedure.** Two devices, same trip. Advance the stage on device A.
 **Pass:** device B reflects it within a stated number of seconds.

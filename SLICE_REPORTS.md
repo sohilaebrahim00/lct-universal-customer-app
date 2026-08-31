@@ -582,3 +582,46 @@ the top of `HANDOFF.md`: someone with network access to that URL (or Netlify
 dashboard access) needs to load it and confirm it reflects `c6cd28f` — the
 push itself is real and already on GitHub regardless of what that check
 finds.
+
+---
+
+# Part E — making the device work runnable, not just written
+
+`DEVICE_VERIFICATION.md` was already close to this brief's own bar before
+today — text scaling already sits first, with the exact reason stated
+("shipped code that will execute for the first time on the phone of the user
+who most needs it working"), and nearly every item already carries a table
+with an observation-shaped pass criterion rather than a feeling. So this
+wasn't a rewrite; it was closing the specific gaps a person with a phone and
+no context would actually hit, each checked rather than assumed.
+
+**Checked, not assumed, and correct as written:**
+`npm run verify:maps-keys ios,android` — ran it for real. It correctly parsed
+the platform list and reported a genuine, currently-true finding
+(`GOOGLE_MAPS_API_KEY_ANDROID` unset locally), not a fabricated demo of
+success. The Android package and iOS bundle identifier the `adb`/Instruments
+commands assume (`com.lctuniversal.customer`) match `app.config.ts` exactly.
+
+**Three real gaps closed:**
+
+1. **No tooling prerequisites.** The document assumed Xcode, Android Studio
+   plus `adb` on `PATH`, and an EAS account with the CLI installed and
+   logged in — none stated. Added as the first thing in §0, including how to
+   turn on USB debugging and confirm `adb devices` sees the phone, since
+   "a person with a phone and no context" cannot be assumed to have any of
+   this already.
+2. **No instructions for getting the build onto the phone.** `eas build`
+   finishes with a URL and a QR code; the document jumped straight from
+   running it to "devices needed" with nothing about the install step or
+   connecting to the dev server afterward. Added, including the
+   "check you're on the same network" first move for the most common failure.
+3. **`G-3` used with no definition.** Item 11.1 referenced "this is G-3" as
+   if the reader already had `BACKEND_FOLLOWUPS.md` open. Added the one-line
+   pointer inline.
+
+**What I did not change:** the pass criteria themselves, the frame-rate and
+cold-start thresholds, the haptics table, the OLED procedure. All of that was
+already stated as an observation, already had a reason attached, and item 12
+already names the client as the owner of the one genuinely unmeasurable
+judgement call. Rewriting working prose to sound like mine would have cost
+more than it added.
