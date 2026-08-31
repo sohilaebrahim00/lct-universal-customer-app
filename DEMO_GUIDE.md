@@ -164,11 +164,13 @@ data from the other side.
 > unsaved notice appear. Reload — it is gone. That is deliberate: these figures
 > may never reach a customer.
 >
-> **Then scroll to the bottom.** The console shows, side by side, that this app
-> publishes one SUV class at **From $110** while carrying the name, image and
-> description of a **$130** class. Nobody has decided which is right. **The
-> console's job here is to show the business its own inconsistency**, not to
-> quietly pick a side.
+> **Then scroll to the bottom.** The console shows, side by side, that
+> `lctuniversal.com` disagrees with itself: `/fleet` calls this **From $110**
+> class "Executive SUV", `/rates` calls it "SUV". The app now shows this name
+> consistently everywhere — that internal split was fixed 2026-08-28 — and
+> uses `/fleet`'s name. Nobody has decided which of the site's own two names
+> the business prefers. **The console's job here is to show the business its
+> own inconsistency**, not to quietly pick a side.
 
 **20. `Fleet`, then `Chauffeurs`.**
 

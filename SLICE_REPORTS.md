@@ -625,3 +625,114 @@ already stated as an observation, already had a reason attached, and item 12
 already names the client as the owner of the one genuinely unmeasurable
 judgement call. Rewriting working prose to sound like mine would have cost
 more than it added.
+
+---
+
+# Delivery-eve pass, 2026-08-31/09-01
+
+## 1 · The deployed build — proven, not assumed
+
+`https://lctapp.netlify.app/` was unreachable last time by every method I
+tried. Tonight, forcing `curl --resolve` onto a different Netlify edge IP
+worked — the specific IPs this hostname currently resolves to are unreachable
+from this connection, but Netlify's shared edge (which routes by Host header)
+isn't, and answers the same site regardless of which IP is used.
+
+**Proof it matches `main`, not just that it loaded:** the live bundle contains
+zero Arabic strings (rules out anything before 2026-08-30's reversal) and
+four occurrences of "Executive SUV" (rules out anything before the
+2026-08-28 label fix). There is no possible deployed state in between —
+yesterday's Arabic-removal-plus-fix work was never committed until it was
+already complete, so the commit history has no broken intermediate state a
+stale deploy could be stuck on. **The deployed build matches `main` as of
+last night's push.** Tonight's further commits (below) still needed their own
+push-and-reverify, done at the end of this pass.
+
+## 2 · What a client finds in the first ten minutes
+
+**The class label itself was already correct** (`Executive SUV`, fixed
+2026-08-28) — but two places still described it as broken, which is worse
+than the original bug for a demo: a viewer reading either would conclude the
+app has an unfixed defect it does not have.
+
+- `src/config/publishedFleet.ts` — a comment stated, present tense, that the
+  app "displays its $110 class as 'Luxury SUV'". Corrected to say what
+  happened and when.
+- `src/dev/role/admin/AdminPanels.tsx` — the **operations console itself**
+  told a viewer the app shows two different names on different screens. It
+  does not, since 2026-08-28. Rewritten to show the conflict that is
+  actually still live: the app's name choice against the site's own two
+  pages disagreeing with each other. Verified rendering via `verify:admin`
+  (`class builder conflict shown: true`, char count moved from 2017 to 2073)
+  and a direct screenshot.
+
+**Screen walk, both widths, 20 screens (10 routes × phone/desktop):** zero
+console errors, zero page errors, zero blank screens. Visual review of the
+key screens (home, fleet, pickup, drop-off, vehicle-step guard, date/time
+step, account) found nothing clipped, no stuck skeleton, no disagreeing
+price. One real find in the process, not in the product: `sweep.mjs`'s own
+booking-path probe tapped a button labelled "Confirm Location", which has
+never existed — the real button reads "Confirm pickup" (matching
+`DEMO_GUIDE.md`'s own wording) and needs a location selected first, which the
+script never did either. Fixed and verified: re-ran the sweep, watched it
+proceed past pickup into a populated drop-off screen instead of silently
+giving up. This was the sweep failing to test what it claimed to, not a
+product defect — but it meant the "booking path" portion of every past sweep
+report was weaker than it read.
+
+**Invented-content sweep — one real gap found and closed, not just
+patterns checked.** `FIXTURE_DRIVER.rating = '4.98'` sits in
+`src/dev/fixtures.ts`, fenced from every production build by
+`metro.config.js`'s `blockList` — and that file's own comment promised
+`export const EXCLUSION_MARKER` would be grepped out of `dist/` by an
+automated check. No script ever did that grep; `verify-build-mode.mjs`
+checked the role-preview marker and stopped there. Manually confirmed the
+fence itself holds (`grep -c EXCLUSION_MARKER dist/**/*.js` → 0) before
+writing anything, then added the check `verify-build-mode.mjs` was missing —
+proved it actually fires by injecting the marker into a throwaway bundle and
+watching it fail, not just that it parses. Found the night before a
+handover, which is exactly when this project's own rule says the last one
+gets found.
+
+## 3 · Three roles
+
+`verify:lifecycle` (all seven stages, customer + dispatcher views both
+reflect every chauffeur action) and `verify:admin` (16/16 sections, the
+corrected conflict panel confirmed rendering) both re-run clean tonight
+against a fresh build. `tests/accountRole.test.ts`'s chauffeur-money-fence
+assertions pass as part of the full suite. The console write-scope claim
+("assignment only") is unchanged and still enforced by the same code path
+`verify:admin` exercises — no new write surface was added tonight, so it
+wasn't re-derived, only re-run.
+
+**Demo-mode env var, confirmed in the actual deploy, not assumed:** the live
+bundle fetched in §1 contains `EXPO_PUBLIC_DEMO_MODE:"true"` inlined —
+proof the Netlify environment variable is set correctly today, from the
+artifact that shipped, not from checking a dashboard.
+
+## 4 · Gates, fresh tonight, all clean
+
+`tsc --noEmit` · `eslint app src scripts` · `npm test` (1,894/1,894, 18
+suites) · `npm run export:web` (build-mode + maps-key checks, including the
+newly-added fixture-fence check) · the corrected `sweep.mjs` · `verify:a11y`
+(22 routes × 5 viewports, zero failures) · `verify:lifecycle` · `verify:admin`
+— each run once, complete, nothing partial.
+
+## 5 · `CLIENT_DEMO_GUIDE.md` — new, not a rewrite of `DEMO_GUIDE.md` in place
+
+`DEMO_GUIDE.md` stays as the internal version — it cites `HANDOFF.md`, gap
+IDs (`G-3`, `C-4b`), and file paths a client has no reason to open, and the
+team still needs those cross-references. Wrote a separate client-facing
+document with the same numbered walk and exact URLs, every internal
+reference translated into plain language, and the limitations section kept
+whole and unsoftened at the end rather than trimmed. Also fixed the one
+stale claim `DEMO_GUIDE.md` itself carried — step 19 described the
+already-fixed internal name split as if it still existed, which is the exact
+defect §2 above found in the admin console. Both are now correct in the same
+way.
+
+## 6 · Report
+
+See the reply to the user for the three-list handover report — kept out of
+this file because it belongs in the conversation the client will actually
+read, not buried in a document named after engineering slices.

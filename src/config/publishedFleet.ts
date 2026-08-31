@@ -151,12 +151,15 @@ export const WEBSITE_CLASSES_WITHOUT_BACKEND_EQUIVALENT = [
  * `/fleet` prefixes "Executive"; `/rates` does not. Both are the client's own
  * site and neither is marked authoritative.
  *
- * **This SHARPENS the open naming defect rather than resolving it.** Both pages
- * reserve the name "Luxury SUV" for the $130 class. The app displays its $110
- * class as "Luxury SUV" (`VEHICLE_DISPLAY_NAME.suv`), which is wrong under
- * EITHER page's naming — so that is no longer ambiguous. What remains open is
- * only whether the $110 class should read "SUV" or "Executive SUV", which is a
- * choice between the client's own two pages.
+ * **This SHARPENED the naming defect before it was fixed.** Both pages
+ * reserve the name "Luxury SUV" for the $130 class, and at the time this
+ * paragraph was written the app displayed its $110 class as "Luxury SUV"
+ * (`VEHICLE_DISPLAY_NAME.suv`) — wrong under EITHER page's naming. **Fixed
+ * 2026-08-28**: `VEHICLE_DISPLAY_NAME.suv` now reads `'Executive SUV'`,
+ * `/fleet`'s name for the class, with both candidates and both source pages
+ * recorded at the point of that choice in `src/lib/vehicleImages.ts`. What
+ * remains open is only whether the business prefers "SUV" or "Executive SUV"
+ * — a choice between the client's own two pages, not a defect.
  *
  * Not changed here: a class name is a customer-facing value. See
  * `OPEN_QUESTIONS.md` question 2.

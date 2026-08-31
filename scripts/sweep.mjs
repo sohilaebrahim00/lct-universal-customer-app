@@ -43,7 +43,14 @@ console.log('--- booking path ---');
 await go('/', 'home');
 await tap('Book a car');
 await go(page.url().replace(BASE,''), 'pickup', 2200);
-await tap('Confirm Location');
+// Select a saved location first — "Confirm pickup" stays disabled with no
+// address chosen, so tapping it alone (the previous version of this script)
+// never actually confirmed anything; it just failed to find a button named
+// "Confirm Location", which was also the wrong label — the real button reads
+// "Confirm pickup". Both fixed 2026-09-01, found while walking the product
+// the night before delivery.
+await tap('Home');
+await tap('Confirm pickup');
 await page.waitForTimeout(1500);
 await go(page.url().replace(BASE,''), 'after-pickup', 2000);
 

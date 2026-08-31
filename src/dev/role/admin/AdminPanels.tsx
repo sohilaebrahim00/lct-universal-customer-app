@@ -327,15 +327,24 @@ export function ClassBuilder() {
         THE CONFLICT, SHOWN RATHER THAN RESOLVED.
 
         A console that shows the business its own inconsistency is doing its
-        job. Nothing here picks a winner — that is a business decision with a
-        paying customer attached, and it is the first item in HANDOFF.md.
+        job — but only while the inconsistency it names is still real. This
+        panel used to say the app itself showed two different names for this
+        class ("Luxury SUV" on Fleet/Corporate, "Executive SUV" on Home/the
+        booking picker). That was fixed 2026-08-28 — every screen now reads
+        "Executive SUV" — and the panel kept describing the old, already-fixed
+        split, which is exactly the stale-comment defect this project keeps
+        finding and keeps saying it won't repeat. The conflict that is still
+        real: the app's chosen name against the site's OWN two pages
+        disagreeing with each other. Nothing here picks a winner — that is a
+        business decision with a paying customer attached, and it is
+        `OPEN_QUESTIONS.md` question 2.
       */}
-      <Section title="What this app publishes for the same classes">
+      <Section title="What this app publishes for the same class">
         <View style={styles.conflict}>
           <Text style={roleText.body}>Executive SUV · {PUBLISHED_STARTING_LABELS.suv}</Text>
           <Text style={roleText.bodySoft}>
-            The app displays this class as “Luxury SUV” on Fleet and Corporate, and as “Executive
-            SUV” on Home and the booking picker.
+            The app shows “Executive SUV” consistently — Fleet, Corporate, Home, and the booking
+            picker all agree.
           </Text>
           {WEBSITE_CLASSES_WITHOUT_BACKEND_EQUIVALENT.map((c) => (
             <Text key={c.name} style={roleText.bodySoft}>
@@ -343,8 +352,9 @@ export function ClassBuilder() {
             </Text>
           ))}
           <Text style={[roleText.body, styles.unsaved]}>
-            One class carries the $110 SUV price under the $130 Luxury SUV&apos;s name. Unresolved on
-            purpose — see HANDOFF.md.
+            lctuniversal.com itself disagrees with itself: /fleet calls this class “Executive SUV”,
+            /rates calls it “SUV”. The app uses /fleet&apos;s name. Unresolved on purpose — see
+            OPEN_QUESTIONS.md #2.
           </Text>
         </View>
       </Section>

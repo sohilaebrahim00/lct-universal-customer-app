@@ -183,6 +183,33 @@ if (!demo) {
   }
 }
 
+/*
+ * THE GALLERY/FIXTURE FENCE, CHECKED THE SAME WAY — AND UNTIL NOW, NOT AT ALL.
+ *
+ * `metro.config.js`'s own comment on `app/_dev/` promised: "Verified rather
+ * than assumed: `src/dev/fixtures.ts` exports a unique `EXCLUSION_MARKER`;
+ * `npm run export:web` followed by a grep of `dist/` for it must return
+ * nothing." No script ever did that grep — the promise was real, the check
+ * was not. Found while sweeping for invented content the night before a
+ * handover: `FIXTURE_DRIVER.rating = '4.98'` sits behind exactly this fence,
+ * an invented number one blockList regression away from a production bundle.
+ * Manually confirmed absent before adding this (`grep -c EXCLUSION_MARKER
+ * dist/**\/*.js` → 0), so this codifies a true claim rather than asserting an
+ * untested one. Unlike the role fence, this runs in EVERY build, demo or not
+ * — `app/_dev/` is blocked unconditionally in metro.config.js.
+ */
+if (source.includes('LCT_FIXTURE_MARKER_MUST_NOT_SHIP_7f3a91')) {
+  problems.push(
+    'Gallery/fixture-harness SCREENS present in a production bundle.',
+    '',
+    '  EXCLUSION_MARKER was found. `app/_dev/` should have been stripped',
+    '  by resolver.blockList in metro.config.js — unconditionally, demo or not.',
+    '',
+    '  RISK:  invented preview data (e.g. FIXTURE_DRIVER\'s rating) ships to',
+    '         real customers.',
+  );
+}
+
 if (problems.length > 0) fail(problems.filter((l) => l !== undefined));
 
 console.log(
