@@ -426,6 +426,14 @@ settled and built into the plan above. Four genuinely open questions remain.
 
 ### Decision 1 — Does Arabic ship in this pass, or only become possible?
 
+**RESOLVED, then reversed — 2026-08-30, see `DESIGN_CHANGELOG.md`.** Option A
+below was taken (RTL-ready plumbing, no Arabic font or strings yet), and later
+a full second locale, translations, RTL layout flipping, and a restart flow
+were built on top of it. Then Arabic was reversed outright as a business
+decision: **English only, no RTL, no locale switching.** The proposal below is
+left as written — it's the historical record of what was weighed and why —
+but neither option describes where the app is now.
+
 - **A. RTL-ready only (recommended).** Slice 8 does the plumbing: script axis in the type tokens, all
   55 physical-direction props → logical, the `textAlign` trap fixed, directional icons mirrored, all
   35 screens' strings moved into `src/i18n/locales/`. Arabic strings and fonts land later as a

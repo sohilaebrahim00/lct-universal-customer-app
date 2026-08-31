@@ -221,9 +221,11 @@ read on a phone set to London time shows London's clock. Bookings carry no
 timezone — gap C-4b.
 
 **Nothing here has been verified on a real phone.** Frame rates, cold start,
-haptics, the sheet's drag behaviour, the map with real keys, and whether an
-Arabic layout reads correctly are all untested. Each has a written procedure in
-`DEVICE_VERIFICATION.md` and needs a device and half an hour.
+haptics, the sheet's drag behaviour, and the map with real keys are all
+untested. Each has a written procedure in `DEVICE_VERIFICATION.md` and needs a
+device and half an hour. (Arabic/RTL is not on this list — it was reversed as
+a business decision on 2026-08-30, not deferred pending a device; see
+`DESIGN_CHANGELOG.md`.)
 
 ---
 

@@ -1,14 +1,15 @@
 import { PixelRatio, StyleSheet, Text, type TextProps, type TextStyle } from 'react-native';
 import { theme, resolveType, type TypeRole } from '../../theme';
-import { isRTL } from '../../i18n/rtl';
 
 /**
  * The app's only text primitive.
  *
  * Roles, never sizes. `<AppText variant="subheading">` — never `fontSize: 16`.
- * Each role resolves through the script axis in src/theme/type.ts, so the same
- * semantic role is a different size, leading and tracking in Arabic than in
- * Latin (Arabic takes no tracking at all, and needs ~12% more leading).
+ * `resolveType(role)` still resolves through the script axis in
+ * src/theme/type.ts, defaulting to `'latin'` — Arabic/RTL support was built and
+ * then reversed as a business decision (see DESIGN_CHANGELOG.md, 2026-08-30),
+ * so nothing here selects `'arabic'` anymore, but the per-script metrics stay
+ * in `type.ts` rather than being collapsed into one table.
  *
  * ── Line height and dynamic type ────────────────────────────────────────────
  * React Native's `lineHeight` is absolute, not a multiplier, and — unlike
@@ -61,8 +62,7 @@ function resolveRole(variant: Variant): { role: TypeRole; color: string } {
 
 export function AppText({ variant = 'body', color, center, style, ...rest }: Props) {
   const { role, color: defaultColor } = resolveRole(variant);
-  const script = isRTL() ? 'arabic' : 'latin';
-  const base = resolveType(role, script);
+  const base = resolveType(role);
 
   // See the note above: fontSize scales with the OS setting and lineHeight does not.
   const fontScale = PixelRatio.getFontScale();

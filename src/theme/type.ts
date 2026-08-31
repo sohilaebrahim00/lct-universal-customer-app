@@ -30,27 +30,22 @@
  * POSITIVE on small uppercase. Cormorant at 39px needs −0.7 or it reads loose
  * and airy rather than authoritative.
  *
- * ── The script axis ────────────────────────────────────────────────────────
- * Every role resolves per script, because Arabic is not a size override on
- * Latin — it is different metrics for the same semantic role:
+ * ── The script axis — REVERSED, 2026-08-30 ──────────────────────────────────
+ * Arabic/RTL support was built (an i18n store, translated strings, RTL layout
+ * rules, per-script metrics below) and then reversed as a business decision,
+ * not a technical one — see DESIGN_CHANGELOG.md. `src/i18n/` and everything
+ * that imported from it (screen back-chevrons, `AppText`, `ListRow`) has been
+ * removed. `resolveType()` no longer takes a script argument and always
+ * resolves `'latin'`.
  *
- *   · NO letter-spacing, ever. Arabic is a connected script; positive tracking
- *     breaks the joins. This is why tracking cannot be a global token.
- *   · NO uppercase. Arabic has no case, so `textTransform` is dropped, not
- *     translated.
- *   · NO italics (none are used here, but the rule belongs with the others).
- *   · Line height +~12%. Deep descenders, tall ascenders and diacritics collide
- *     at Latin leading.
- *   · Optical size +1–2pt at the same hierarchy level, with a 14pt floor for
- *     body — an Arabic "Regular" reads lighter and smaller than a Latin one.
- *   · Figures are NOT adjusted: Arabic UI keeps Western numerals reading
- *     left-to-right, per src/i18n/rtl.ts rule 4.
- *
- * Arabic entries currently name the LATIN families. No Arabic face ships in this
- * pass (decided: RTL-ready only), so this axis carries the metrics and the rules
- * and waits for the font. When one lands — IBM Plex Sans Arabic or Noto Naskh
- * Arabic, loaded through expo-font with the splash gated on it — only the
- * `fontFamily` values below change.
+ * The `arabic` entries below are UNUSED — nothing calls `resolveType` with
+ * `'arabic'` anymore. They are kept rather than deleted because the metrics
+ * (no letter-spacing on a connected script, no uppercase, +~12% line height,
+ * +1–2pt optical size) were derived carefully and would have to be re-derived
+ * from scratch if this is ever revisited; deleting them would make the next
+ * attempt start from zero instead of from a documented decision. This is a
+ * decision to record, not "a plan still waiting" — there is no roadmap item
+ * that revives this, only the note that the work already exists if one does.
  */
 
 import type { TextStyle } from 'react-native';

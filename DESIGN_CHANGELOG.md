@@ -1653,3 +1653,85 @@ a customer build lands in the customer app, not on a 404.
 That is the honest end of it: *screens absent* is checkable and checked;
 *nothing references them* is neither, and claiming it would have been the
 fourth instance of a claim true in one representation and untrue in another.
+
+---
+
+## 2026-08-30 — Arabic/RTL, reversed
+
+**English only.** Arabic and RTL support — a locale store, translated strings
+for Settings, RTL layout conventions enforced by lint, a plural-handling
+module, and direction-aware back chevrons across four booking/trip screens and
+two shared components — was built, then reversed as a business decision, not a
+technical one. This entry exists so the two earlier notes describing it as
+future work (`type.ts`'s script axis, `HANDOFF.md` item 10) are not read as a
+plan still waiting; they are a decision that was tried and undone.
+
+**What came out:** `src/i18n/` in full (locale store, `en`/`ar` string tables,
+the plural module), `src/lib/locale.ts` and `src/lib/localeFormat.ts`, their
+five tests, the Settings language switcher, the `no-restricted-syntax`
+untranslated-text lint rule and its `TRANSLATED_SCREENS` allowlist, and every
+`isRTL()` call site — the back-chevron direction branch in `book/details.tsx`,
+`book/payment.tsx`, `book/vehicle.tsx`, `trips/[id].tsx`, `ListRow`'s trailing
+chevron, and `AppText`'s script selection. All six now resolve to a fixed
+LTR/English behaviour with no branch.
+
+**What stayed:** `type.ts`'s per-script metrics (the `arabic` entries in the
+`type` table) are kept, unused, rather than deleted — they were carefully
+derived (no letter-spacing on a connected script, no uppercase, +~12% line
+height, +1–2pt optical size) and re-deriving them from scratch would cost more
+than leaving inert, clearly-commented data in a token file. **The general
+logical-properties lint rule also stayed** — `marginStart`/`marginEnd` cost
+nothing over `marginLeft`/`marginRight` today, and it's the correct default if
+direction support is ever revisited. Both are recorded here specifically so
+neither reads as an oversight in a later audit.
+
+**Verified after the reversal, not just asserted:** `tsc --noEmit`, `eslint app
+src scripts`, and the full test suite (1,894 tests across 18 suites, down from
+1,910 across 21 — the five i18n-specific suites removed, everything else
+unaffected) all pass clean. A repo-wide grep for
+`i18n|useTranslation|useLocaleStore|isRTL` returns matches only in this entry,
+`HANDOFF.md`'s voided item 10, and `type.ts`'s own reversal note above — no
+runnable code anywhere still calls or imports any of it.
+
+---
+
+## 2026-08-31 — the trim yesterday's removal missed, and the honest close
+
+**Yesterday's Arabic/RTL removal went further than asked.** Today's brief drew
+the actual line: trim the locale-specific machinery (second language, RTL
+direction flipping, the restart prompt, device-locale detection, plural
+handling) but *keep* a single-language copy file and the lint rule requiring
+user-facing text to live in it, renamed for what that combination now does —
+centralising copy, not switching languages. Rebuilt as `src/copy/strings.ts`
+(a plain object, no store, no hook — there's nothing left to switch between)
+and `HARDCODED_COPY_RULE`/`COPY_FILE_SCREENS` in `eslint.config.js`, same
+allowlist shape as before, different job.
+
+**Yesterday's repo-wide sweep also missed six live call sites.** `isRTL()`
+from the deleted `src/i18n/rtl.ts` was still imported into `ListRow.tsx`,
+`Typography.tsx`, and four booking/trip screens — none of them touched during
+the initial removal, all of them driving real back-chevron and
+script-selection logic. Found by re-sweeping the whole repo rather than
+trusting yesterday's file list was complete. All six now resolve to a fixed
+LTR behaviour with no branch. A comment in `PlacesAutocomplete.tsx` claiming,
+present tense, that Arabic rows "now get Arabic metrics" was also false by
+this point and is corrected.
+
+**The class label fix (`VEHICLE_DISPLAY_NAME.suv = 'Executive SUV'`,
+2026-08-28) needed no code change today** — checked against `/fleet` and
+`/rates` read directly from `lct_migrate`'s own source (its rendered site is
+pure client-side JS; no tool in this session executes it, so the primary
+source read went one layer down, to the components that render those pages)
+and confirmed unchanged since the last read. `BACKEND_FOLLOWUPS.md` §6's class
+table, which had never been updated past the original mis-transcription, now
+is.
+
+**Every gate — typecheck, lint (incl. `scripts/`), the full test suite, the
+production web export, the 20-screen sweep, the 5-viewport accessibility
+gate, the 7-stage lifecycle walk, the 16-section admin walk — run in one
+invocation each today and reconfirmed clean, including an independent second
+check (a fresh `EXPO_PUBLIC_DEMO_MODE=false` export, grepped by hand rather
+than trusting the checker's own report) of the claim that unconfirmed rate
+cards and role-preview screens are absent from a production bundle. Full
+numbers and the exact commands are in `SLICE_REPORTS.md`, Part D — not
+duplicated here to avoid two places drifting out of sync with each other.

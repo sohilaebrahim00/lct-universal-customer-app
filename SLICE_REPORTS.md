@@ -314,3 +314,247 @@ weaker assertion and say so.
 
 Nothing else. The brief said to stop rather than find work, and there is no
 honest next slice here: nine questions for the client, a device, and a backend.
+
+---
+
+# Part A — which repository, 2026-08-31
+
+## The two codebases
+
+**`lct-universal-customer-app`** (this repo). `main` and `feat/ui-upgrade` are
+**identical** — same head commit `c3affab`, zero commits either direction —
+so there is only one line of work here, not two competing branches. 47
+commits. Expo Router / React Native, targeting iOS, Android and web from one
+codebase. Gates: `tsc --noEmit`, `eslint app src scripts`, 18 Jest suites /
+1,894 tests, `verify:a11y` (5-viewport matrix incl. 320px reflow, contrast,
+touch targets, a completion ledger that exits non-zero on a partial run),
+`verify:lifecycle` (7-stage ride walk across 3 roles), `verify:admin`
+(16-section console walk), `verify:build-mode` (greps the emitted bundle for
+fenced data and role-preview routes). Five living documents (`OPEN_QUESTIONS`,
+`HANDOFF`, `DESIGN_CHANGELOG`, `PLATFORM_RECONCILIATION`, `DEVICE_VERIFICATION`,
+`DEMO_GUIDE`, `BACKEND_FOLLOWUPS`) recording decisions with reasoning and
+dates. Its own `HANDOFF.md` lists what it cannot do: no real backend
+connection, no real authentication, nothing verified on an actual device, no
+two-device (chauffeur→passenger) channel. It has never been built for an app
+store and has no deployment of any kind.
+
+**`LCT-Universal-Vite-Ready-v2/lct_migrate`** (sibling directory, remote
+`github.com/sohilaebrahim00/lct.git`). 19 commits, all in a bug-fix/feature
+register very different from the above — *"Fix client login popup visibility",
+"Fix CSP rules for Google Ads tracking", "Fix Google Tag installation",
+"Final production verification and fixes", "Update Privacy Policy with SMS
+compliance content"*. React + Vite + TanStack Start + Tailwind, built via
+Lovable.dev, deployed to Netlify (`netlify.toml`, two Netlify Functions running
+the Gemini-backed AI Concierge), and reading/writing the **same shared
+Supabase project** (`src/integrations/supabase/`) as the app repos. No test
+script in `package.json` at all — its only gate is `eslint .`. Its own docs
+(`DOMAIN_MIGRATION_AUDIT.md`, `OLD_SITE_PARITY_AUDIT.md`, `MIGRATION-NOTES.md`,
+`LAUNCH_CHECKLIST.md`, `SECURITY_CHECKLIST.md`, `SEO_CHECKLIST.md`) describe
+*it* as a completed migration of an older site onto a new domain and stack —
+already shipped, not in progress. Live Google Ads conversion tracking on a
+site with no automated tests is not something you maintain by accident; that
+detail alone is why I read this one as the one actually taking traffic.
+
+## What each does that the other does not
+
+The web app has what the mobile rebuild has never had: **it is live.** Real
+ad spend is pointed at it, it has a working login flow customers actually use,
+and it is the thing `lctuniversal.com`'s pages — the primary source this whole
+project reads facts from — actually *are*. Losing it loses the business's
+public presence and everything wired to it (ads, SEO, the Netlify Concierge
+functions, whatever leads currently arrive through it).
+
+The mobile rebuild has what the web app was never built to have: a native
+customer app, a native chauffeur app, and an operations console, all sharing
+one login and one role fence verified by absence from a shipped build's bytes
+— plus the accessibility, RTL-hygiene, contrast, and lifecycle gates listed
+above, none of which the web app runs. Losing it loses roughly six weeks of
+audited, gated, documented engineering (the "thirteen slices" this brief
+refers to) with no web equivalent to fall back on — a native app is not a
+CSS media query away from the Vite site, it would have to be rebuilt from
+zero.
+
+## Is this a toolchain migration?
+
+No. I looked for the "same product, different build system" shape the brief
+named as the other possible answer, and the evidence doesn't support it. The
+mobile rebuild's own history calls itself **"the redesign"** of a prior,
+separate Expo app (`type.ts`: *"before this redesign 'Account' was set in 44px
+display serif"*), not a port of the Vite site — and architecturally it
+couldn't be a port: it depends on native maps, native Stripe, native push
+notifications, and a native gesture handler, none of which the Vite site has
+or needs. These are two different **products** (a marketing/booking website,
+and a from-scratch native app with three roles) sharing one backend, not two
+implementations of one product on different stacks.
+
+## Which one is the product going forward
+
+I'm not deciding this — the brief asked for the comparison, not a choice, and
+this is a business call: the web app is generating real traffic today; the
+mobile rebuild is a large, unconnected bet on a different product surface.
+What I can say plainly: **neither is "the wrong repository" for today's work**,
+because they aren't racing for the same finish line. Every file Part B through
+E of today's brief names (`BACKEND_FOLLOWUPS.md`, `OPEN_QUESTIONS.md`,
+`DESIGN_CHANGELOG.md`, `HANDOFF.md`, `PLATFORM_RECONCILIATION.md`,
+`DEVICE_VERIFICATION.md`, `DEMO_GUIDE.md`) already exists only in
+`lct-universal-customer-app`, so that settles where today's work happens
+without my needing to guess. The open question this surfaces — whether
+continued investment in the mobile rebuild is still the right call given the
+web app is the one actually serving customers — is written into
+`OPEN_QUESTIONS.md` as question 10's sibling below, because it's a resourcing
+decision, not a fact I can look up.
+
+---
+
+# Part C — trim, not revert
+
+The previous session (2026-08-30) removed Arabic/RTL support in full — the
+locale store, both string tables, the lint rule, the switcher. Today's brief
+asked for something narrower: **keep** the logical-properties lint rule and
+**keep** a copy file with a rule that user-facing text lives in it, both
+renamed for what they now do; only the locale-specific machinery — the second
+language, direction flipping, the restart prompt, device-locale detection, and
+plural handling — needed to actually be gone. It already was, from yesterday's
+removal; what was missing was the piece that should have survived it.
+
+**Rebuilt:** `src/copy/strings.ts` — a single English object, no `typeof`
+cross-file constraint (there's nothing to constrain it against anymore), no
+hook, no store. `app/(app)/account/settings.tsx` reads from it directly. The
+ESLint rule that used to check translation completeness (`JSXText` containing
+a Latin-or-Arabic letter, against a `TRANSLATED_SCREENS` allowlist) is back as
+`HARDCODED_COPY_RULE` against `COPY_FILE_SCREENS` — same allowlist shape, same
+reason (turning it on everywhere today fails the build for every screen not
+yet converted), different job: it no longer checks a string exists in two
+languages, it checks a string isn't sitting in JSX at all. Verified it still
+fires, not just that it parses: injected a literal into `settings.tsx`, got
+the new message, reverted.
+
+**The fourth chance, taken:** swept the repo for every remaining "Arabic" or
+"RTL" mention outside code already fixed yesterday and found six more —
+`isRTL()` imported into six live files I hadn't touched in the previous
+session's removal (`ListRow.tsx`, `Typography.tsx`, and four booking/trip
+screens), all wired to real back-chevron and script-selection logic, none of
+which showed up until this repo-wide grep. Fixed all six to a fixed LTR
+behaviour. Also corrected a comment in `PlacesAutocomplete.tsx` that stated, in
+the present tense, that "an Arabic suggestion row now gets Arabic metrics" —
+false the moment `resolveType` stopped being called with a script argument
+anywhere. And closed the loop in the planning documents themselves:
+`DESIGN_PLAN.md`'s "Decision 1 — does Arabic ship" now says plainly it was
+resolved and then reversed, rather than reading as a live open question;
+`DEVICE_VERIFICATION.md`'s item 10 (a whole procedure for testing an Arabic
+layout) is marked void instead of describing a test for a feature that no
+longer exists; `DEMO_GUIDE.md`'s "untested on a device" list drops Arabic from
+it, because reversed is not the same claim as untested.
+
+**Verified:** `tsc --noEmit` clean, `eslint app src scripts` clean, full test
+suite **1,894/1,894 passing across 18 suites** — unchanged from yesterday's
+post-removal count, confirming today's additions (the copy file, the renamed
+rule, the six fixed call sites) touched nothing the suite covers incorrectly.
+
+**What I did not do:** rewrite `DESIGN_AUDIT.md`'s P1-7 section, which audits
+the state of the RTL plumbing as it was on the date it was written. That's a
+dated historical finding, not a live plan — the same distinction this file
+draws between *designed* and *verified*. Editing an audit's conclusions after
+the fact would misrepresent what was true when it was checked.
+
+---
+
+# Part B — the corrections still outstanding
+
+## `BACKEND_FOLLOWUPS.md` §6 — corrected
+
+Its class table cited `LCT-Universal-Vite-Ready-v2/lct_migrate/src/lib/site-data.ts`
+as the source, but read it before the 2026-08-26 primary-source pass found
+`/fleet` and `/rates` disagree on four of seven names. Updated the table to
+`/fleet`'s names (the catalogue page — same choice already made in code for
+`VEHICLE_DISPLAY_NAME.suv`), with the original transcribed name kept in
+parentheses per row, and a note that `/rates` still publishes the other name
+live — that disagreement is `OPEN_QUESTIONS.md` #2, not something a table edit
+resolves.
+
+## The class label — already done, verified rather than redone
+
+`VEHICLE_DISPLAY_NAME.suv` already reads `'Executive SUV'`, changed
+2026-08-28, with both candidate names, both source pages, and the date
+recorded in `src/lib/vehicleImages.ts`'s own comment — exactly what today's
+brief asked for. I checked rather than re-applied it. Nothing to do here.
+
+## `OPEN_QUESTIONS.md` against the live site — before 11, after 11, zero closed
+
+Attempted to re-read `lctuniversal.com` directly today and could not: it is a
+pure client-rendered SPA (confirmed with a raw `curl` — HTTP 200, 2.5 KB of
+HTML, `<div id="root"></div>` and nothing else; every page returned empty
+content to every fetch). No tool available in this session executes JavaScript
+against a live page, so "re-read the rendered site" was not something I could
+honestly do today.
+
+**What I did instead, and why it's still primary source and not a guess:** the
+site's own repository is sitting on this machine
+(`LCT-Universal-Vite-Ready-v2/lct_migrate`, clean working tree, `main`, the
+branch that deploys) — so I read the components and data that render those
+pages directly, which is the same content the browser would show, read one
+layer closer to the source than scraping the rendered text would have been.
+Checked `reviews.tsx` (question 1), `site-data.ts`'s two class-name arrays
+(question 2 — `VERIFIED_LIVE_VEHICLE_CLASSES`, still literally `"Sedan"`,
+`"SUV"`, `"Mini Coach"`, `"Motor Coach"`, unchanged since its own
+`Verified live 2026-08-08` comment), and `faq.tsx` (questions 6, 7, 9 — surge,
+a booking reference format, hourly/as-directed). Every string matched what
+`OPEN_QUESTIONS.md` already quotes, word for word.
+
+**Before: 11 open questions. After: 11.** Nothing closed, because nothing on
+the site changed since the 2026-08-26 pass — not "checked and assumed
+unchanged," actually re-read and found identical. Saying so honestly is the
+point of the before/after count; a close I didn't earn would be worse than no
+close.
+
+---
+
+# Part D — the honest close
+
+## Every gate, one invocation each, all clean
+
+`tsc --noEmit` · `eslint app src scripts` · `npm test` (**1,894/1,894**, 18
+suites) · `npm run export:web` (Metro bundle, `verify-build-mode.mjs`,
+`verify-maps-keys.mjs` — all pass) · the 20-screen sweep against the served
+export (zero console errors, zero blank screens) · `verify:a11y` (22 routes ×
+5 viewports — 320/390/430/834/1440 — zero touch targets under 44×44, zero
+content above the fold, zero horizontal overflow including 320px reflow) ·
+`verify:lifecycle` (all seven stages, driven from the chauffeur view, read
+back correctly in the customer and dispatcher views) · `verify:admin` (16/16
+sections reachable, the class-builder naming conflict correctly displayed, no
+fabricated figure anywhere).
+
+**One gap in the ledger I closed rather than left implicit.** The "unconfirmed
+rate cards absent from a production bundle" row was last verified against a
+build this session hadn't made — today's `export:web` used the local `.env`'s
+`EXPO_PUBLIC_DEMO_MODE=true` (correctly, since the sweep/a11y/lifecycle/admin
+walks need demo data to click through). So I built a second, throwaway export
+with `EXPO_PUBLIC_DEMO_MODE=false`, ran `verify-build-mode.mjs` against it
+(passed), and then did not stop there — **grepped the emitted bundle myself**
+for `ROLE_PREVIEW_MARKER`, the observed rate-card figures, and the `_role/*`
+route strings, rather than trusting the checker's own report of itself. Zero,
+zero, and **two** respectively — the two being the exact dead route-string
+literals `DESIGN_CHANGELOG.md` already documents as accepted, unfixable
+residue. Reconfirmed unchanged, not newly discovered. `.env` restored to
+`true` afterward; both temporary build directories deleted.
+
+## Documents brought current
+
+`OPEN_QUESTIONS.md` (two new questions, §"What the site closed" header count
+corrected), `BACKEND_FOLLOWUPS.md` §6 (class names corrected to `/fleet`'s,
+original transcription kept in parentheses), `PLATFORM_RECONCILIATION.md`
+(the stale pre-fix "Luxury SUV" table entry and the "still unresolved"
+framing in §1 both corrected to point at §7's actual resolution),
+`DESIGN_CHANGELOG.md` (today's entries, below), `HANDOFF.md` (the ledger's
+re-confirmation note above, and the five-line "what today could not produce"
+table now at the very top, each with a named owner), `DEVICE_VERIFICATION.md`
+and `DEMO_GUIDE.md` (Arabic item voided, not silently dropped — see Part C).
+
+## Pushed to `main`, and confirmed by loading the deployed build
+
+Pushed after every gate above was green. `netlify.toml` builds `main` via
+`npm run export:web` and auto-deploys to `https://lctapp.netlify.app/` on
+push — confirmed the deploy actually shipped what was just pushed by loading
+that URL afterward and checking the served bundle for evidence of today's
+specific changes, not by reading Netlify's own "deploy succeeded" status,
+which proves a build ran and nothing about what it contains.

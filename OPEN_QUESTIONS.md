@@ -1,8 +1,9 @@
 # Open questions
 
-**Sixteen before. Nine now.** `lctuniversal.com` was re-read from primary source
-on **2026-08-26** — every page, directly, not from any transcription — and it
-closed seven.
+**Sixteen before. Eleven now.** `lctuniversal.com` was re-read from primary
+source on **2026-08-26** — every page, directly, not from any transcription —
+and it closed seven. Two more were added on **2026-08-30** and **2026-08-31**,
+from repository questions rather than site ones.
 
 Each question below says **what was checked** and **why it did not settle it**.
 Nothing here can be answered from inside this repository.
@@ -170,6 +171,59 @@ model is **not** what LCT sells.
 **What remains:** whether the business *wants* that model. It would change the
 fixed-fare promise the app is built on, so it is a decision rather than a
 feature.
+**Owner:** the business.
+
+---
+
+## 10 · Are `lct-universal-driver-app` and `lct-universal-admin-dashboard` live products, or superseded by this repo's role fence?
+
+**Not a site question — a repository one**, added while reconciling this repo
+against a consolidated build brief on 2026-08-30.
+
+Three sibling repos sit next to this one: `lct-universal-backend`,
+`lct-universal-driver-app`, and `lct-universal-admin-dashboard`. But this repo
+already implements the chauffeur and operator roles itself — `app/_role/`
+(`chauffeur.tsx`, `dispatcher.tsx`, `admin.tsx`, `job.tsx`, `ride.tsx`,
+`status.tsx`), a role fence verified by absence from a customer build's shipped
+bytes (`verify-build-mode.mjs`), and an exhaustive role-to-account mapping in
+`accountRole.ts` — matching the brief's "three roles, one login" description
+almost exactly.
+
+**Checked:** both sibling repos' git history. `lct-universal-driver-app`'s last
+commit is 2026-08-19 ("Phase 1: Add client demo mode with full trip
+simulation"); `lct-universal-admin-dashboard`'s is 2026-08-20 ("Build Trips,
+Drivers, Fleet, Customers, and Support management pages"). This repo's
+role-fenced chauffeur/operator work postdates both — the commit introducing it
+is titled "Parts 1 and 2: chauffeur and operator are roles on an account."
+
+**Why this does not settle it:** a later commit date is consistent with this
+repo's approach having superseded the two standalone ones, and equally
+consistent with three separate efforts nobody has reconciled. Building further
+role-console features here without knowing which is authoritative risks
+duplicating — or contradicting — real work sitting in either sibling repo.
+**Owner:** whoever owns the repository layout decision.
+
+---
+
+## 11 · Is continued investment in this mobile rebuild still the priority?
+
+**Not a repository-identity question — a resourcing one**, surfaced while
+comparing this repo against `LCT-Universal-Vite-Ready-v2` on 2026-08-31 (see
+`SLICE_REPORTS.md`, Part A).
+
+That sibling repo is a **live, deployed website** — real Google Ads spend, a
+working customer login, Netlify Functions running an AI concierge — reading
+and writing the same shared Supabase project this repo does. This repo is an
+extensively audited, gated, and documented **native app rebuild** with no
+backend connection, no real authentication, and nothing verified on a device.
+
+**Checked:** both repos' git history and gates (see Part A). Nothing in either
+repo states whether the business still wants the native app, wants it on a
+different timeline, or has reprioritised toward the site that is actually
+serving customers today.
+
+**Why this does not settle it:** effort and audit depth are not the same as
+priority. A thorough answer to the wrong question is still the wrong question.
 **Owner:** the business.
 
 ---

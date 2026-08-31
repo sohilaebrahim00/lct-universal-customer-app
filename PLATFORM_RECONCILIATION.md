@@ -29,7 +29,7 @@ one that overcharges somebody.
 | `VehicleType` | display name | published label | quote-only |
 |---|---|---|---|
 | `executive_sedan` | Executive Sedan | From $95 | no |
-| `suv` | Luxury SUV | From $110 | no |
+| `suv` | ~~Luxury SUV~~ **Executive SUV** *(corrected in code 2026-08-28 — see §7 below and `src/lib/vehicleImages.ts`)* | From $110 | no |
 | `sprinter` | Mercedes Sprinter | Request Quote | **yes** |
 | `coach` | Coach | Request Quote | **yes** |
 
@@ -76,13 +76,16 @@ the relationship between these two systems is, **it is not a single markup
 rule** — which is precisely why the app must not derive one figure from the
 other until somebody answers Q2. Pinned in `tests/catalogueIntegrity.test.ts`.
 
-**A third figure for the same name.** The app's `suv` displays as *Luxury SUV*
-and carries *From $110*, while the same file separately records a site class
+**A third figure for the same name — RESOLVED by §7 below, 2026-08-28.** At the
+time this section was written, the app's `suv` displayed as *Luxury SUV* and
+carried *From $110*, while this same file separately recorded a site class
 *Luxury SUV — From $130* as having no backend equivalent, and the panel's
-*Luxury SUV* has a $120 minimum. Three different numbers attached to one name,
-inside two files and one screen recording. The app may also simply be labelling
-its `suv` class with the wrong name. **Not changed** — a catalogue is a business
-decision — but it should be the first thing checked when Q2 is answered.
+*Luxury SUV* had a $120 minimum — three different numbers attached to one name.
+§7's primary-source re-read found the app *was* simply labelling its `suv`
+class with the wrong name, not facing a genuine three-way pricing conflict:
+`VEHICLE_DISPLAY_NAME.suv` now reads `'Executive SUV'`, and the price never
+moved. This paragraph is left as written for the record of what looked
+unresolved before that re-read.
 
 ---
 

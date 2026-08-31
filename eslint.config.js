@@ -32,18 +32,16 @@ const STILL_ON_THE_SHIM = [
 const MIGRATED_OFF_THE_SHIM = ['app/**/*.tsx', 'src/**/*.{ts,tsx}'];
 
 /**
- * RTL: logical properties, not physical ones.
- *
- * `marginLeft` does not flip when the layout direction does; `marginStart`
- * does. The app declares Arabic support (`src/i18n/`), and a conversion that
- * is done once and not enforced is a conversion that lasts until the next
- * screen is written.
+ * Logical properties, not physical ones — kept as a standing layout default even with
+ * Arabic/RTL support reversed (see DESIGN_CHANGELOG.md, 2026-08-30): `marginStart` costs
+ * nothing over `marginLeft` today and is the correct default if direction support is ever
+ * revisited, so the discipline stays rather than being unwound along with the feature.
  *
  * ── The exception, and why it is a comment rather than a config option ──────
- * A zero-size box with borders is a TRIANGLE, and its left/right borders
- * describe geometry rather than reading direction. `TrackingMap`'s marker nose
- * is the one instance; it carries an inline disable with the reasoning next to
- * it, which is more useful than a path exclusion nobody can see from the file.
+ * A zero-size box with borders is a TRIANGLE, and its left/right borders describe
+ * geometry rather than reading direction. `TrackingMap`'s marker nose is the one
+ * instance; it carries an inline disable with the reasoning next to it, which is more
+ * useful than a path exclusion nobody can see from the file.
  */
 const RTL_PHYSICAL_PROPERTIES = [
   'marginLeft', 'marginRight',
@@ -51,6 +49,51 @@ const RTL_PHYSICAL_PROPERTIES = [
   'borderLeftWidth', 'borderRightWidth',
   'borderLeftColor', 'borderRightColor',
 ];
+
+const RTL_SYNTAX_RULES = RTL_PHYSICAL_PROPERTIES.map((name) => ({
+  selector: `Property[key.name='${name}']`,
+  message:
+    `Use the logical property instead of ${name} — it flips under RTL and ${name} does not. ` +
+    'marginLeft→marginStart, marginRight→marginEnd, paddingLeft→paddingStart, ' +
+    'paddingRight→paddingEnd, borderLeftWidth→borderStartWidth, borderRightWidth→borderEndWidth, ' +
+    'borderLeftColor→borderStartColor, borderRightColor→borderEndColor. ' +
+    'If it is a SHAPE rather than a layout (a border triangle), disable this rule inline and say why.',
+}));
+
+/**
+ * USER-FACING COPY LIVES IN `src/copy/strings.ts` — enforced screen by screen.
+ *
+ * This used to be "no hardcoded text on a screen already converted to i18n" —
+ * translation-completeness, checking a Latin-or-Arabic-letter JSX text node
+ * against a two-locale string table. Arabic was reversed on 2026-08-30 (see
+ * DESIGN_CHANGELOG.md); the rule is kept and renamed for what it now does,
+ * which has nothing to do with translation: a screen with its copy scattered
+ * through JSX is harder to review, harder to keep consistent, and harder to
+ * change in one place than a screen that reads its strings from one file.
+ *
+ * ── Why an allowlist, not a global rule ─────────────────────────────────────
+ * Only `app/(app)/account/settings.tsx` reads from `src/copy/strings.ts` so
+ * far. Turning this on globally today would fail the build for every other
+ * screen, which still render hardcoded English on purpose — this is the same
+ * shape as the shim rule before it was inverted: add a screen here as it
+ * migrates to the copy file, don't try to convert everything at once.
+ *
+ * ── What this catches, and what it does not ─────────────────────────────────
+ * A JSX text child containing a Latin letter — `<AppText>Settings</AppText>`.
+ * It does NOT catch a hardcoded string passed as a prop (`label="Settings"`) —
+ * that needs matching against a curated list of "these props render as visible
+ * text" per component, which this app's component set has no single source of
+ * truth for yet. A real gap, not a rule considered and rejected — recorded so
+ * partial coverage is never mistaken for full coverage.
+ */
+const COPY_FILE_SCREENS = ['app/(app)/account/settings.tsx'];
+
+const HARDCODED_COPY_RULE = {
+  selector: 'JSXText[value=/[A-Za-z]/]',
+  message:
+    'Hardcoded user-facing text on a screen already reading from the copy file. Add a key to ' +
+    'src/copy/strings.ts and render it from there instead. See eslint.config.js.',
+};
 
 /**
  * OBSERVED RATE CARDS ARE NOT PUBLISHABLE FACTS.
@@ -130,22 +173,26 @@ module.exports = [
   },
   {
     // Everything the app ships. `src/dev/` is excluded: the role preview is a
-    // preview of two internal tools, neither of which is localised.
+    // preview of two internal tools that don't need reviewing for copy hygiene.
     files: ['app/**/*.{ts,tsx}', 'src/**/*.{ts,tsx}'],
-    ignores: ['src/dev/**'],
+    ignores: ['src/dev/**', ...COPY_FILE_SCREENS],
     rules: {
-      'no-restricted-syntax': [
-        'error',
-        ...RTL_PHYSICAL_PROPERTIES.map((name) => ({
-          selector: `Property[key.name='${name}']`,
-          message:
-            `Use the logical property instead of ${name} — it flips under RTL and ${name} does not. ` +
-            'marginLeft→marginStart, marginRight→marginEnd, paddingLeft→paddingStart, ' +
-            'paddingRight→paddingEnd, borderLeftWidth→borderStartWidth, borderRightWidth→borderEndWidth, ' +
-            'borderLeftColor→borderStartColor, borderRightColor→borderEndColor. ' +
-            'If it is a SHAPE rather than a layout (a border triangle), disable this rule inline and say why.',
-        })),
-      ],
+      'no-restricted-syntax': ['error', ...RTL_SYNTAX_RULES],
+    },
+  },
+  {
+    /*
+     * Screens already reading from `src/copy/strings.ts`: BOTH restrictions.
+     * The block above excludes these files via `ignores` rather than relying
+     * on "last block wins" (see "A TRAP IN FLAT CONFIG" below) — a second
+     * block matching the same files and also setting `no-restricted-syntax`
+     * would otherwise replace, not merge with, the first one's selectors,
+     * silently dropping RTL enforcement on exactly the screens most worth
+     * having it on.
+     */
+    files: COPY_FILE_SCREENS,
+    rules: {
+      'no-restricted-syntax': ['error', ...RTL_SYNTAX_RULES, HARDCODED_COPY_RULE],
     },
   },
   {

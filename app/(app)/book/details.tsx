@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useRouter } from 'expo-router';
 import { StyleSheet, View } from 'react-native';
-import { ArrowUpDown, ChevronLeft, ChevronRight } from 'lucide-react-native';
+import { ArrowUpDown, ChevronLeft } from 'lucide-react-native';
 import { IconButton } from '../../../src/components/ui/IconButton';
 import { ProgressRail } from '../../../src/components/ui/ProgressRail';
 import { Button } from '../../../src/components/ui/Button';
@@ -11,7 +11,6 @@ import { TextField } from '../../../src/components/ui/TextField';
 import { AppText } from '../../../src/components/ui/Typography';
 import { DateTimeField } from '../../../src/components/booking/DateTimeField';
 import { space, theme } from '../../../src/theme';
-import { isRTL } from '../../../src/i18n/rtl';
 import { getRoute } from '../../../src/lib/googlePlaces';
 import { useBookingFormStore } from '../../../src/store/bookingFormStore';
 
@@ -134,7 +133,7 @@ export default function DetailsStep() {
       */}
       <View style={styles.header}>
         <IconButton
-          icon={isRTL() ? ChevronRight : ChevronLeft}
+          icon={ChevronLeft}
           accessibilityLabel="Go back"
           variant="circular"
           onPress={() => (router.canGoBack() ? router.back() : router.replace('/(app)'))}

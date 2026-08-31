@@ -3,7 +3,7 @@ import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { Platform, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { IconButton } from '../../../src/components/ui/IconButton';
-import { ChevronLeft, ChevronRight } from 'lucide-react-native';
+import { ChevronLeft } from 'lucide-react-native';
 import { ScreenContainer } from '../../../src/components/ui/ScreenContainer';
 import { ErrorState } from '../../../src/components/ui/ErrorState';
 import { Skeleton } from '../../../src/components/ui/Skeleton';
@@ -19,7 +19,6 @@ import { arrivedAtFrom } from '../../../src/lib/rideStage';
 import { useTripSocket } from '../../../src/lib/useTripSocket';
 import { useSmoothedLocation } from '../../../src/lib/useSmoothedLocation';
 import type { LatLng } from '../../../src/lib/geo';
-import { isRTL } from '../../../src/i18n/rtl';
 
 /**
  * LIVE TRACKING — artboard 2k.
@@ -218,7 +217,7 @@ export default function TripDetailScreen() {
       <SafeAreaView style={styles.overlay} edges={['top']} pointerEvents="box-none">
         <View style={styles.backWrap} pointerEvents="box-none">
           <IconButton
-            icon={isRTL() ? ChevronRight : ChevronLeft}
+            icon={ChevronLeft}
             accessibilityLabel="Go back"
             variant="circular"
             onPress={() => (router.canGoBack() ? router.back() : router.replace('/(app)/trips'))}

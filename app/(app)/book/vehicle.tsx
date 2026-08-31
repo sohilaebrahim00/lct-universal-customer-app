@@ -10,7 +10,7 @@ import { ProgressRail } from '../../../src/components/ui/ProgressRail';
 import { Skeleton } from '../../../src/components/ui/Skeleton';
 import { Surface } from '../../../src/components/ui/Surface';
 import { AppText } from '../../../src/components/ui/Typography';
-import { Briefcase, ChevronLeft, ChevronRight, Users } from 'lucide-react-native';
+import { Briefcase, ChevronLeft, Users } from 'lucide-react-native';
 import { gutter, iconSize, iconStroke, radius, space, theme } from '../../../src/theme';
 import { useBookingFormStore } from '../../../src/store/bookingFormStore';
 import { vehiclesApi } from '../../../src/api/vehicles';
@@ -19,7 +19,6 @@ import { calculateFarePreview, type FareBreakdown } from '../../../src/lib/prici
 import { formatCurrency, formatDateTime } from '../../../src/lib/format';
 import { VEHICLE_IMAGES } from '../../../src/lib/vehicleImages';
 import { asyncState, type AsyncState } from '../../../src/lib/asyncState';
-import { isRTL } from '../../../src/i18n/rtl';
 import { isQuoteOnly } from '../../../src/config/publishedFleet';
 import { PRICING_STATEMENT } from '../../../src/config/servicePolicy';
 import { AppImage } from '../../../src/components/ui/AppImage';
@@ -150,7 +149,7 @@ export default function VehicleStep() {
       <View style={styles.screen}>
         <View style={styles.header}>
           <IconButton
-            icon={isRTL() ? ChevronRight : ChevronLeft}
+            icon={ChevronLeft}
             accessibilityLabel="Go back"
             variant="circular"
             onPress={() => router.back()}
@@ -170,7 +169,7 @@ export default function VehicleStep() {
     <View style={styles.screen}>
       <View style={styles.header}>
         <IconButton
-          icon={isRTL() ? ChevronRight : ChevronLeft}
+          icon={ChevronLeft}
           accessibilityLabel="Go back"
           variant="circular"
           onPress={() => router.back()}

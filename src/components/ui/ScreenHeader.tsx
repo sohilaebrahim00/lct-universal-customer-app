@@ -1,10 +1,9 @@
 import type { ReactNode } from 'react';
 import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
-import { ChevronLeft, ChevronRight } from 'lucide-react-native';
+import { ChevronLeft } from 'lucide-react-native';
 import { AppText } from './Typography';
 import { IconButton } from './IconButton';
 import { space } from '../../theme';
-import { isRTL } from '../../i18n/rtl';
 
 interface Props {
   title?: string;
@@ -20,10 +19,9 @@ interface Props {
 /**
  * Back control, title, trailing slot.
  *
- * The chevron points toward the reading direction's START, which is why it
- * flips under RTL — "back" is a direction, not a glyph. `src/i18n/rtl.ts` has
- * been saying so since before the redesign; this is one of the few places that
- * was already listening.
+ * The chevron is a fixed `ChevronLeft` — English only, LTR only (see
+ * DESIGN_CHANGELOG.md, 2026-08-30; Arabic/RTL support was built and then
+ * reversed as a business decision, not a technical one).
  *
  * The back control is a 38pt circular `IconButton`, so it carries a label and a
  * 44pt touch target for free. `book/_layout.tsx` sets `headerShown: false` and
@@ -31,13 +29,11 @@ interface Props {
  * way back (audit P0-7) — this is what fills that gap.
  */
 export function ScreenHeader({ title, eyebrow, onBack, right, center, style }: Props) {
-  const BackIcon = isRTL() ? ChevronRight : ChevronLeft;
-
   return (
     <View style={[styles.row, style]}>
       {onBack ? (
         <IconButton
-          icon={BackIcon}
+          icon={ChevronLeft}
           accessibilityLabel="Go back"
           variant="circular"
           onPress={onBack}

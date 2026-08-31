@@ -1,9 +1,8 @@
 import type { ReactNode } from 'react';
 import { Pressable, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
-import { ChevronLeft, ChevronRight, type LucideIcon } from 'lucide-react-native';
+import { ChevronRight, type LucideIcon } from 'lucide-react-native';
 import { AppText } from './Typography';
 import { iconSize, iconStroke, minTouchTarget, space, theme } from '../../theme';
-import { isRTL } from '../../i18n/rtl';
 
 interface Props {
   title: string;
@@ -37,9 +36,10 @@ interface Props {
  * `content.secondary`; `content.tertiary` for a row that is deliberately quiet.
  *
  * ── Direction ──────────────────────────────────────────────────────────────
- * The chevron points toward the reading direction's end, so it flips under RTL.
- * Spacing uses logical properties (`marginStart`/`marginEnd`), which mirror on
- * their own; `marginLeft`/`marginRight` never would.
+ * The chevron is a fixed `ChevronRight` — English only, LTR only (Arabic/RTL
+ * support was built and then reversed as a business decision; see
+ * DESIGN_CHANGELOG.md, 2026-08-30). Spacing still uses logical properties
+ * (`marginStart`/`marginEnd`) as a standing layout default — see eslint.config.js.
  */
 export function ListRow({
   title,
@@ -54,7 +54,7 @@ export function ListRow({
   destructive = false,
   style,
 }: Props) {
-  const Chevron = isRTL() ? ChevronLeft : ChevronRight;
+  const Chevron = ChevronRight;
   const titleColor = destructive ? theme.content.danger : theme.content.primary;
 
   const body = (

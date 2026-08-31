@@ -175,17 +175,31 @@ one.**
 The website is what the business advertises to customers. The backend is what it
 charges. They do not agree.
 
-### Website — `LCT-Universal-Vite-Ready-v2/lct_migrate/src/lib/site-data.ts`, `VERIFIED_LIVE_VEHICLE_CLASSES` (lines 281-289)
+### Website — corrected 2026-08-31 against primary source, not the transcription below
+
+**This table originally named classes as transcribed from
+`LCT-Universal-Vite-Ready-v2/lct_migrate/src/lib/site-data.ts` — a copy of the
+website's own source file, not the rendered pages, and read before `/fleet`
+and `/rates` were re-read directly on 2026-08-26 (see `OPEN_QUESTIONS.md` #2).
+That direct read found `/fleet` and `/rates` disagree on four of seven class
+names. The names below are `/fleet`'s — the catalogue page, chosen the same way
+and for the same reason `VEHICLE_DISPLAY_NAME.suv` was corrected in code on
+2026-08-28. Original transcribed names in parentheses where they differ.**
 
 | Class | pax | bags | Published |
 |---|---|---|---|
-| Sedan | 3 | 2 | From $95 |
-| SUV | 6 | 6 | From $110 |
+| Executive Sedan *(was: Sedan)* | 3 | 2 | From $95 |
+| Executive SUV *(was: SUV)* | 6 | 6 | From $110 |
 | Luxury SUV | 6 | 6 | From $130 |
 | First Class Sedan | 2 | 2 | $150/hour |
 | Executive Sprinter | 14 | 10 | Request Quote |
-| Mini Coach | 39 | — | Request Quote |
-| Motor Coach | 56 | — | Request Quote |
+| Executive Mini Coach *(was: Mini Coach)* | 39 | — | Request Quote |
+| Executive Coach *(was: Motor Coach)* | 56 | — | Request Quote |
+
+`/rates` uses "Sedan", "SUV", "Mini Coach", and "Motor Coach" for the same four
+rows — still published, still live, just not the name this table now uses.
+That disagreement between the site's own two pages is unresolved and is
+`OPEN_QUESTIONS.md` #2, not something this correction settles.
 
 ### Backend — `lct-universal-backend/db/seed.sql`
 

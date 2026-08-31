@@ -125,9 +125,9 @@ const styles = StyleSheet.create({
    *
    * This was `fonts.sansMedium` + `fontSizes.sm` — the last place in the app
    * setting type by hand, and the only reason this file still needed the shim.
-   * `resolveType` also carries the line height and the per-script axis, so an
-   * Arabic suggestion row now gets Arabic metrics rather than Latin ones at the
-   * same pixel size.
+   * `resolveType` also carries the line height, resolved for `'latin'` — the
+   * only script this app renders (Arabic/RTL support was reversed on
+   * 2026-08-30; see DESIGN_CHANGELOG.md).
    */
   primaryText: { ...resolveType('caption'), color: theme.content.primary },
 });

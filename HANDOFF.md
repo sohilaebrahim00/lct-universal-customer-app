@@ -1,6 +1,17 @@
 # Handoff
 
-Four lists. Every item names who can unblock it.
+**What today (2026-08-31) could not produce, written first because it is more
+useful than a document that ends on the word "done":**
+
+| what | owner |
+|---|---|
+| A connected app — no backend answer, no credentials, no API documentation | The client — answer `OPEN_QUESTIONS.md` #3 (is `lctuniversal.us/admin` the backend) first |
+| Anything behind real authentication | The repository owner — credentials never pass through this workspace; see `RUNBOOK_AUTH_VERIFICATION.md` |
+| Anything crossing two devices (a chauffeur's stage change reaching a passenger's screen) | Whoever resumes engineering here — no live channel exists to build against yet, not a missing answer |
+| Anything verified on hardware | Whoever holds a device — see `DEVICE_VERIFICATION.md`, text scaling first |
+| A resolved price or class name | The business — see `OPEN_QUESTIONS.md` #2 and #9 |
+
+Four lists follow. Every item in them names who can unblock it too.
 
 ---
 
@@ -31,6 +42,18 @@ Four lists. Every item names who can unblock it.
 | Layout holds at 320 CSS px (WCAG 1.4.10 Reflow) | `npm run verify:a11y` at five widths |
 | The gate cannot report on a partial run | completion ledger; verified by injecting an unreachable route, which produced `INCOMPLETE — no result reported` and exit 2 |
 
+**Re-run and reconfirmed 2026-08-31**, one invocation each, all clean:
+`tsc --noEmit`, `eslint app src scripts`, `npm test` (1,894/1,894, 18 suites),
+`npm run export:web` (build-mode + maps-key checks), the 20-screen sweep,
+`verify:a11y` (22 routes × 5 viewports, 0 failures), `verify:lifecycle` (all
+seven stages, three roles), `verify:admin` (16/16 sections). The
+`EXPO_PUBLIC_DEMO_MODE=false` absence claim in the row above was independently
+re-checked too — not just re-trusted — with a second export and a direct
+`grep` of the emitted bundle: `ROLE_PREVIEW_MARKER` and every observed
+rate-card figure are still absent; the two dead `_role/*` route-string
+literals `DESIGN_CHANGELOG.md` already documents as accepted residue are
+still exactly that — two, unchanged, not regressed into something worse.
+
 **Owner:** nobody. These are closed.
 
 ---
@@ -51,7 +74,7 @@ Every item has a procedure in **`DEVICE_VERIFICATION.md`**.
 | OLED surface step at low brightness | 7 |
 | `expo-blur` cost, if ever installed | 8 |
 | Screen-reader traversal of trips and concierge | 9 |
-| Whether an Arabic layout reads correctly | 10 |
+| ~~Whether an Arabic layout reads correctly~~ | **VOID — the feature is reversed, not pending. Arabic/RTL support (i18n store, translated strings, RTL layout rules) was built and then removed as a business decision on 2026-08-30. There is no longer an Arabic layout to verify. See DESIGN_CHANGELOG.md.** |
 | Whether a stage change reaches a second device | 11.1 — expected NO; this is G-3 |
 | The waiting countdown across a locked screen and a real 30 minutes | 11.2 |
 | The receipt total matching the booked total, twenty minutes apart | 11.3 |
@@ -60,8 +83,8 @@ Every item has a procedure in **`DEVICE_VERIFICATION.md`**.
 | Everything behind authentication | `RUNBOOK_AUTH_VERIFICATION.md` A1–A7 |
 
 **Owner:** whoever holds a device and the credentials. Items 1–9 need an
-engineer with a mid-range Android and an iPhone. Item 10 needs a native Arabic
-reader. Item 12 is the client's call. A1–A7 need the repository owner, because
+engineer with a mid-range Android and an iPhone. Item 10 is void — see above.
+Item 12 is the client's call. A1–A7 need the repository owner, because
 credentials never pass through this workspace.
 
 ---

@@ -221,8 +221,8 @@ npm run verify:maps-keys ios,android    # must pass before the build
    near-black style, not Google's default grey and white.
 2. **Pass:** no "For development purposes only" watermark, which means the key
    is unrestricted or correctly restricted, not missing billing.
-3. The chauffeur puck points along the direction of travel and **does not flip**
-   when the device language is Arabic (see item 9).
+3. The chauffeur puck points along the direction of travel and its rotation
+   tracks the real compass bearing, not a fixed screen direction.
 4. Pinch, rotate, and pan. **Pass:** the camera animates to follow rather than
    snapping when a new location arrives.
 5. **Measure the binary cost:** compare the `.ipa` size of a production build
@@ -297,41 +297,19 @@ this procedure exists to trigger.
 
 ---
 
-## 10. Whether an Arabic layout reads correctly
+## 10. ~~Whether an Arabic layout reads correctly~~ — VOID
 
-**Blocked on two things that do not exist yet:** no Arabic font is loaded, and
-there is no RTL dev build. The logical-property conversion and its lint rule are
-a **precondition** for correctness, not a demonstration of it.
+**Arabic/RTL support was built and then reversed as a business decision on
+2026-08-30** (see `DESIGN_CHANGELOG.md`). This is not a blocked or deferred
+item — there is no Arabic layout in the app to verify. The procedure that used
+to sit here (load an Arabic face, `I18nManager.forceRTL(true)`, rebuild,
+observe mirroring) described how to make the *reversed* feature testable; it
+is left out rather than updated in place, on the same terms as the rest of
+this document not describing work that no longer exists.
 
-**To make it testable:**
-
-1. Add an Arabic face (Noto Naskh Arabic or IBM Plex Sans Arabic) to
-   `useFonts()` in `app/_layout.tsx`, and wire the `arabic` script axis in
-   `src/theme/type.ts` — the axis already exists and is already selected by
-   `AppText` via `isRTL()`.
-2. Force RTL and rebuild — RTL requires an app restart, not a re-render:
-
-```js
-import { I18nManager } from 'react-native';
-I18nManager.forceRTL(true);   // then restart the app
-```
-
-**Then observe:**
-
-| | pass |
-|---|---|
-| Every screen | content starts at the right edge; nothing is pinned left |
-| Back chevrons and directional icons | mirrored |
-| The chauffeur puck's bearing | **NOT** mirrored — north is north in Arabic |
-| The tracking marker's nose triangle | unchanged (it is symmetric geometry, deliberately physical) |
-| Mixed Arabic and Latin in one line — an address, a flight number | reads in the correct order without reordering the digits |
-| Prices | currency symbol on the correct side for the locale |
-| Progress rails and steppers | advance right-to-left |
-
-**Owner:** this needs a native Arabic reader. Nothing in the tables above can be
-judged by someone matching shapes — "does this read naturally" is not a check a
-non-speaker can perform, and pretending otherwise is how a translated app ends
-up fluent-looking and wrong.
+If Arabic/RTL is ever revisited, the per-script type metrics in
+`src/theme/type.ts` are kept (unused) specifically so this doesn't restart from
+zero — see that file's own comment.
 
 ---
 

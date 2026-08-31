@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useRouter } from 'expo-router';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
-import { Check, ChevronLeft, ChevronRight, CreditCard, Plus } from 'lucide-react-native';
+import { Check, ChevronLeft, CreditCard, Plus } from 'lucide-react-native';
 import { Button } from '../../../src/components/ui/Button';
 import { Card } from '../../../src/components/ui/Card';
 import { IconButton } from '../../../src/components/ui/IconButton';
@@ -18,7 +18,6 @@ import { isStripeConfigured } from '../../../src/lib/env';
 import { useStripeCheckout } from '../../../src/lib/useStripeCheckout';
 import { AuthGate } from '../../../src/components/AuthGate';
 import { cancellationSentenceFor, complimentaryWaitSentenceFor } from '../../../src/config/servicePolicy';
-import { isRTL } from '../../../src/i18n/rtl';
 
 /**
  * STEP 5 — REVIEW & PAY.
@@ -219,7 +218,7 @@ export default function PaymentStep() {
     <View style={styles.screen}>
       <View style={styles.header}>
         <IconButton
-          icon={isRTL() ? ChevronRight : ChevronLeft}
+          icon={ChevronLeft}
           accessibilityLabel="Go back"
           variant="circular"
           onPress={() => router.back()}

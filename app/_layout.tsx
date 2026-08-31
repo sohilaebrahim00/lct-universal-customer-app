@@ -19,7 +19,6 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { theme } from '../src/theme';
 import { useAuthStore } from '../src/store/authStore';
-import { useLocaleStore } from '../src/i18n';
 import { AppLoadingScreen } from '../src/components/AppLoadingScreen';
 import { StripeAppProvider } from '../src/components/payment/StripeAppProvider';
 import { ToastProvider } from '../src/components/ui/Toast';
@@ -49,8 +48,6 @@ export default function RootLayout() {
     Manrope_700Bold,
   });
   const initialize = useAuthStore((s) => s.initialize);
-  const initializeLocale = useLocaleStore((s) => s.initialize);
-  const localeHydrated = useLocaleStore((s) => s.hydrated);
 
   // Sets up the Supabase auth-state subscription on mount — initialize()
   // itself is synchronous (it returns an unsubscribe function immediately;
@@ -63,17 +60,11 @@ export default function RootLayout() {
     return initialize();
   }, [initialize]);
 
-  // Gated below (see `ready`) so the very first paint already shows the
-  // right language — otherwise the UI would flash English before switching.
   useEffect(() => {
-    void initializeLocale();
-  }, [initializeLocale]);
+    if (fontsLoaded || fontsError) void SplashScreen.hideAsync();
+  }, [fontsLoaded, fontsError]);
 
-  useEffect(() => {
-    if ((fontsLoaded || fontsError) && localeHydrated) void SplashScreen.hideAsync();
-  }, [fontsLoaded, fontsError, localeHydrated]);
-
-  const ready = (fontsLoaded || fontsError) && localeHydrated;
+  const ready = fontsLoaded || fontsError;
 
   return (
     <GestureHandlerRootView style={{ flex: 1, backgroundColor: theme.background.primary }}>
