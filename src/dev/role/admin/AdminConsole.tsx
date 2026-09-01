@@ -4,6 +4,7 @@ import { useFocusEffect } from 'expo-router';
 import { radius, space } from '../../../theme/ref';
 import { roleColor, roleTarget, roleText } from '../roleTheme';
 import { RoleShell } from '../RoleShell';
+import { useDemoStateSync } from '../../useDemoStateSync';
 import { type RoleRide, loadRides } from '../roleData';
 import {
   Bookings,
@@ -151,6 +152,10 @@ export function AdminConsole() {
   }, []);
 
   useFocusEffect(useCallback(() => { reload(); }, [reload]));
+
+  // Another tab changed the store -- pick it up without a reload. Two tabs of
+  // one browser, never two devices (G-3). See src/dev/useDemoStateSync.ts.
+  useDemoStateSync(reload);
 
   const current = NAV.find((n) => n.key === section);
 

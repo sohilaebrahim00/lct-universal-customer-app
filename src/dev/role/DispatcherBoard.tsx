@@ -6,6 +6,7 @@ import { formatTimeOfDay } from '../../lib/format';
 import { type RoleRide, loadRides, stageLabel } from './roleData';
 import { roleColor, roleText } from './roleTheme';
 import { RoleShell } from './RoleShell';
+import { useDemoStateSync } from '../useDemoStateSync';
 
 /**
  * DISPATCHER — TODAY'S BOARD.
@@ -68,6 +69,19 @@ export function DispatcherBoard() {
       };
     }, []),
   );
+
+  /**
+   * A chauffeur marking arrived in another tab moves this board, untouched.
+   *
+   * Additive: the focus reload above is unchanged and still the primary path.
+   * Two tabs of one browser — never two devices. That is still G-3.
+   */
+  const reload = useCallback(() => {
+    const at = new Date();
+    setNow(at);
+    void loadRides(at).then(setRides);
+  }, []);
+  useDemoStateSync(reload);
 
   const unassigned = (rides ?? []).filter((r) => !r.chauffeur).length;
   const late = (rides ?? []).filter((r) => r.late).length;

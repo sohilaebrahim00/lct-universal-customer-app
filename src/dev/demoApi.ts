@@ -2,6 +2,7 @@ import type { Booking } from '../types/api';
 import type { TripStatus } from '../lib/tripStatus';
 import { nextTripStage } from '../lib/tripStatus';
 import { canMarkArrived } from '../lib/rideStage';
+import { notifyDemoStateChanged } from './demoSync';
 import {
   DEMO_CORPORATE_ACCOUNT,
   DEMO_CORPORATE_EMPLOYEES,
@@ -153,6 +154,9 @@ function persist(): void {
   if (!store) return;
   try {
     store.setItem(STORAGE_KEY, JSON.stringify(state));
+    // Says so out loud. What is written and where is unchanged -- this only
+    // tells the other tabs that it happened. See src/dev/demoSync.ts.
+    notifyDemoStateChanged();
   } catch {
     // Quota, private mode, or a browser that declines. The demo still works
     // in memory for this session; it just will not survive a reload.
@@ -499,4 +503,29 @@ export function markArrivedAtPickup(bookingId: string): string | null {
 /** The arrival timestamp for a booking, or null. Read by the role previews. */
 export function arrivedAtOf(bookingId: string): string | null {
   return state.arrivals[bookingId] ?? null;
+}
+
+/**
+ * Re-reads the persisted store into this tab's in-memory state.
+ *
+ * ── Why a notification is not enough on its own ────────────────────────────
+ * Each tab loads `state` once at module init and mutates it in place. Tab A
+ * assigning a chauffeur writes to `localStorage`, but tab B's `state` object is
+ * untouched and still holds what it read when it opened. Telling tab B that
+ * something changed, without giving it a way to pick the change up, would make
+ * it re-render exactly the same data.
+ *
+ * So the change notification calls this first. It mutates the SAME object every
+ * module already holds a reference to, rather than replacing it — replacing it
+ * would leave `demoApi`'s own closures pointing at the old one.
+ *
+ * Nothing here writes. It is the read half of a write that already happened.
+ */
+export function adoptPersistedState(): boolean {
+  const next = load();
+  if (!next) return false;
+  state.bookings = next.bookings;
+  state.assignments = next.assignments;
+  state.arrivals = next.arrivals;
+  return true;
 }

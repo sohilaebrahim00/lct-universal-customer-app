@@ -16,6 +16,7 @@ import { tripsApi } from '../../../src/api/trips';
 import type { Booking, Trip, TripDriverInfo, TripVehicleInfo } from '../../../src/types/api';
 import { isTerminalStatus, type TripStatus } from '../../../src/lib/tripStatus';
 import { arrivedAtFrom } from '../../../src/lib/rideStage';
+import { useDemoStateSync } from '../../../src/dev/useDemoStateSync';
 import { useTripSocket } from '../../../src/lib/useTripSocket';
 import { useSmoothedLocation } from '../../../src/lib/useSmoothedLocation';
 import type { LatLng } from '../../../src/lib/geo';
@@ -94,6 +95,15 @@ export default function TripDetailScreen() {
   }, [bookingId]);
 
   useFocusEffect(useCallback(() => { load(); }, [load]));
+
+  /*
+   * The chauffeur marks arrived in another tab and THIS screen moves, with
+   * nothing touched here. Additive: the focus reload above is unchanged, and a
+   * browser without the mechanism behaves exactly as it did.
+   *
+   * Two tabs of one browser. NOT two devices -- that is still G-3.
+   */
+  useDemoStateSync(load);
 
   // Re-fetch once the socket reports an assignment, so the chauffeur appears
   // without waiting for the next focus. Deferred a microtask so the refetch's
