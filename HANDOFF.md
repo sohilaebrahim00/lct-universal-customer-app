@@ -21,6 +21,27 @@ same connection.
 site opens normally over a VPN. Every deploy this was raised against was fine;
 what failed was reaching it, and only from here.
 
+**Re-tested 2026-09-02, and the block is now demonstrated rather than
+inferred.** Four requests from this workspace, in one minute:
+
+| host | result |
+|---|---|
+| `https://example.com/` | **200** |
+| `https://www.netlify.com/` | **200** |
+| `https://lctapp.netlify.app/` | connect timeout after 21s (curl exit 28), on IPv6 and with `-4` alike |
+| `https://playwright.netlify.app/` — an unrelated third party | connect timeout after 21s |
+
+DNS resolves `lctapp.netlify.app` correctly to four addresses, so this is not a
+name-resolution failure and it is **not specific to our site**: a netlify.app
+host nobody here controls fails identically while netlify.com succeeds. That
+rules out "the deploy is broken" as the explanation for the timeout.
+
+**What it still does not tell anyone: whether Netlify served the demo-mode
+bundle.** Reachability and correctness are different claims, and only the first
+has been tested. Nobody has yet opened the shipped build from a machine that
+can reach it. That check needs a VPN or a hotspot and two minutes, and it is
+the only unverified thing here that a client experiences directly.
+
 **Mitigation: put the demo on a custom domain** (e.g. `app.lctuniversal.com`)
 pointed at the same Netlify site. Worth doing regardless of the block: a
 client-facing demo on a vendor subdomain is fragile in exactly this way — one
@@ -80,16 +101,17 @@ rate-card figure are still absent; the two dead `_role/*` route-string
 literals `DESIGN_CHANGELOG.md` already documents as accepted residue are
 still exactly that — two, unchanged, not regressed into something worse.
 
-**Re-run again 2026-09-01**, after five delivery-gap fixes — the static
+**Re-run again 2026-09-02**, after five delivery-gap fixes — the static
 `/demo-account` page deleted, Messages separated from Push Broadcast, a record
-view for cancelled rides, a working customer cancel, and these counts — one
-invocation each, all clean. Verbatim from the tools:
+view for cancelled rides, a working customer cancel, and these counts — plus
+the near-midnight defect in `clampToLocalDay` recorded in §10. One invocation
+each, all clean. Verbatim from the tools:
 
 | gate | what it printed |
 |---|---|
 | `npm run typecheck` | no output, exit 0 |
 | `npm run lint` | no output, exit 0 |
-| `npm test` | `Tests: 1922 passed, 1922 total` · `Test Suites: 21 passed, 21 total` |
+| `npm test` | `Tests: 1925 passed, 1925 total` · `Test Suites: 21 passed, 21 total` |
 | `npm run export:web` | `build mode verified: EXPO_PUBLIC_DEMO_MODE=true matches the emitted bundle (dist)` |
 | `node scripts/sweep.mjs` | `clean: zero console errors, zero blank screens` |
 | `npm run verify:a11y` | `clean: 22 routes at 5 viewports (320/390/430/834/1440) — 0 targets under 44x44, 0 content above the fold, 0 horizontal overflow (incl. WCAG 1.4.10 at 320px)` |
@@ -597,3 +619,68 @@ attempted, reverted on the first failure rather than debugged under time
 pressure.
 **Owner:** whoever picks up the design pass — it belongs with the composition
 work, not with a hotfix.
+
+---
+
+## 10 · The board lost half its rides for twenty minutes a day
+
+Found on 2026-09-02 by opening `/_role/dispatcher` in a **cold browser context**
+— empty `localStorage`, verified as zero keys before the page ran — rather than
+by any gate. At **23:51 local** the board showed:
+
+> **2 rides today · 0 unassigned · 1 late**
+
+against four seeded fleet rides and an expected unassigned row. Not empty, so
+nothing looked broken; just missing the half that was scheduled ahead.
+
+### The cause
+
+`clampToLocalDay()` exists precisely to stop this: the fleet rides are seeded as
+offsets from now, the board filters to the local day, and a `+5.5h` ride at
+21:38 lands tomorrow. But its own fallback — reached when `now` is already past
+the 23:30 clamp point — returned `now + 10 minutes` **without re-checking the
+day**. After 23:50 that is tomorrow. The mirror branch returned `now - 10
+minutes`, which before 00:10 is yesterday.
+
+So for roughly twenty minutes either side of midnight, the function did the
+exact thing it was written to prevent.
+
+### Why every gate was green
+
+`tests/demoBoardPopulated.test.ts` swept **all 24 hours at one minute of the
+hour — `:38`**. At 23:38 the fallback lands at 23:48, still today, and the grid
+saw nothing. A uniform grid cannot see a twenty-minute defect that sits between
+its samples.
+
+Worse, the one unit test that did touch the window — *"never produces a future
+time that has already passed"*, at 23:55 — asserted `out > now` and **not**
+`isSameLocalDay(out, now)`. The old code returned 00:05 tomorrow, which is
+genuinely later than now. The test passed on the defect it was standing over.
+
+### The fix, and how it was checked
+
+Every return in `clampToLocalDay` is now pinned inside today by one helper, so
+the guarantee holds by construction rather than by each branch remembering it.
+Where the two properties conflict — the last thirty seconds before midnight,
+when no time is both still today and still ahead of now — **the day wins**: a
+ride nudged half a minute into the past still appears on the board, correctly
+marked, whereas one pushed to tomorrow disappears.
+
+Assertions added, and **confirmed to fail on the old code before being trusted
+on the new** (reverted the fix, watched four go red, restored it):
+
+- every fleet ride present at 17 boundary minutes × 24 hours — failed at 23:50 and 00:00
+- an unassigned ride present across the same grid — failed at 23:50
+- `clampToLocalDay` stays inside today at **all 1,440 minutes** of the day, across six offsets in both directions
+- the 23:55 test now asserts the day as well as the ordering
+
+Then re-exported, re-served, and re-opened in two cold contexts at **00:06
+local** — the far side of the same window: **5 rides, 1 unassigned, 1 late**,
+zero console errors, `localStorage` empty before load in both.
+
+**No new browser gate was added.** The exhaustive minute test is strictly
+stronger than a walk that runs at whatever time CI happens to fire, and a gate
+that can only catch this for twenty minutes a day is the same mistake in a
+different file.
+
+**Owner:** nobody. Closed.

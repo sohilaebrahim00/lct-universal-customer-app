@@ -486,6 +486,24 @@ const suv = DEMO_VEHICLES[1] as Vehicle;
  *
  * This changes WHEN a demo ride is scheduled, never what it is. No ride is
  * added, no price moves, and every row stays labelled demonstration data.
+ *
+ * ── The escape hatch used to leave the day it exists to protect ───────────
+ * When `now` was already past the 23:30 clamp point, the fallback returned
+ * `now + 10 minutes` — which, after 23:50, is TOMORROW. The mirror case
+ * returned `now - 10 minutes`, which before 00:10 is YESTERDAY. So for roughly
+ * twenty minutes either side of midnight this function did the exact thing it
+ * was written to prevent, and the board lost its two future rides: opened at
+ * 23:51 it showed **2 rides, 0 unassigned, 1 late** instead of four rides with
+ * an unassigned row.
+ *
+ * Every return is now pinned inside the day, so the guarantee holds by
+ * construction rather than by each branch remembering it.
+ *
+ * ── When the two properties conflict, the DAY wins ────────────────────────
+ * In the last thirty seconds before midnight there is no time that is both
+ * still today and still ahead of now. A ride nudged half a minute into the
+ * past still appears on the board, correctly marked; a ride pushed to tomorrow
+ * disappears, and an empty console is indistinguishable from a broken one.
  */
 export function clampToLocalDay(target: Date, now: Date): Date {
   const sameDay =
@@ -494,6 +512,16 @@ export function clampToLocalDay(target: Date, now: Date): Date {
     target.getDate() === now.getDate();
   if (sameDay) return target;
 
+  /** The widest span still inside today, with a hair of margin at each end. */
+  const dayStart = new Date(now);
+  dayStart.setHours(0, 0, 30, 0);
+  const dayEnd = new Date(now);
+  dayEnd.setHours(23, 59, 30, 0);
+
+  /** Pins a candidate inside today. Applied to EVERY return below. */
+  const pin = (d: Date) =>
+    new Date(Math.min(Math.max(d.getTime(), dayStart.getTime()), dayEnd.getTime()));
+
   const clamped = new Date(now);
   if (target.getTime() > now.getTime()) clamped.setHours(23, 30, 0, 0);
   else clamped.setHours(0, 20, 0, 0);
@@ -501,12 +529,12 @@ export function clampToLocalDay(target: Date, now: Date): Date {
   // If now is itself past the clamp point, sit just off now instead of
   // producing a time that has already gone.
   if (target.getTime() > now.getTime() && clamped.getTime() <= now.getTime()) {
-    return new Date(now.getTime() + 10 * 60_000);
+    return pin(new Date(now.getTime() + 10 * 60_000));
   }
   if (target.getTime() < now.getTime() && clamped.getTime() >= now.getTime()) {
-    return new Date(now.getTime() - 10 * 60_000);
+    return pin(new Date(now.getTime() - 10 * 60_000));
   }
-  return clamped;
+  return pin(clamped);
 }
 
 function fleetBookings(now: Date): Booking[] {
