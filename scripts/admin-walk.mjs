@@ -1,7 +1,7 @@
 /**
  * THE ADMIN CONSOLE WALK.
  *
- * Reaches all sixteen sections and asserts two things the console exists to
+ * Reaches every section the console renders and asserts two things the console exists to
  * respect: that every section renders something, and that the panels with NO
  * DATA do not show a currency figure.
  *

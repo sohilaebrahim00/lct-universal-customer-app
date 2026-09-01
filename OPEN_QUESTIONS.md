@@ -359,6 +359,25 @@ on a customer's behalf should be able to waive a fee — which is a policy
 question, not an engineering one.
 **Owner:** the business for the waiver; otherwise ready to build.
 
+**Update, 2026-09-01 — the CUSTOMER cancel is now built, and it makes one half
+of this question sharper.** `CancelConfirm` states the real free window for
+that ride's service type before the customer confirms, and states **no fee
+figure at all** when the window has passed — it says the window has passed and
+gives the dispatch number. That is deliberate and it is the conservative
+choice, but it means a customer cancelling late is told less than
+`lctuniversal.com/cancellation-policy` already publishes.
+
+So the open question is now two, not one:
+
+1. **May the app assert a charge?** The tiers are recorded in `servicePolicy.ts`
+   as `CANCELLATION_FEE_TIERS_PUBLISHED` and are rendered nowhere. Printing a
+   figure above a confirm button is a commitment, and nobody has made it.
+2. **Who may waive it?** — the original question above, unchanged.
+
+Until (1) is answered the app under-states rather than over-states, which is
+the right way round to be wrong.
+**Owner:** the business, for both.
+
 ### And create-a-booking stays reported, not built
 
 An operator taking a booking over the phone is as common as assigning one, and

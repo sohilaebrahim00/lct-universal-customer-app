@@ -6,9 +6,10 @@ import { AppText } from '../ui/Typography';
 import { StatusPill } from '../ui/StatusPill';
 import { gutter, iconSize, iconStroke, radius, space, theme } from '../../theme';
 import { useMotion } from '../../lib/useMotion';
-import { TRIP_STATUS_LABELS, type TripStatus } from '../../lib/tripStatus';
+import { TRIP_STATUS_LABELS, isCustomerCancellable, type TripStatus } from '../../lib/tripStatus';
 import { arrivingLabel, tripProgress } from '../../lib/tripProgress';
 import { servicePolicy } from '../../config/servicePolicy';
+import { CancelBooking } from './CancelBooking';
 import {
   RIDE_STAGES,
   RIDE_STAGE_LABELS,
@@ -89,6 +90,11 @@ export interface TrackingSheetProps {
   arrivedAt?: string | null;
   /** Decides the complimentary waiting window: 30 minutes, or 60 for airport. */
   serviceType?: ServiceType | null;
+  /** ISO pickup time — the confirmation states the real window against it. */
+  scheduledAt?: string;
+  /** Absent means the ride cannot be cancelled from here. */
+  onCancel?: () => void;
+  cancelling?: boolean;
 }
 
 export function TrackingSheet({
@@ -105,6 +111,9 @@ export function TrackingSheet({
   onRetryDetail,
   arrivedAt = null,
   serviceType = null,
+  scheduledAt = new Date().toISOString(),
+  onCancel,
+  cancelling = false,
 }: TrackingSheetProps) {
   const progress = tripProgress(etaMinutes, totalMinutes);
   const arriving = arrivingLabel(etaMinutes);
@@ -250,6 +259,28 @@ export function TrackingSheet({
         ) : null}
 
         <Timeline status={status} arrivedAt={arrivedAt} />
+
+        {/*
+          CANCEL, while the ride has not started.
+
+          Not a sale and not a prompt -- the rule this sheet states is that
+          nothing is ever SOLD here, and a customer exercising a policy the app
+          already promised them twice is the opposite of that. It sits after the
+          timeline and before the route to a human, which is the order a person
+          reaching for it would look in.
+
+          Only pre-pickup, per isCustomerCancellable() -- which is the CLIENT's
+          rule and says so, because this repository does not hold the backend's
+          cancel edges. A customer already in the car is not cancelling.
+        */}
+        {onCancel && isCustomerCancellable(status) ? (
+          <CancelBooking
+            serviceType={serviceType}
+            scheduledAt={scheduledAt}
+            cancelling={cancelling}
+            onConfirm={onCancel}
+          />
+        ) : null}
 
         <View style={styles.route}>
           {pickupAddress ? <RouteLine label="Pickup" value={pickupAddress} /> : null}

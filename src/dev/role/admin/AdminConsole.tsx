@@ -203,7 +203,7 @@ export function AdminConsole() {
         <Bookings rides={rides} />
       ) : section === 'notifications' ? (
         <Notifications rides={rides} />
-      ) : section === 'broadcast' || section === 'messages' ? (
+      ) : section === 'broadcast' ? (
         <Broadcast rides={rides} />
       ) : section === 'coverage' ? (
         <Coverage />

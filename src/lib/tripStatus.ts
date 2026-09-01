@@ -71,3 +71,29 @@ export function isTerminalStatus(status: TripStatus): boolean {
 export function isUpcomingBookingStatus(status: TripStatus): boolean {
   return !isTerminalStatus(status);
 }
+
+/**
+ * The statuses a CUSTOMER may cancel from: before the passenger is aboard.
+ *
+ * ── This is the client's own rule, not a mirrored one ──────────────────────
+ * `TRIP_STAGE_ORDER` above mirrors the backend's forward transitions, which
+ * this repository has a copy of. Its **cancel** edges it does not: the backend
+ * source is not in this repository and nothing here states which statuses
+ * `POST /bookings/:id/cancel` accepts. So this list is a product decision —
+ * a customer sitting in the car is not cancelling, they are ending a ride
+ * that is under way, and that is a call to dispatch — and it is deliberately
+ * the conservative end of whatever the server allows.
+ *
+ * If the server refuses one of these, the screen surfaces the error rather
+ * than pretending; see the cancel handler in `app/(app)/trips/[id].tsx`.
+ */
+export const CUSTOMER_CANCELLABLE: readonly TripStatus[] = [
+  'pending',
+  'confirmed',
+  'driver_assigned',
+  'driver_arriving',
+];
+
+export function isCustomerCancellable(status: TripStatus): boolean {
+  return CUSTOMER_CANCELLABLE.includes(status);
+}

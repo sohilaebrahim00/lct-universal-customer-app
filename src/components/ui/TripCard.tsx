@@ -31,6 +31,15 @@ interface Props {
   /** Label for the Book again control. Named so the caller can say Book again or Rebook. */
   bookAgainLabel?: string;
   /**
+   * Offers Cancel on this row. An id-taking callback for the same reason as
+   * the two above — the memo.
+   *
+   * The row does NOT confirm. It asks the screen to, because the confirmation
+   * has to state the real free-cancellation window for that ride's service
+   * type and a list row cannot grow to hold it. See `CancelConfirm`.
+   */
+  onCancel?: (id: string) => void;
+  /**
    * The stable alternative to `onPress` for list rows.
    *
    * A memoised row is only memoised if its props hold their identity between
@@ -70,6 +79,7 @@ function TripCardBase({
   onOpen,
   onBookAgain,
   bookAgainLabel = 'Book again',
+  onCancel,
 }: Props) {
   const live = !isTerminalStatus(status) && status !== 'pending';
   const fare = formatCurrency(totalFare, currency);
@@ -93,6 +103,19 @@ function TripCardBase({
         </AppText>
 
         {actions ? <View style={styles.actions}>{actions}</View> : null}
+
+        {onCancel && id ? (
+          <Pressable
+            onPress={() => onCancel(id)}
+            accessibilityRole="button"
+            accessibilityLabel={`Cancel this ride: ${route}`}
+            style={({ pressed }) => [styles.bookAgain, pressed ? styles.bookAgainPressed : null]}
+          >
+            <AppText variant="caption" color={theme.content.secondary}>
+              Cancel this ride
+            </AppText>
+          </Pressable>
+        ) : null}
 
         {onBookAgain && id ? (
           <Pressable

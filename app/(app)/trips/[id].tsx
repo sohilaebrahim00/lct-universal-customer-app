@@ -10,12 +10,15 @@ import { Skeleton } from '../../../src/components/ui/Skeleton';
 import { TrackingMap } from '../../../src/components/trip/TrackingMap';
 import { TrackingSheet } from '../../../src/components/trip/TrackingSheet';
 import { TripReceipt } from '../../../src/components/trip/TripReceipt';
+import { CancelledRecord } from '../../../src/components/trip/CancelledRecord';
 import { theme } from '../../../src/theme';
 import { bookingsApi } from '../../../src/api/bookings';
 import { tripsApi } from '../../../src/api/trips';
 import type { Booking, Trip, TripDriverInfo, TripVehicleInfo } from '../../../src/types/api';
 import { isTerminalStatus, type TripStatus } from '../../../src/lib/tripStatus';
 import { arrivedAtFrom } from '../../../src/lib/rideStage';
+import { rebookDraftFrom } from '../../../src/lib/rebook';
+import { useBookingFormStore } from '../../../src/store/bookingFormStore';
 import { useDemoStateSync } from '../../../src/dev/useDemoStateSync';
 import { useTripSocket } from '../../../src/lib/useTripSocket';
 import { useSmoothedLocation } from '../../../src/lib/useSmoothedLocation';
@@ -59,6 +62,19 @@ export default function TripDetailScreen() {
 
   const live = useTripSocket(bookingId ?? null);
 
+  const resetDraft = useBookingFormStore((s) => s.reset);
+  const updateDraft = useBookingFormStore((s) => s.update);
+
+  const [cancelling, setCancelling] = useState(false);
+
+  /** Same mapping the Cancelled tab uses -- see src/lib/rebook.ts for what it refuses to carry. */
+  const rebookThis = useCallback(() => {
+    if (!booking) return;
+    resetDraft();
+    updateDraft(rebookDraftFrom(booking));
+    router.push('/(app)/book/pickup');
+  }, [booking, resetDraft, updateDraft, router]);
+
   const load = useCallback(() => {
     if (!bookingId) return;
     setLoadError(null);
@@ -93,6 +109,29 @@ export default function TripDetailScreen() {
         setTripError(cause instanceof Error ? cause : new Error(String(cause)));
       });
   }, [bookingId]);
+
+  /**
+   * The cancel the app had been promising and could not perform.
+   *
+   * bookingsApi.cancel() and its endpoint both existed; no screen called
+   * either, while book/payment and book/confirmed both told the customer they
+   * could cancel free within a stated window. A promise with no control.
+   *
+   * Reloads on success rather than mutating local state, so the screen shows
+   * what the store actually holds -- and the cancelled branch above then takes
+   * over. On failure the ride is left exactly as it was and the error surfaces
+   * through the existing path; a cancel that silently does nothing is the
+   * failure-rendering-as-success shape this project keeps removing.
+   */
+  const cancelThis = useCallback(() => {
+    if (!bookingId || cancelling) return;
+    setCancelling(true);
+    bookingsApi
+      .cancel(bookingId)
+      .then(() => load())
+      .catch((cause: unknown) => setLoadError(cause instanceof Error ? cause : new Error(String(cause))))
+      .finally(() => setCancelling(false));
+  }, [bookingId, cancelling, load]);
 
   useFocusEffect(useCallback(() => { load(); }, [load]));
 
@@ -210,6 +249,29 @@ export default function TripDetailScreen() {
     );
   }
 
+  /*
+   * AND SO IS A CANCELLED ONE. The rule above was written for `completed` and
+   * applied to one terminal status out of two.
+   *
+   * `isTerminalStatus()` covers both, and `TrackingSheet` computes its own
+   * `terminal` from both — but this screen did not, so a cancelled booking fell
+   * through to the full-bleed map, the marker smoother, both pins and the
+   * floating sheet, with the cancellation reduced to one line inside the
+   * timeline. An app animating a car towards a ride that is not happening is
+   * the same defect the comment above forbids, in the other terminal state.
+   *
+   * There is no receipt: nothing was charged. What a customer needs here is
+   * what was booked, that it is cancelled, and the way to book it again — which
+   * `rebookDraftFrom()` already provides for the Cancelled tab.
+   */
+  if (status === 'cancelled') {
+    return (
+      <ScreenContainer scroll>
+        <CancelledRecord booking={booking} onRebook={rebookThis} />
+      </ScreenContainer>
+    );
+  }
+
   return (
     <View style={styles.screen}>
       {/*
@@ -262,6 +324,9 @@ export default function TripDetailScreen() {
            */
           arrivedAt={arrivedAtFrom(trip)}
           serviceType={booking.service_type}
+          scheduledAt={booking.scheduled_at}
+          onCancel={cancelThis}
+          cancelling={cancelling}
         />
       </View>
     </View>

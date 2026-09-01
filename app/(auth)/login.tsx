@@ -10,9 +10,28 @@ import { TextField } from '../../src/components/ui/TextField';
 import { AppText } from '../../src/components/ui/Typography';
 import { space, theme } from '../../src/theme';
 import { supabase } from '../../src/lib/supabase';
+import { useAuthStore } from '../../src/store/authStore';
 
 export default function LoginScreen() {
   const router = useRouter();
+  const continueAsGuest = useAuthStore((s) => s.continueAsGuest);
+
+  /*
+   * WAS: router.push('/demo-account') -- a second, static customer dashboard
+   * with hardcoded fares ($145.00, $210.00, $480.00, $135.00), a named
+   * customer, and saved addresses, none of it from the pricing engine or the
+   * demo store. Unfenced, so it shipped in the customer bundle and was live on
+   * a public URL, and divergent from the real account/, trips/ and
+   * saved-locations screens that superseded it.
+   *
+   * Deleted. The button's own caption -- "preview the app with sample data, no
+   * account needed" -- describes what GUEST MODE already does, against the real
+   * demo store. So it now does that, which is both truer and less code.
+   */
+  async function enterDemo() {
+    await continueAsGuest();
+    router.replace('/(app)');
+  }
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -86,7 +105,7 @@ export default function LoginScreen() {
       <Button
         label="Try Demo Experience"
         variant="ghost"
-        onPress={() => router.push('/demo-account')}
+        onPress={() => void enterDemo()}
         style={{ marginTop: space.sm }}
       />
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginTop: -space.xs }}>

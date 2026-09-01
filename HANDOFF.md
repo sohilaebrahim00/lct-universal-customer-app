@@ -59,7 +59,7 @@ Four lists follow. Every item in them names who can unblock it too.
 | The verification scripts themselves compile and lint | `npm run lint` now covers `scripts/` |
 | The ride lifecycle, all seven stages across three roles | `tests/rideStage.test.ts` (21 assertions incl. the transitions that must be REFUSED) plus `npm run verify:lifecycle`, which drives the chauffeur view and reads the customer and dispatcher views back |
 | An ETA is never rendered where it cannot be attributed | `etaIsAttributable()`, asserted over the full stage list so a new stage cannot default to showing one |
-| The admin console reaches all 16 sections and fabricates nothing | `npm run verify:admin` — asserts the data-less panels render no currency figure |
+| The admin console reaches all 18 sections and fabricates nothing | `npm run verify:admin` — reads the tab list from the DOM and derives the count, then asserts the data-less panels render no currency figure |
 | Unconfirmed rate cards are absent from a production bundle | built with `EXPO_PUBLIC_DEMO_MODE=false`: no `/_role/*` route, zero occurrences of the rate-card data. Absent from the bytes, not merely unimported |
 | Layout holds at 320 CSS px (WCAG 1.4.10 Reflow) | `npm run verify:a11y` at five widths |
 | The gate cannot report on a partial run | completion ledger; verified by injecting an unreachable route, which produced `INCOMPLETE — no result reported` and exit 2 |
@@ -68,13 +68,33 @@ Four lists follow. Every item in them names who can unblock it too.
 `tsc --noEmit`, `eslint app src scripts`, `npm test` (1,894/1,894, 18 suites),
 `npm run export:web` (build-mode + maps-key checks), the 20-screen sweep,
 `verify:a11y` (22 routes × 5 viewports, 0 failures), `verify:lifecycle` (all
-seven stages, three roles), `verify:admin` (16/16 sections). The
+seven stages, three roles), `verify:admin` — which printed **16/16 sections**
+on that date, and was **wrong**: eighteen were present and the script was
+counting a hardcoded constant instead of the console. It now reads the tab
+list from the DOM and derives the count, and the number below is what it
+printed rather than what it was told. The
 `EXPO_PUBLIC_DEMO_MODE=false` absence claim in the row above was independently
 re-checked too — not just re-trusted — with a second export and a direct
 `grep` of the emitted bundle: `ROLE_PREVIEW_MARKER` and every observed
 rate-card figure are still absent; the two dead `_role/*` route-string
 literals `DESIGN_CHANGELOG.md` already documents as accepted residue are
 still exactly that — two, unchanged, not regressed into something worse.
+
+**Re-run again 2026-09-01**, after five delivery-gap fixes — the static
+`/demo-account` page deleted, Messages separated from Push Broadcast, a record
+view for cancelled rides, a working customer cancel, and these counts — one
+invocation each, all clean. Verbatim from the tools:
+
+| gate | what it printed |
+|---|---|
+| `npm run typecheck` | no output, exit 0 |
+| `npm run lint` | no output, exit 0 |
+| `npm test` | `Tests: 1911 passed, 1911 total` · `Test Suites: 20 passed, 20 total` |
+| `npm run export:web` | `build mode verified: EXPO_PUBLIC_DEMO_MODE=true matches the emitted bundle (dist)` |
+| `node scripts/sweep.mjs` | `clean: zero console errors, zero blank screens` |
+| `npm run verify:a11y` | `clean: 22 routes at 5 viewports (320/390/430/834/1440) — 0 targets under 44x44, 0 content above the fold, 0 horizontal overflow (incl. WCAG 1.4.10 at 320px)` |
+| `npm run verify:lifecycle` | `clean: all seven stages driven from the chauffeur view, reflected in the customer and dispatcher views` |
+| `npm run verify:admin` | `clean: all 18 sections reachable, no console errors, no fabricated figures` |
 
 **Owner:** nobody. These are closed.
 
@@ -477,8 +497,17 @@ that has no staff surfaces at all.
 
 ## 8 · The operations console, as delivered
 
-**Eighteen sections, matching the client's own panel.** Eight carry real data;
-ten are designed empty states naming the missing table, endpoint or question.
+**Eighteen sections, matching the client's own panel. Ten carry real data;
+eight are designed empty states naming the missing table, endpoint or
+question.**
+
+Those three numbers are not typed here from memory — they are what the source
+holds. `NAV` in `AdminConsole.tsx` has 18 entries, `EMPTY` in the same file
+has 8 keys (`driverapps`, `onboarding`, `ratings`, `revenue`, `promotions`,
+`messages`, `support`, `settings`), and the remaining 10 are the table below.
+`npm run verify:admin` derives the same 18 from the rendered DOM. An earlier
+draft of this section said "eight real, ten empty" — inverted, and
+contradicted by its own two tables one line further down.
 
 | real | source |
 |---|---|
@@ -491,7 +520,7 @@ ten are designed empty states naming the missing table, endpoint or question.
 | Notifications | derived from real state — unassigned, late and cancelled rides |
 | **Coverage** | **`lctuniversal.com/service-areas`, read 2026-08-26.** 57 communities, sourced and dated. Does not gate booking |
 | **Users & Roles** | **the app's own `UserRole` model.** No account list — there are no users to enumerate |
-| **Messages / Push Broadcast** | **composes, does not deliver.** No channel exists — C-5 |
+| **Push Broadcast** | **composes, does not deliver, and says so on the panel.** No delivery channel exists — C-5 |
 
 | empty, and what would fill it |
 |---|
@@ -500,6 +529,7 @@ ten are designed empty states naming the missing table, endpoint or question.
 | Promotions — a `promo_codes` table exists server-side; no endpoint, no rules |
 | Driver Apps — no auth project, no install telemetry |
 | Onboarding — no documents or compliance table; the requirements are a business question |
+| Messages — there is no chauffeur-to-client messaging system at all (C-5). It previously shared the Push Broadcast composer, which made one delivery-less control look like two working ones |
 | Support — support is the dispatch phone number; no ticket store |
 | Settings — the policies live in `servicePolicy.ts` with their sources; making them editable would move a confirmed fact into demo memory |
 

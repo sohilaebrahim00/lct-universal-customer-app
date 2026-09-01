@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react';
 import { useFocusEffect, useRouter } from 'expo-router';
-import { FlatList, RefreshControl, StyleSheet, View } from 'react-native';
+import { FlatList, Modal, Pressable, RefreshControl, StyleSheet, View } from 'react-native';
 import { Calendar, Clock } from 'lucide-react-native';
 import { Button } from '../../../src/components/ui/Button';
 import { EmptyState } from '../../../src/components/ui/EmptyState';
@@ -12,7 +12,7 @@ import { TripCard } from '../../../src/components/ui/TripCard';
 import { gutter, space, theme } from '../../../src/theme';
 import { bookingsApi } from '../../../src/api/bookings';
 import type { Booking } from '../../../src/types/api';
-import { isUpcomingBookingStatus } from '../../../src/lib/tripStatus';
+import { isCustomerCancellable, isUpcomingBookingStatus } from '../../../src/lib/tripStatus';
 import { AuthGate } from '../../../src/components/AuthGate';
 import { useAuthStore } from '../../../src/store/authStore';
 import { asyncState, type AsyncState } from '../../../src/lib/asyncState';
@@ -21,6 +21,7 @@ import { useBookingFormStore } from '../../../src/store/bookingFormStore';
 import { isDemoMode } from '../../../src/lib/env';
 import { copy } from '../../../src/copy/strings';
 import { AppText } from '../../../src/components/ui/Typography';
+import { CancelConfirm } from '../../../src/components/trip/CancelBooking';
 
 type Tab = 'upcoming' | 'past' | 'cancelled';
 
@@ -75,6 +76,24 @@ export default function TripsScreen() {
     [state, resetDraft, updateDraft, router],
   );
 
+  /**
+   * CANCELLING FROM THE LIST.
+   *
+   * The row asks; the screen confirms. `CancelConfirm` states the real free
+   * window for that ride's service type, which is longer than a list row and
+   * differs per booking — so it is raised over the list rather than grown
+   * inside it, and it is the SAME component the tracking screen uses. Two
+   * screens telling a customer two different windows is the failure this
+   * avoids by construction rather than by review.
+   *
+   * Only offered on statuses `isCustomerCancellable()` allows: a ride already
+   * under way is a call to dispatch, not a tap.
+   */
+  const [confirmingId, setConfirmingId] = useState<string | null>(null);
+  const [cancelling, setCancelling] = useState(false);
+  /* Stable, so the memo on TripCard survives — same reason as `openTrip`. */
+  const requestCancel = useCallback((id: string) => setConfirmingId(id), []);
+
   const load = useCallback(async () => {
     if (status !== 'signed-in') {
       setState(asyncState.success<Booking[]>([]));
@@ -106,6 +125,28 @@ export default function TripsScreen() {
   }
 
   const bookings = state.status === 'success' ? state.data : [];
+  const confirming = confirmingId ? bookings.find((b) => b.id === confirmingId) ?? null : null;
+
+  /*
+   * Reloads the list on success rather than editing the row in place, so what
+   * is on screen is what the server holds — the cancelled ride then moves to
+   * its own tab by the same filter as everything else. On failure the ride is
+   * left as it was and the list's existing error state says so; a cancel that
+   * silently does nothing is worse than one that refuses.
+   */
+  async function confirmCancel(id: string) {
+    setCancelling(true);
+    try {
+      await bookingsApi.cancel(id);
+      setConfirmingId(null);
+      setState(asyncState.success(await bookingsApi.list()));
+    } catch (cause) {
+      setConfirmingId(null);
+      setState(asyncState.error<Booking[]>(cause));
+    } finally {
+      setCancelling(false);
+    }
+  }
   /*
    * CANCELLED IS ITS OWN TAB, not a row buried inside Past.
    *
@@ -190,6 +231,7 @@ export default function TripsScreen() {
                 id={item.id}
                 onOpen={openTrip}
                 onBookAgain={tab === 'upcoming' ? undefined : bookAgain}
+                onCancel={isCustomerCancellable(item.status) ? requestCancel : undefined}
               />
             )}
             ListEmptyComponent={
@@ -215,6 +257,44 @@ export default function TripsScreen() {
           />
         )}
       </AuthGate>
+
+      {/*
+        The confirmation, over the list. Dismissing is the easy path — the
+        backdrop, "Keep it", and Android's back button through onRequestClose
+        all do it — because the destructive action should be the one that takes
+        the deliberate tap.
+      */}
+      <Modal
+        visible={confirming !== null}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setConfirmingId(null)}
+      >
+        <Pressable
+          style={styles.backdrop}
+          accessibilityRole="button"
+          accessibilityLabel="Keep this ride"
+          onPress={() => setConfirmingId(null)}
+        >
+          {/*
+            Absorbs taps inside the panel so they do not reach the backdrop.
+            A View claiming the responder, not a no-op Pressable: a Pressable
+            here would be a control that announces itself to a screen reader
+            and then does nothing.
+          */}
+          <View style={styles.sheet} onStartShouldSetResponder={() => true}>
+            {confirming ? (
+              <CancelConfirm
+                serviceType={confirming.service_type}
+                scheduledAt={confirming.scheduled_at}
+                cancelling={cancelling}
+                onConfirm={() => void confirmCancel(confirming.id)}
+                onDismiss={() => setConfirmingId(null)}
+              />
+            ) : null}
+          </View>
+        </Pressable>
+      </Modal>
     </View>
   );
 }
@@ -223,4 +303,6 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: theme.background.primary },
   header: { paddingHorizontal: gutter, paddingTop: space.sm },
   body: { paddingHorizontal: gutter, paddingTop: space.mdl, paddingBottom: space.xl },
+  backdrop: { flex: 1, justifyContent: 'flex-end', backgroundColor: theme.background.scrim },
+  sheet: { backgroundColor: theme.background.primary, paddingHorizontal: gutter, paddingBottom: space.xl },
 });
