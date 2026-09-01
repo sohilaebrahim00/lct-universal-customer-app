@@ -58,6 +58,60 @@ export function freeCancellationHoursFor(serviceType: ServiceType | null): numbe
   }
 }
 
+/**
+ * Which published tier band a service type falls in.
+ *
+ * ── ONE mapping, not two ──────────────────────────────────────────────────
+ * This deliberately mirrors `freeCancellationHoursFor` case for case, because
+ * the free window and the tier that begins where it ends are the SAME sentence
+ * on `lctuniversal.com/cancellation-policy`. Two switches that agree today is
+ * how a screen ends up saying "free until 6 hours before" above a tier taken
+ * from the 12-hour band. `tests/cancelPolicy.test.ts` asserts they agree for
+ * every service type rather than trusting that they look alike.
+ */
+export function feeTierBandFor(
+  serviceType: ServiceType | null,
+): keyof Pick<typeof CANCELLATION_FEE_TIERS_PUBLISHED, 'sedansAndSuvs' | 'airport' | 'hourlyAndEvents'> | null {
+  switch (serviceType) {
+    case 'airport':
+      return 'airport';
+    case 'hourly':
+    case 'events':
+      return 'hourlyAndEvents';
+    case 'point_to_point':
+    case 'corporate':
+      return 'sedansAndSuvs';
+    // 'custom' is quote-routed and has no published tier of its own.
+    default:
+      return null;
+  }
+}
+
+/**
+ * What the business publishes about cancelling INSIDE the free window.
+ *
+ * ── Why this is rendered now, when it was withheld before ─────────────────
+ * It was held back on the reasoning that "putting a charge on a screen is a
+ * commitment nobody has made". That reasoning does not survive the file it was
+ * written in. These are the client's OWN figures, from their own public policy
+ * page, read and dated like every other line here — and the app has been
+ * printing "free until 12 hours before pickup" from the same paragraph for
+ * weeks. Repeating what the customer could read on the website is not the app
+ * asserting a charge; withholding it means the app knows less than the website.
+ *
+ * The genuinely open question was never the figure. It is the WAIVER — who may
+ * waive a fee and on what grounds — which is an operator question
+ * (`OPEN_QUESTIONS.md` 14c), not a customer screen.
+ *
+ * The weather sentence is deliberately NOT returned here: "may be waived at the
+ * company's discretion" is a discretion, and rendering it beside a confirm
+ * button would read as an entitlement.
+ */
+export function cancellationTiersFor(serviceType: ServiceType | null): readonly string[] | null {
+  const band = feeTierBandFor(serviceType);
+  return band === null ? null : CANCELLATION_FEE_TIERS_PUBLISHED[band];
+}
+
 /** "12 hours" / "1 hour" — so no caller has to remember the plural. */
 export function cancellationSentenceFor(serviceType: ServiceType | null): string | null {
   const hours = freeCancellationHoursFor(serviceType);
@@ -155,10 +209,20 @@ export const PRICING_STATEMENT = 'Priced at the moment you book.';
  *
  * The dispatch number matches too: +1 (888) 615-4065.
  *
- * ── What the site publishes that this app does not yet state ──────────────
- * The FEE TIERS beyond the free window. Recorded here as published fact,
- * deliberately NOT rendered: putting a charge on a screen is a commitment, and
- * which screen it belongs on is a design decision nobody has made.
+ * ── The fee tiers ARE stated now, and were withheld before ────────────────
+ * They were held back on the reasoning that "putting a charge on a screen is a
+ * commitment nobody has made". That reasoning does not survive this file: they
+ * are the CLIENT's figures, from the client's own policy page, with a source
+ * and a read date, in the same paragraph as the free windows this app has
+ * printed for weeks. Withholding them made the app know less than the website.
+ *
+ * `cancellationTiersFor()` resolves them per service type and `CancelConfirm`
+ * renders them once the free window has passed. What the app still refuses is
+ * a CHARGE: no currency amount, no percentage applied to a booking's fare.
+ * Policy, never a bill.
+ *
+ * The WAIVER below stays unrendered — a discretion beside a confirm button
+ * reads as an entitlement. See `OPEN_QUESTIONS.md` 14c.
  *
  * ── The waiting policy is NOT stated on the site ───────────────────────────
  * The FAQ says only "We accommodate reasonable delays without additional
@@ -169,7 +233,7 @@ export const PRICING_STATEMENT = 'Priced at the moment you book.';
 export const CANCELLATION_FEE_TIERS_PUBLISHED = {
   source: 'lctuniversal.com/cancellation-policy',
   readOn: '2026-08-26',
-  /** Not rendered anywhere. Published fact, held for whoever designs the screen. */
+  /** Rendered by `CancelConfirm` through `cancellationTiersFor()`, cited to `source`. */
   sedansAndSuvs: ['More than 12 hours before pickup — full refund', 'Within 12 hours — 50% of the fare', 'Within 2 hours or no-show — full charge'],
   airport: ['Notify at least 6 hours before pickup to avoid charges', 'Less than 6 hours — 50% of the fare', 'Airport no-show without notice — 100% of the fare'],
   hourlyAndEvents: ['At least 48 hours in advance — full refund', 'Within 48 hours — 50% of the fare', 'Same-day cancellation or no-show — full charge'],

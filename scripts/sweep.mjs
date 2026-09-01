@@ -25,6 +25,13 @@ page.on('pageerror', e=>problems.push(`[pageerror] ${page.url().replace(BASE,'')
 async function go(path, name, settle=2600){
   await page.goto(BASE+path,{waitUntil:'load',timeout:120000});
   await page.waitForTimeout(settle);
+  /*
+    `body.innerText` reads every layer, not the visible one — see the note in
+    `admin-walk.mjs`. For THIS check that is the safe direction: the question
+    is "did anything render at all", and text hidden behind an overlay is
+    still text the app produced. It would be the wrong read for any check
+    asking what a person can SEE, so do not copy this line into one.
+  */
   const text = (await page.evaluate(()=>document.body.innerText || '')).trim();
   if (text.length < 5) problems.push(`[blank] ${path} rendered no text`);
   if (name) { await page.screenshot({path:`${OUT}/D-${name}.png`}); console.log(`  shot ${name}  (${text.length} chars)`); }

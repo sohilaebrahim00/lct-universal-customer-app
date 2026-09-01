@@ -29,7 +29,7 @@
  * Usage: node scripts/cancel-walk.mjs   (needs `serve dist -l 5055 --single`)
  */
 import { createRequire } from 'node:module';
-import { existsSync, readdirSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 
 function rp() {
@@ -45,6 +45,19 @@ const { chromium } = createRequire(import.meta.url)(rp());
 const BASE = 'http://localhost:5055';
 const RIDE = 'demo-booking-upcoming';
 const problems = [];
+
+/**
+ * The dispatch number, READ FROM `servicePolicy.ts` rather than typed here.
+ *
+ * A walk that hardcodes a figure it is checking for is asserting against its
+ * own copy, and stops noticing when the app's changes. Null if the shape moves,
+ * and the assertion that uses it is skipped rather than silently passing.
+ */
+const DISPATCH_PHONE = (() => {
+  const src = readFileSync(join(process.cwd(), 'src', 'config', 'servicePolicy.ts'), 'utf8');
+  const m = src.match(/dispatchPhone:\s*'([^']+)'/);
+  return m ? m[1] : null;
+})();
 
 /**
  * THE COMPLETION LEDGER.
@@ -145,6 +158,15 @@ console.log('--- 1. cancel from the trip screen ---');
   const before = await textAt(page, `/trips/${RIDE}`);
   expect('trip screen', before, 'Cancel this ride');
 
+  /*
+    POSITIVE CONTROL for the A-2 assertion below. The tracking layout is on
+    screen NOW — on web that layer renders this sentence in place of the native
+    map. Asserting it present here is what makes its absence after cancelling
+    mean something rather than being one more confident negative.
+  */
+  const MAP_LAYER = 'The live map is available in the iOS and Android app.';
+  const mapShown = expect('trip screen', before, MAP_LAYER);
+
   await page.getByText('Cancel this ride', { exact: false }).first().click({ timeout: 15000 });
   await page.waitForTimeout(900);
   const panel = (await panelText(page)) ?? '';
@@ -162,6 +184,34 @@ console.log('--- 1. cancel from the trip screen ---');
   if (!/\b\d+\s+hours?\b/i.test(panel)) {
     problems.push('[confirmation] the window was stated without a number of hours');
   }
+
+  /*
+    OUTSIDE THE WINDOW: the published tiers are stated, and cited.
+
+    They were withheld at first on the reasoning that a charge on a screen is a
+    commitment. That did not survive the file it came from — these are the
+    client's own published figures, from the same policy paragraph as the free
+    window this app has printed for weeks. Withholding them made the app know
+    less than the website a customer could open in the next tab.
+
+    Only asserted on the branch that renders them; inside the window there is
+    no charge to state and saying so would be wrong.
+  */
+  if (/window .* has passed/i.test(panel)) {
+    if (!/\d+%/.test(panel)) {
+      problems.push('[confirmation] outside the window and no published tier stated');
+      console.log('  MISS  confirmation          states the published tier');
+    } else {
+      console.log('  ok    confirmation          states the published tier');
+    }
+    expect('confirmation', panel, 'lctuniversal.com/cancellation-policy');
+    // The waiver is a discretion. Beside a confirm button it reads as an
+    // entitlement, so it stays out.
+    expectAbsent('confirmation', panel, 'may be waived');
+  }
+
+  // A percentage the business publishes is policy. A dollar amount would be
+  // this app computing what THIS customer owes, which nothing authorised.
   expectNoMoney('confirmation', panel);
   expect('confirmation', panel, 'Keep it');
 
@@ -172,9 +222,26 @@ console.log('--- 1. cancel from the trip screen ---');
   expect('after cancel', after, 'This ride was cancelled');
   expect('after cancel', after, 'Nothing was charged for this ride.');
   expect('after cancel', after, 'Book this journey again');
-  // The record replaces the live layout — the map, the ETA and the chauffeur
-  // are not shown for a ride that is not happening.
+  /*
+    A-2: THE RECORD REPLACES THE LIVE LAYOUT.
+
+    This is the assertion that matters most now, because the cancel above is
+    what produces cancelled bookings in the first place. Before this screen
+    existed, a customer who cancelled landed on a full-bleed map tracking a car
+    that was not coming — the first place the new feature leads was the least
+    finished screen in the app.
+
+    The map layer, the live badge and the route to dispatch all belong to a
+    ride in progress and none of them may survive into the record.
+  */
+  if (mapShown) {
+    expectAbsent('after cancel', after, MAP_LAYER);
+  } else {
+    problems.push('[after cancel] map-layer absence not asserted — the positive control did not find it first');
+    console.log('  SKIP  after cancel          map absence not asserted');
+  }
   expectAbsent('after cancel', after, 'Live');
+  if (DISPATCH_PHONE) expectAbsent('after cancel', after, DISPATCH_PHONE);
   expectNoMoney('after cancel', after);
 
   await ctx.close();
@@ -270,6 +337,7 @@ if (problems.length) {
   process.exit(1);
 }
 console.log(
-  'clean: cancel reachable from the trip screen and the upcoming row, states the window and no charge, ' +
-    'produces a cancelled record with no figure, and is absent once the ride is under way',
+  'clean: cancel reachable from the trip screen and the upcoming row; the confirmation states the real window ' +
+    'and, outside it, the published tier with its source and no waiver; cancelling replaces the live layout with ' +
+    'a record carrying no map, no dispatch bar and no figure; and the control is absent once the ride is under way',
 );

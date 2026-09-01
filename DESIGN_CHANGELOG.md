@@ -1224,6 +1224,41 @@ The second is the first in miniature, and the repair is the same both times:
 report only what ran, and say so when the run was partial. The summary now
 enumerates the passes that executed and appends `[PARTIAL RUN]` otherwise.
 
+### A sixth: `innerText` sees through what is on top of it — in both directions
+
+Three matcher failures in this project were **false negatives** — swap rows,
+capacity counts, "Arrives approx.", name signs, flight numbers, all reported
+absent while on screen, all from case-sensitive or ambiguous matchers. The rule
+written from them was *an all-negative result is a signature, not a finding.*
+
+`cancel-walk.mjs` produced the **opposite sign of the same cause** on its first
+run. It read `document.body.innerText` while a transparent modal was open and
+reported:
+
+> `[list confirmation] a figure that reads as money: $199.30`
+
+There was no money in the confirmation. The `$199.30` was the booked fare on a
+trip row **behind the scrim**, which the check read straight through. A
+**fabrication reported where there was none** — the mirror image of a feature
+reported absent where it was present.
+
+`innerText` has no idea what is visually on top. That makes it the wrong read
+for any check asking *what can a person see*, and a perfectly good read for
+*did anything render at all*.
+
+**Fixed** in `cancel-walk.mjs` by scoping the read to the confirmation panel,
+anchored on two of its own strings so it cannot climb to `<body>`.
+
+**Latent, and now labelled rather than fixed:** `admin-walk.mjs:88` runs
+`/\$\d/.test(t)` over `document.body.innerText` to prove the data-less panels
+show no money. No admin panel opens an overlay today, so it is clean. The day
+one does — a confirm, a sheet, a picker — it reads both layers and either fires
+falsely, or worse, a real figure hides behind an overlay and it stays silent.
+The note sits at the check, and the fix is one line: scope the read to the
+panel. `sweep.mjs` reads the body the same way and is correct to, for the
+reason above; that line now says so, so nobody copies it into a check where it
+would be wrong.
+
 ### The harness was wrong and the app was right
 
 `lifecycle-walk.mjs` asserted against the dispatcher's **today** board for a ride

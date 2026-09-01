@@ -7,7 +7,12 @@ import {
   isCustomerCancellable,
   type TripStatus,
 } from '../src/lib/tripStatus';
-import { CANCELLATION_FEE_TIERS_PUBLISHED, freeCancellationHoursFor } from '../src/config/servicePolicy';
+import {
+  CANCELLATION_FEE_TIERS_PUBLISHED,
+  cancellationTiersFor,
+  feeTierBandFor,
+  freeCancellationHoursFor,
+} from '../src/config/servicePolicy';
 import type { ServiceType } from '../src/types/api';
 
 /**
@@ -21,11 +26,16 @@ import type { ServiceType } from '../src/types/api';
  *    derived from the same list the app derives from — a test that recomputes
  *    the implementation cannot disagree with it.
  *
- * 2. THAT NO CANCELLATION FEE REACHES THE SCREEN. `servicePolicy.ts` carries
- *    the tiers the website publishes, and whether the app may assert a charge
- *    is unanswered (OPEN_QUESTIONS.md 14c). This is the kind of rule that is
- *    kept by nobody noticing, so it is asserted against the SOURCE of the
- *    component: the same shape as `observedRateCardContainment`.
+ * 2. THAT THE APP STATES POLICY AND NEVER COMPUTES A CHARGE. The published
+ *    tiers ARE rendered — they are the client's own figures from their own
+ *    policy page, and this app has printed the free window from the same
+ *    paragraph for weeks. What must never appear is a currency amount or any
+ *    arithmetic against this booking's fare, and the waiver must stay out
+ *    because a discretion beside a confirm button reads as an entitlement.
+ *
+ *    This is the kind of rule kept by nobody noticing, so it is asserted
+ *    against the SOURCE of the component — the same shape as
+ *    `observedRateCardContainment`.
  */
 
 const CANCEL_SRC = readFileSync(join(__dirname, '..', 'src', 'components', 'trip', 'CancelBooking.tsx'), 'utf8');
@@ -84,18 +94,74 @@ describe('the confirmation states a window, and never a charge', () => {
     expect(codeOf(CANCEL_SRC)).toContain('windowHours === null');
   });
 
-  it('renders no currency symbol and no digit-with-decimals anywhere', () => {
+  /*
+   * The app states POLICY. It never states what THIS customer owes.
+   *
+   * That distinction is the whole rule: "Within 12 hours — 50% of the fare" is
+   * the client's published sentence; "$97.15" would be this app computing a
+   * charge against this booking, which nothing has authorised it to do.
+   */
+  it('computes no charge — no currency amount, no arithmetic on a fare', () => {
     const code = codeOf(CANCEL_SRC);
     // `$` only where it is NOT template interpolation — `${windowHours}` is a
     // dollar sign to a naive grep and is not a price.
     expect(code).not.toMatch(/\$(?!\{)/);
     expect(code).not.toMatch(/\d+\.\d{2}/);
+    expect(code).not.toMatch(/total_fare|formatCurrency|\* *0\.5|\/ *2\b/);
   });
 
-  it('does not read the published fee tiers', () => {
-    expect(CANCEL_SRC).not.toMatch(/CANCELLATION_FEE_TIERS_PUBLISHED\s*[.[]/);
-    // The tiers exist and are recorded — this test would be vacuous if they did not.
-    expect(Object.keys(CANCELLATION_FEE_TIERS_PUBLISHED).length).toBeGreaterThan(0);
+  it('states the published tiers VERBATIM, never a reworded version', () => {
+    // Rendered through `cancellationTiersFor`, so what reaches the screen is
+    // the string recorded from the policy page. A component that retyped them
+    // could drift from the source it cites, which is worse than silence.
+    expect(codeOf(CANCEL_SRC)).toContain('cancellationTiersFor');
+    for (const band of ['sedansAndSuvs', 'airport', 'hourlyAndEvents'] as const) {
+      for (const tier of CANCELLATION_FEE_TIERS_PUBLISHED[band]) {
+        expect(CANCEL_SRC).not.toContain(tier);
+      }
+    }
+  });
+
+  it('cites where the tiers came from', () => {
+    expect(codeOf(CANCEL_SRC)).toContain('CANCELLATION_FEE_TIERS_PUBLISHED.source');
+    expect(CANCELLATION_FEE_TIERS_PUBLISHED.source).toBe('lctuniversal.com/cancellation-policy');
+    expect(CANCELLATION_FEE_TIERS_PUBLISHED.readOn).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+  });
+
+  /*
+   * The waiver is the one thing still withheld, and for a different reason than
+   * the tiers were: "may be waived at the company's discretion" is a discretion,
+   * and rendering it beside a confirm button reads as an entitlement.
+   */
+  it('does NOT render the weather/emergency waiver', () => {
+    expect(CANCEL_SRC).not.toContain(CANCELLATION_FEE_TIERS_PUBLISHED.weather);
+    expect(codeOf(CANCEL_SRC)).not.toMatch(/\.weather\b/);
+  });
+
+  /**
+   * ONE MAPPING, ASSERTED — not two switches that look alike.
+   *
+   * The free window and the tier band that begins where it ends are the same
+   * sentence on the policy page. If these two ever disagree, a screen says
+   * "free until 6 hours before" above a tier taken from the 12-hour band.
+   */
+  it('resolves the window and the tier band from the same service grouping', () => {
+    const expected: Record<ServiceType, string | null> = {
+      airport: 'airport',
+      corporate: 'sedansAndSuvs',
+      point_to_point: 'sedansAndSuvs',
+      events: 'hourlyAndEvents',
+      hourly: 'hourlyAndEvents',
+      custom: null,
+    };
+    for (const type of Object.keys(expected) as ServiceType[]) {
+      expect(feeTierBandFor(type)).toBe(expected[type]);
+      // A service with a window has tiers, and one without has neither. No
+      // service type is free-window-known and tier-unknown, or the reverse.
+      expect(cancellationTiersFor(type) === null).toBe(freeCancellationHoursFor(type) === null);
+    }
+    expect(feeTierBandFor(null)).toBeNull();
+    expect(cancellationTiersFor(null)).toBeNull();
   });
 
   it('routes to dispatch rather than to a number when the window has passed', () => {

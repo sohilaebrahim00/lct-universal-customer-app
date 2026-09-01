@@ -84,7 +84,25 @@ for (const s of SECTIONS){
   const short = t.length < 200;
   console.log(`  ${short?'THIN':'ok  '} ${s.padEnd(16)} ${t.length} chars`);
   if(short) problems.push(`[thin] ${s} rendered ${t.length} chars`);
-  // No panel may show a currency figure it did not get from real data.
+  /*
+    No panel may show a currency figure it did not get from real data.
+
+    ── A KNOWN SHAPE, LATENT HERE ──────────────────────────────────────────
+    `t` is `document.body.innerText`, which has NO IDEA what is visually on
+    top. `cancel-walk.mjs` hit the live version of this: it read a modal's
+    confirmation through a transparent scrim and reported "$199.30" from the
+    list rows BEHIND it — a fabrication reported where there was none.
+
+    Note the direction. This project's three earlier matcher failures were
+    false NEGATIVES, features reported absent that were present. That one was
+    a false POSITIVE. Same cause, opposite sign.
+
+    No admin panel opens an overlay today, so this is clean. The day one does
+    — a confirm, a sheet, a picker — this check reads both layers and either
+    fires falsely, or worse, a real figure hides behind an overlay and it
+    stays silent. THE FIX IS ONE LINE: scope the read to the panel element,
+    never to the body. Do it when the first overlay lands here, not after.
+  */
   if(/Revenue|Ratings|Promotions|Coverage|Support/.test(s) && /\$\d/.test(t.split(s)[1]??'')){
     problems.push(`[fabrication] ${s} rendered a currency figure`);
   }

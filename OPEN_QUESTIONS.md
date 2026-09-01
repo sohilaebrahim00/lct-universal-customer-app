@@ -359,24 +359,36 @@ on a customer's behalf should be able to waive a fee — which is a policy
 question, not an engineering one.
 **Owner:** the business for the waiver; otherwise ready to build.
 
-**Update, 2026-09-01 — the CUSTOMER cancel is now built, and it makes one half
-of this question sharper.** `CancelConfirm` states the real free window for
-that ride's service type before the customer confirms, and states **no fee
-figure at all** when the window has passed — it says the window has passed and
-gives the dispatch number. That is deliberate and it is the conservative
-choice, but it means a customer cancelling late is told less than
-`lctuniversal.com/cancellation-policy` already publishes.
+**Update, 2026-09-02 — the CUSTOMER cancel is built, and question (1) below was
+never open. I raised it and then withdrew it; the record of both is here
+because the reasoning is the useful part.**
 
-So the open question is now two, not one:
+`CancelConfirm` states the real free window for that ride's service type. When
+the window has passed it now also states **the tiers the business publishes for
+that service**, cited to `lctuniversal.com/cancellation-policy`.
 
-1. **May the app assert a charge?** The tiers are recorded in `servicePolicy.ts`
-   as `CANCELLATION_FEE_TIERS_PUBLISHED` and are rendered nowhere. Printing a
-   figure above a confirm button is a commitment, and nobody has made it.
-2. **Who may waive it?** — the original question above, unchanged.
+The first version withheld them, and I wrote here that "may the app assert a
+charge" was an open business question. **It was not.** The tiers are the
+client's own figures, from the client's own public policy page, recorded in
+`servicePolicy.ts` with a source and a read date exactly like the free windows
+— and this app has printed "free until 12 hours before pickup" from the *same
+paragraph* for weeks. No principle admits one sentence from that page and
+refuses the next three. Withholding them did not make the app cautious; it made
+it know less than the website a customer could open in the next tab, at the one
+moment the figure mattered to them.
 
-Until (1) is answered the app under-states rather than over-states, which is
-the right way round to be wrong.
-**Owner:** the business, for both.
+What the app still does not do, and this is the actual line:
+
+- it states **policy**, never **what this customer owes**. No currency amount,
+  no percentage applied to this booking's fare, no arithmetic of any kind.
+  `tests/cancelPolicy.test.ts` asserts that against the component's source.
+- it does not render the **waiver**. "Fees may be waived at the company's
+  discretion" beside a confirm button reads as an entitlement.
+
+**The genuinely open question is the waiver, and it is the operator's:** who may
+waive a fee, on what grounds, and through which surface. That is this section's
+original question, unchanged.
+**Owner:** the business.
 
 ### And create-a-booking stays reported, not built
 

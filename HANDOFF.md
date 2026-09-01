@@ -80,7 +80,8 @@ Four lists follow. Every item in them names who can unblock it too.
 | The verification scripts themselves compile and lint | `npm run lint` now covers `scripts/` |
 | The ride lifecycle, all seven stages across three roles | `tests/rideStage.test.ts` (21 assertions incl. the transitions that must be REFUSED) plus `npm run verify:lifecycle`, which drives the chauffeur view and reads the customer and dispatcher views back |
 | An ETA is never rendered where it cannot be attributed | `etaIsAttributable()`, asserted over the full stage list so a new stage cannot default to showing one |
-| The admin console reaches all 18 sections and fabricates nothing | `npm run verify:admin` — reads the tab list from the DOM and derives the count, then asserts the data-less panels render no currency figure |
+| The admin console reaches all 18 sections and fabricates nothing | `npm run verify:admin` — reads the tab list from the DOM and derives the count, then asserts the data-less panels render no currency figure. **It counts tabs, not panels** — real-versus-empty is `tests/adminPanelCoverage.test.ts`, which parses the render switch |
+| Every section renders either a real panel or a written empty state, and never both | `tests/adminPanelCoverage.test.ts`; proved by re-introducing the `messages` arm and watching it print `11 real · 7 empty` |
 | Unconfirmed rate cards are absent from a production bundle | built with `EXPO_PUBLIC_DEMO_MODE=false`: no `/_role/*` route, zero occurrences of the rate-card data. Absent from the bytes, not merely unimported |
 | Layout holds at 320 CSS px (WCAG 1.4.10 Reflow) | `npm run verify:a11y` at five widths |
 | The gate cannot report on a partial run | completion ledger; verified by injecting an unreachable route, which produced `INCOMPLETE — no result reported` and exit 2 |
@@ -111,13 +112,13 @@ each, all clean. Verbatim from the tools:
 |---|---|
 | `npm run typecheck` | no output, exit 0 |
 | `npm run lint` | no output, exit 0 |
-| `npm test` | `Tests: 1925 passed, 1925 total` · `Test Suites: 21 passed, 21 total` |
+| `npm test` | `Tests: 1933 passed, 1933 total` · `Test Suites: 22 passed, 22 total` |
 | `npm run export:web` | `build mode verified: EXPO_PUBLIC_DEMO_MODE=true matches the emitted bundle (dist)` |
 | `node scripts/sweep.mjs` | `clean: zero console errors, zero blank screens` |
 | `npm run verify:a11y` | `clean: 22 routes at 5 viewports (320/390/430/834/1440) — 0 targets under 44x44, 0 content above the fold, 0 horizontal overflow (incl. WCAG 1.4.10 at 320px)` |
 | `npm run verify:lifecycle` | `clean: all seven stages driven from the chauffeur view, reflected in the customer and dispatcher views` |
 | `npm run verify:admin` | `clean: all 18 sections reachable, no console errors, no fabricated figures` |
-| `npm run verify:cancel` | `clean: cancel reachable from the trip screen and the upcoming row, states the window and no charge, produces a cancelled record with no figure, and is absent once the ride is under way` |
+| `npm run verify:cancel` | `clean: cancel reachable from the trip screen and the upcoming row; the confirmation states the real window and, outside it, the published tier with its source and no waiver; cancelling replaces the live layout with a record carrying no map, no dispatch bar and no figure; and the control is absent once the ride is under way` |
 
 `verify:cancel` is new with this change, because none of the seven gates above
 touched the cancel path. Its two absence claims each run a **positive control
@@ -532,12 +533,29 @@ that has no staff surfaces at all.
 eight are designed empty states naming the missing table, endpoint or
 question.**
 
-Those three numbers are not typed here from memory — they are what the source
-holds. `NAV` in `AdminConsole.tsx` has 18 entries, `EMPTY` in the same file
-has 8 keys (`driverapps`, `onboarding`, `ratings`, `revenue`, `promotions`,
-`messages`, `support`, `settings`), and the remaining 10 are the table below.
-`npm run verify:admin` derives the same 18 from the rendered DOM. An earlier
-draft of this section said "eight real, ten empty" — inverted, and
+**Derived from the render switch, which is the only thing a client sees.**
+`tests/adminPanelCoverage.test.ts` parses the ternary chain in
+`AdminConsole.tsx` and prints, on any change:
+
+> `18 sections · 10 real (overview, dispatch, fleet, classes, chauffeurs,
+> bookings, notifications, broadcast, coverage, users) · 8 empty (driverapps,
+> onboarding, ratings, revenue, promotions, messages, support, settings)`
+
+**Counting `EMPTY`'s keys was the wrong method and nearly produced the right
+answer by luck.** `18 − |EMPTY|` is only valid if every `EMPTY` key is
+*reached*. Before B-2, one was not: the switch routed `section === 'broadcast'
+|| section === 'messages'` to the Broadcast composer, so `EMPTY.messages` — a
+written, sourced empty state explaining that no messaging system exists — could
+never render. The console showed a working-looking composer under Messages
+while a count derived from `EMPTY` called Messages empty, **because a string
+existed for it**. The real split then was 11 / 7.
+
+That is now a test, and it was confirmed by re-introducing the `|| section ===
+'messages'` arm and watching two assertions fail with `11 real … 7 empty`
+printed in the error. `verify:admin` cannot see this: it counts TABS, not
+panels, and never could.
+
+An earlier draft of this section said "eight real, ten empty" — inverted, and
 contradicted by its own two tables one line further down.
 
 | real | source |
