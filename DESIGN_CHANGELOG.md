@@ -1789,3 +1789,32 @@ member of the family this file opens with.
 
 The cross-tab work did not add that signal. It subscribed to one that had been
 there all along.
+
+---
+
+## An explanation is not a verification
+
+> **Not-confirmed remains not-confirmed. Knowing why a check failed does not
+> make the check pass.**
+
+`lctapp.netlify.app` was unreachable from three tools, and the cause turned out
+to be an ISP-level block on the `netlify.app` domain — nothing to do with the
+deployment. That was a satisfying answer, and the pull it exerts is to go back
+and mark the earlier "deploy not confirmed" claims as resolved.
+
+They are not resolved. They are **explained**. The build still has not been
+opened from a machine that can reach it, and every claim in `HANDOFF.md` that
+says so stands exactly as written.
+
+The temptation to upgrade an explanation into a verification is strongest
+precisely when the explanation is good, because a good explanation feels like a
+conclusion. It is the fifth thing this project has learned about its own claims,
+and it belongs beside the other four:
+
+| category | the failure |
+|---|---|
+| Inert | present, readable, doing nothing |
+| Calibrated against an assumption | live, tuned to what you think the defect looks like |
+| Output describing more than execution | a verdict written beside the work rather than derived from it |
+| An all-negative result | a broken matcher, not a set of missing features |
+| **An explanation mistaken for a verification** | **the reason a check failed, banked as though the check had passed** |

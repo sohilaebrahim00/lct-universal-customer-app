@@ -505,3 +505,56 @@ ten are designed empty states naming the missing table, endpoint or question.
 
 **A revenue chart with no revenue is a fabrication.** So is a ratings panel for a
 business whose own site says it publishes none.
+
+---
+
+## 9 · First load on a slow connection — measured, and deliberately deferred
+
+**Six to ten seconds of blank screen on a phone on cellular.** Not a slow app —
+an app that looks broken to somebody who has never seen it.
+
+Measured on a cold cache against the production export:
+
+| connection | first paint | content on screen |
+|---|---|---|
+| Unthrottled, warm cache | 0.4 s | 0.5 s |
+| Unthrottled, cold | 1.2 s | 1.4 s |
+| **Slow 4G** | **6.0 s** | **10.5 s** |
+| Fast 3G | 7.1 s | 12.0 s |
+| Slow 3G | 21.8 s | 33.3 s |
+
+**The cause is exact.** `dist/index.html` is 1,218 bytes with an empty `<body>`,
+and the bundle is 5.36 MB raw / **1.00 MB gzipped**. Nothing paints until all of
+that has downloaded *and* parsed.
+
+**The demo is not the risk.** A room's wifi is the 1.2 s row and the presenting
+laptop is warm-cached at 0.4 s. The risk is the link afterwards — the client
+opening it that evening on their phone, or forwarding it to a partner. That
+first open is the one nobody watches and the one that forms the opinion.
+
+### The fix, and why it is not in
+
+An inline splash in the web document shell — the app's own `#020201` ground and
+a CSS mark, no text, no asset, no script. It would paint at first byte instead
+of after a megabyte.
+
+**It was built and reverted the same hour.** Expo Router's `+html.tsx` — the
+supported hook for the web document — **only applies when `web.output` is
+`'static'`**. This app builds as a single-page export (`output` unset, so
+`'single'`), and the template is silently ignored: `dist/index.html` came back
+byte-identical at 1,218 bytes.
+
+Switching `web.output` to `'static'` would change how the whole app builds and
+deploys, generating per-route HTML. That is not a splash; it is a different
+deployment, and not something to do before a delivery.
+
+**What it would take:** either that build-mode change, evaluated properly with
+its own gate run, or a post-export step that injects the markup into
+`dist/index.html` after `expo export` — smaller, uglier, and honest about being
+a workaround.
+
+**Deliberately deferred, not missed.** Measured, diagnosed to the exact cause,
+attempted, reverted on the first failure rather than debugged under time
+pressure.
+**Owner:** whoever picks up the design pass — it belongs with the composition
+work, not with a hotfix.
