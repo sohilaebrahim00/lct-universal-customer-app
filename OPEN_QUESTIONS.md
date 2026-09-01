@@ -240,6 +240,7 @@ Seven questions, gone.
 | Is flight tracking real? | Yes — "We monitor your inbound flight and adjust pickup accordingly" |
 | How is payment handled? | "The total fare must be authorized before the scheduled pickup time" — consistent with the app's fixed, pre-authorised fare |
 | Is hourly metered with overage? | No — "no meter to watch" |
+| What is the service area? |  publishes 57 communities in three named regions, read in full 2026-08-26 and now shown in the console Coverage panel. It does NOT gate booking — the site says availability is confirmed per trip |
 | Is the fleet's luggage capacity published? | Yes, on `/rates`: Sedan 3/2, SUV 6/6, Luxury SUV 6/6, First Class 2/2, Sprinter 14/10 |
 
 **One conflict surfaced by the closure:** the demo Executive Sedan carries

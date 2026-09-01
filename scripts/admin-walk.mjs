@@ -24,8 +24,17 @@ function rp(){ const c=join(process.env.LOCALAPPDATA??'','npm-cache','_npx');
   throw new Error('playwright not found'); }
 const { chromium } = createRequire(import.meta.url)(rp());
 const BASE='http://localhost:5055';
-const SECTIONS=['Overview','Live Dispatch','Fleet','Class Builder','Chauffeurs','Bookings','Notifications',
-  'Users & Roles','Ratings','Revenue','Promotions','Coverage','Messages','Push Broadcast','Support','Settings'];
+/*
+ * SECTIONS ARE READ FROM THE CONSOLE, NOT DUPLICATED HERE.
+ *
+ * This list used to be a hardcoded sixteen. Two sections were added and the
+ * walk kept reporting "all 16 sections reachable" -- true about its own list,
+ * and no longer true about the console. The same staleness that let a unit test
+ * pass against a hardcoded display name it no longer matched.
+ *
+ * Reading the tabs from the DOM means the walk cannot fall behind the thing it
+ * checks, and a section added without a panel now fails here.
+ */
 const b = await chromium.launch({ channel:'chrome' });
 const ctx = await b.newContext({ viewport:{width:1440,height:900}, colorScheme:'dark' });
 const page = await ctx.newPage();
@@ -38,6 +47,13 @@ await page.waitForTimeout(3200);
 const first=(await page.evaluate(()=>document.body.innerText||'')).trim();
 if(/could not be found/i.test(first)) problems.push('[404] /_role/admin');
 console.log('route loaded, chars:', first.length);
+
+const SECTIONS = await page.evaluate(() =>
+  [...document.querySelectorAll('[role="tab"]')].map((t) => (t.textContent || '').trim()).filter(Boolean),
+);
+if (SECTIONS.length < 10) problems.push(`[nav] only ${SECTIONS.length} tabs found -- the console did not render`);
+console.log(`sections found: ${SECTIONS.length}`);
+
 
 for (const s of SECTIONS){
   try { await page.getByText(s, { exact: true }).first().click({ timeout: 12000 }); }
@@ -64,6 +80,6 @@ console.log('class builder conflict shown:', ['Luxury SUV','Executive SUV','From
 
 await b.close();
 console.log('\n=== ADMIN WALK ===');
-if(!problems.length) console.log('clean: all 16 sections reachable, no console errors, no fabricated figures');
+if(!problems.length) console.log(`clean: all ${SECTIONS.length} sections reachable, no console errors, no fabricated figures`);
 else problems.slice(0,20).forEach(p=>console.log('  '+p));
 process.exit(problems.length?1:0);

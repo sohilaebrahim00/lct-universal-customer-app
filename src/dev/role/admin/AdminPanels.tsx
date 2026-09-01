@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { radius, space } from '../../../theme/ref';
 import { formatCurrency, formatTimeOfDay } from '../../../lib/format';
 import { roleColor, roleLayout, roleTarget, roleText } from '../roleTheme';
@@ -9,6 +9,7 @@ import { assignChauffeur } from '../../demoApi';
 import { OBSERVED_RATE_CARDS, OBSERVED_RATE_CARD_SOURCE } from '../../../config/observedRateCards';
 import { PUBLISHED_STARTING_LABELS, WEBSITE_CLASSES_WITHOUT_BACKEND_EQUIVALENT } from '../../../config/publishedFleet';
 import type { RateCard } from '../../../config/rateCard';
+import { SERVICE_AREA_CITY_COUNT, SERVICE_AREA_SOURCE, SERVICE_REGIONS } from '../../../config/serviceAreas';
 
 /**
  * ADMIN CONSOLE PANELS.
@@ -68,19 +69,43 @@ function Stat({ n, label, tone }: { n: number; label: string; tone?: 'warning' |
 
 /* ── 1. Overview ─────────────────────────────────────────────────────────── */
 
-export function Overview({ rides }: { rides: RoleRide[] }) {
+/**
+ * The client's own panel counts an order board seven ways: live, unassigned,
+ * scheduled, on-the-road, stale, completed, cancelled. All seven are
+ * computable from data this app already has (`booking.status`, `chauffeur`,
+ * the existing `late` flag) — no new field, no new source. Added 2026-09-01
+ * rather than left at the four-stat version, which is the same undercount
+ * this file's own header warns against: not fabricated, just incomplete
+ * next to what was actually asked for.
+ */
+function orderBoardCounts(rides: RoleRide[]) {
   const unassigned = rides.filter((r) => !r.chauffeur).length;
-  const late = rides.filter((r) => r.late).length;
-  const active = rides.filter((r) => !['completed', 'cancelled'].includes(r.booking.status)).length;
+  const scheduled = rides.filter((r) => r.booking.status === 'driver_assigned').length;
+  const onTheRoad = rides.filter((r) =>
+    ['driver_arriving', 'passenger_picked_up', 'trip_started'].includes(r.booking.status),
+  ).length;
+  const stale = rides.filter((r) => r.late).length;
+  const completed = rides.filter((r) => r.booking.status === 'completed').length;
+  const cancelled = rides.filter((r) => r.booking.status === 'cancelled').length;
+  const live = rides.filter((r) => !['completed', 'cancelled'].includes(r.booking.status)).length;
+  return { unassigned, scheduled, onTheRoad, stale, completed, cancelled, live };
+}
+
+export function Overview({ rides }: { rides: RoleRide[] }) {
+  const c = orderBoardCounts(rides);
 
   return (
     <>
       <Section title="Today">
         <View style={styles.statRow}>
           <Stat n={rides.length} label="rides today" />
-          <Stat n={active} label="active" />
-          <Stat n={unassigned} label="unassigned" tone={unassigned > 0 ? 'warning' : undefined} />
-          <Stat n={late} label="late" tone={late > 0 ? 'danger' : undefined} />
+          <Stat n={c.live} label="live" />
+          <Stat n={c.unassigned} label="unassigned" tone={c.unassigned > 0 ? 'warning' : undefined} />
+          <Stat n={c.scheduled} label="scheduled" />
+          <Stat n={c.onTheRoad} label="on the road" />
+          <Stat n={c.stale} label="stale" tone={c.stale > 0 ? 'danger' : undefined} />
+          <Stat n={c.completed} label="completed" />
+          <Stat n={c.cancelled} label="cancelled" />
         </View>
         {/*
           Counted from the same rides the board renders, not from a separate
@@ -425,6 +450,123 @@ export function Bookings({ rides }: { rides: RoleRide[] }) {
   );
 }
 
+/* ── Push Broadcast ──────────────────────────────────────────────────────── */
+
+interface SentBroadcast {
+  id: string;
+  audience: string;
+  message: string;
+  at: Date;
+}
+
+/**
+ * A COMPOSER, NOT A FEATURE. IT SAYS SO ON EVERY SEND.
+ *
+ * The client's own panel has a working broadcast-to-fleet console. This one
+ * demonstrates the same interaction — pick an audience, write a message, send
+ * it — without pretending a message goes anywhere: there is no fleet-wide
+ * push endpoint (`expo-notifications` only reaches the customer app) and no
+ * record of what was sent. Composing and "sending" are real; delivery is not,
+ * and the confirmation says exactly that every time, not just in a banner
+ * someone can scroll past once.
+ */
+export function Broadcast({ rides }: { rides: RoleRide[] }) {
+  const chauffeursOnBoard = Array.from(
+    new Map(rides.filter((r) => r.chauffeur).map((r) => [r.chauffeur!.id, r.chauffeur!])).values(),
+  );
+  const [audience, setAudience] = useState<string | null>('all');
+  const [message, setMessage] = useState('');
+  const [sent, setSent] = useState<SentBroadcast[]>([]);
+
+  function audienceLabel(id: string): string {
+    if (id === 'all') return `All chauffeurs on today's board (${chauffeursOnBoard.length})`;
+    return chauffeursOnBoard.find((c) => c.id === id)?.full_name ?? id;
+  }
+
+  function handleSend() {
+    if (!audience || !message.trim()) return;
+    setSent((prev) => [{ id: `b-${Date.now()}`, audience: audienceLabel(audience), message: message.trim(), at: new Date() }, ...prev]);
+    setMessage('');
+  }
+
+  return (
+    <>
+      <View style={styles.warning}>
+        <Text style={roleText.heading}>Not connected</Text>
+        <Text style={[roleText.bodySoft, styles.emptyNeeds]}>
+          There is no fleet-wide push endpoint yet — composing and sending below is real, but nothing
+          reaches a chauffeur&apos;s phone. Would need a server-side broadcast endpoint and a record
+          of what was sent, neither of which exists today.
+        </Text>
+      </View>
+
+      <Section title="Audience">
+        <View style={styles.assignList}>
+          <Pressable
+            onPress={() => setAudience('all')}
+            accessibilityRole="radio"
+            accessibilityState={{ selected: audience === 'all' }}
+            accessibilityLabel={`All chauffeurs, ${chauffeursOnBoard.length} on today's board`}
+            style={({ pressed }) => [styles.assignRow, audience === 'all' ? styles.audienceSelected : null, pressed ? styles.pressed : null]}
+          >
+            <Text style={roleText.body}>All chauffeurs on today&apos;s board ({chauffeursOnBoard.length})</Text>
+          </Pressable>
+          {chauffeursOnBoard.map((c) => (
+            <Pressable
+              key={c.id}
+              onPress={() => setAudience(c.id)}
+              accessibilityRole="radio"
+              accessibilityState={{ selected: audience === c.id }}
+              accessibilityLabel={c.full_name}
+              style={({ pressed }) => [styles.assignRow, audience === c.id ? styles.audienceSelected : null, pressed ? styles.pressed : null]}
+            >
+              <Text style={roleText.body}>{c.full_name}</Text>
+            </Pressable>
+          ))}
+        </View>
+      </Section>
+
+      <Section title="Message">
+        <TextInput
+          value={message}
+          onChangeText={setMessage}
+          placeholder="e.g. Ice on the North Dallas Tollway — add ten minutes to any pickup there."
+          placeholderTextColor={roleColor.label}
+          multiline
+          style={styles.broadcastInput}
+          accessibilityLabel="Broadcast message"
+        />
+        <Pressable
+          onPress={handleSend}
+          disabled={!message.trim()}
+          accessibilityRole="button"
+          accessibilityLabel="Send broadcast"
+          style={({ pressed }) => [styles.action, !message.trim() ? styles.actionDisabled : null, pressed ? styles.pressed : null]}
+        >
+          <Text style={roleText.body}>Send (not delivered)</Text>
+        </Pressable>
+      </Section>
+
+      {sent.length > 0 ? (
+        <Section title="Sent this session">
+          {sent.map((s) => (
+            <View key={s.id} style={styles.row}>
+              <View style={styles.rowHead}>
+                <Text style={roleText.bodySoft}>{formatTimeOfDay(s.at)}</Text>
+                <Text style={roleText.bodySoft}>{s.audience}</Text>
+              </View>
+              <Text style={roleText.body}>{s.message}</Text>
+              <Text style={[roleText.bodySoft, styles.missing]}>
+                Not sent anywhere — held in this browser only, gone on reload.
+              </Text>
+            </View>
+          ))}
+        </Section>
+      ) : null}
+    </>
+  );
+}
+
 /* ── 7. Notifications ────────────────────────────────────────────────────── */
 
 export function Notifications({ rides }: { rides: RoleRide[] }) {
@@ -496,4 +638,128 @@ const styles = StyleSheet.create({
     borderColor: roleColor.hairline,
   },
   conflict: { ...roleLayout.card, gap: space.xs },
+  /* Wraps as one flowing line of city names rather than a column of 57 rows. */
+  cities: { marginTop: space.sm, lineHeight: 26 },
+  audienceSelected: { borderColor: roleColor.accent },
+  actionDisabled: { opacity: 0.4 },
+  broadcastInput: {
+    ...roleLayout.card,
+    color: roleColor.text,
+    minHeight: 88,
+    textAlignVertical: 'top',
+    marginBottom: space.sm,
+  },
 });
+
+/* ── Coverage — real, because the client publishes it ────────────────────── */
+
+/**
+ * This was an empty state saying the app had no service-area concept. That was
+ * true, and the answer was on `lctuniversal.com/service-areas` the whole time:
+ * fifty-seven communities in three named regions, read in full on 2026-08-26.
+ *
+ * Sourced and dated like every other published fact. **It does not gate
+ * booking** — the site says availability is confirmed per trip, so this
+ * describes where the fleet dispatches rather than who may book. Nothing in the
+ * app refuses an address for being absent from this list.
+ */
+export function Coverage() {
+  return (
+    <>
+      <View style={styles.warning}>
+        <Text style={roleText.heading}>{`${SERVICE_AREA_CITY_COUNT} communities, as published`}</Text>
+        <Text style={[roleText.bodySoft, styles.emptyNeeds]}>
+          {`From ${SERVICE_AREA_SOURCE.source}, read ${SERVICE_AREA_SOURCE.readOn}.`}
+        </Text>
+        <Text style={[roleText.bodySoft, styles.emptyNeeds]}>{SERVICE_AREA_SOURCE.summary}</Text>
+        <Text style={[roleText.bodySoft, styles.emptyNeeds]}>
+          {`${SERVICE_AREA_SOURCE.availabilityNote} Nothing in the app refuses a booking outside this list.`}
+        </Text>
+      </View>
+
+      {SERVICE_REGIONS.map((region) => (
+        <Section key={region.name} title={region.name}>
+          <View style={styles.row}>
+            <Text style={roleText.bodySoft}>{region.description}</Text>
+            <Text style={[roleText.body, styles.cities]}>{region.cities.join(' · ')}</Text>
+          </View>
+        </Section>
+      ))}
+    </>
+  );
+}
+
+/* ── Users and Roles — the app's own role model ──────────────────────────── */
+
+/**
+ * Real, because the app already has these roles.
+ *
+ * `Profile.role` is `UserRole = 'customer' | 'driver' | 'admin' |
+ * 'corporate_admin'` — in the API contract since the project started, and read
+ * by `src/lib/accountRole.ts` to decide where an account lands. This panel
+ * states that model rather than inventing a permissions matrix.
+ *
+ * **No account list.** There are no users to enumerate without a backend, and a
+ * table of plausible staff names is exactly the fabrication a console invites.
+ */
+export function UsersAndRoles() {
+  return (
+    <>
+      <Section title="Roles in this app">
+        {ROLE_MODEL.map((r) => (
+          <View key={r.backend} style={styles.row}>
+            <View style={styles.rowHead}>
+              <Text style={roleText.heading}>{r.product}</Text>
+              <Text style={roleText.mono}>{r.backend}</Text>
+            </View>
+            <Text style={roleText.bodySoft}>{`Lands on: ${r.lands}`}</Text>
+            <Text style={roleText.body}>{r.can}</Text>
+          </View>
+        ))}
+        {/*
+          On the screen, not only in a test: matching a role on the substring
+          "admin" would put a corporate booker into this console.
+        */}
+        <Text style={[roleText.bodySoft, styles.note]}>
+          A corporate booker is a CUSTOMER. Their role name contains “admin” and they do not dispatch —
+          the mapping matches exact values, never substrings.
+        </Text>
+      </Section>
+
+      <Section title="Managing accounts">
+        <Empty
+          what="No account management"
+          needs="Creating, disabling and role-changing an account needs the auth project, which has never been confirmed to exist. Chauffeurs are added by the operator — there is no public sign-up — so this is where that would happen. See HANDOFF.md §7."
+        />
+      </Section>
+    </>
+  );
+}
+
+/** The four roles, their landing surface, and what each may reach. */
+const ROLE_MODEL = [
+  {
+    backend: 'customer',
+    product: 'Customer',
+    lands: 'The customer app',
+    can: 'Book, track, pay, view receipts and trip history.',
+  },
+  {
+    backend: 'corporate_admin',
+    product: 'Corporate booker',
+    lands: 'The customer app',
+    can: 'Everything a customer can, plus a company account and its travellers. Books FOR colleagues; does not dispatch.',
+  },
+  {
+    backend: 'driver',
+    product: 'Chauffeur',
+    lands: 'The chauffeur board',
+    can: "Today's jobs, job detail, and the stage controls. Sees no fares.",
+  },
+  {
+    backend: 'admin',
+    product: 'Operator',
+    lands: 'This console',
+    can: 'Reads everything here. Writes one thing: chauffeur assignment.',
+  },
+] as const;

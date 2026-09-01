@@ -793,3 +793,87 @@ No other changes. Full gate suite re-run once, complete, all clean: `tsc`,
 (class-builder conflict panel still renders correctly). Pushed, then polled
 the live bundle for both fixes' own text rather than assuming the push was
 enough.
+
+---
+
+# Final completion pass — 2026-08-30
+
+## Part 1 — verify before building. Half the list was already done.
+
+| item | state before tonight |
+|---|---|
+| 2.1 Pickup notes, customer → chauffeur | **already built** — captured on the details step, carried through the store and the API, rendered on the chauffeur's job view |
+| 2.2 Flight number | **partly built** — the field, the caption and the chauffeur display all existed; the *condition* did not |
+| 3.1 Push Broadcast composer | **partly built** — present but uncommitted from an earlier run |
+| 3.2 Users and Roles | **not built** |
+| 3.3 Coverage | **not built** |
+| 4.1 Note on the job | **already built** |
+| 4.2 Flight on the job | **already built** |
+
+**Four of seven already existed.** The ten minutes spent checking saved
+rebuilding a note field that had been working the whole time.
+
+## Part 2 — the one real gap in 2.2
+
+`isAirport` was `serviceType === 'airport'` alone, so **a point-to-point
+booking from home to DFW never saw the flight field** — which is one of the most
+common ways to book an airport run.
+
+`shouldOfferFlightNumber()` now also reads both addresses. It is a **heuristic
+on a string** and is documented as one. It only ever *widens* where an optional
+field is offered: a false positive shows a field the customer ignores, a false
+negative is the old behaviour. **It never picks a policy** — the complimentary
+waiting window still comes from `servicePolicy` keyed on the real `ServiceType`.
+A guess must not reach a promise.
+
+The "captured, not tracked" caption was already there and is unchanged.
+
+## Part 3 — three built, and two sections that were missing entirely
+
+**Coverage is real now** because the client publishes it: 57 communities in
+three named regions, read in full from `/service-areas` on 2026-08-26, sourced
+and dated in `src/config/serviceAreas.ts`. **It does not gate booking** — the
+site says availability is confirmed per trip, so it describes where the fleet
+dispatches, not who may book.
+
+**Users and Roles is real** because the app already has the roles.
+`Profile.role` drives where an account lands, and the panel states that model —
+including, on screen, that a corporate booker is a customer despite "admin"
+being in their role name. No account list: there are no users to enumerate, and
+a table of plausible staff names is exactly what a console invites.
+
+**Push Broadcast composes and does not send.** The wording is the point:
+*composed, not delivered*, never "sent" and never "queued", because a queue
+implies eventual delivery and there is no channel.
+
+**Two sections the client's panel has were missing from mine**: Driver Apps and
+Onboarding. Added as empty states naming what is absent. The console is now 18
+sections, matching the panel.
+
+## The walk was reporting on its own stale list
+
+`admin-walk.mjs` had a hardcoded sixteen. Two sections were added and it kept
+reporting **"all 16 sections reachable"** — true about its list, no longer true
+about the console.
+
+It now reads the tabs from the DOM and derives the count in its summary. **Same
+staleness that let `catalogueIntegrity` pass against a display name the app no
+longer used**, and the same repair: stop duplicating the thing you check.
+
+## A number I got wrong and am correcting
+
+Earlier reports said **"1,904 tests, 20 suites"**. `HEAD` contains **18 test
+files**, so that suite count could not have been right. Tonight's figure,
+measured: **19 suites, 1,899 tests** — 18 at HEAD plus `airportDetection`.
+No test file has been deleted; `git diff --name-status HEAD -- tests/` is empty.
+
+I do not know how the earlier number was arrived at, and I would rather say that
+than reconcile it with a guess.
+
+## What I did NOT get to
+
+- **The `dist-fence` route-string residue** is unchanged and still recorded: a
+  customer build ships `_role/...` path literals as dead code. The runtime is
+  guarded and tested; the strings could not be removed without making the code
+  worse. See `HANDOFF.md` §7.
+- **No device verification.** Everything tonight was checked in a browser.

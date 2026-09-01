@@ -5,7 +5,19 @@ import { radius, space } from '../../../theme/ref';
 import { roleColor, roleTarget, roleText } from '../roleTheme';
 import { RoleShell } from '../RoleShell';
 import { type RoleRide, loadRides } from '../roleData';
-import { Bookings, ClassBuilder, Chauffeurs, Empty, Fleet, LiveDispatch, Notifications, Overview } from './AdminPanels';
+import {
+  Bookings,
+  Broadcast,
+  ClassBuilder,
+  Chauffeurs,
+  Coverage,
+  Empty,
+  Fleet,
+  LiveDispatch,
+  Notifications,
+  Overview,
+  UsersAndRoles,
+} from './AdminPanels';
 
 /**
  * ADMIN CONSOLE — a preview, not a replacement.
@@ -45,6 +57,8 @@ type SectionKey =
   | 'chauffeurs'
   | 'bookings'
   | 'notifications'
+  | 'driverapps'
+  | 'onboarding'
   | 'users'
   | 'ratings'
   | 'revenue'
@@ -65,6 +79,8 @@ const NAV: { key: SectionKey; label: string }[] = [
   { key: 'bookings', label: 'Bookings' },
   { key: 'notifications', label: 'Notifications' },
   // Navigation with designed empty states, not invented dashboards.
+  { key: 'driverapps', label: 'Driver Apps' },
+  { key: 'onboarding', label: 'Onboarding' },
   { key: 'users', label: 'Users & Roles' },
   { key: 'ratings', label: 'Ratings' },
   { key: 'revenue', label: 'Revenue' },
@@ -84,10 +100,15 @@ const NAV: { key: SectionKey; label: string }[] = [
  * it empty. Every line here names a table, an endpoint or an open question.
  */
 const EMPTY: Record<string, { what: string; needs: string }> = {
-  users: {
-    what: 'No users or roles',
+  driverapps: {
+    what: 'No driver-app records',
     needs:
-      'This app authenticates customers through Supabase and has no concept of staff accounts, roles or permissions. An admin console needs a role model before it can have a users screen.',
+      "The client's panel tracks which chauffeurs have installed and signed into a driver app. This app IS that surface now -- the chauffeur role -- but there is no auth project and no install telemetry, so there is nothing to count. See HANDOFF.md section 7.",
+  },
+  onboarding: {
+    what: 'No onboarding pipeline',
+    needs:
+      'Documents, licence checks and background status for a chauffeur being brought on. No table exists, and what is required is a compliance question the site does not answer -- see the Zero Tolerance and Terms pages for the standards, not the workflow.',
   },
   ratings: {
     what: 'No ratings collected',
@@ -104,20 +125,10 @@ const EMPTY: Record<string, { what: string; needs: string }> = {
     needs:
       'A `promo_codes` table exists server-side and `discount_amount` arrives on a priced booking, but this app has no endpoint to list or create a code, and no customer-facing way to enter one.',
   },
-  coverage: {
-    what: 'No coverage areas',
-    needs:
-      'The app has no service-area concept. `isMapsConfigured()` gates map features, not geography, so it cannot tell a customer they are outside coverage.',
-  },
   messages: {
     what: 'No messaging',
     needs:
       'There is no chauffeur-to-client messaging system — see BACKEND_FOLLOWUPS.md C-5. "I am in the third lane by column C" has nowhere to go.',
-  },
-  broadcast: {
-    what: 'No broadcast history',
-    needs:
-      'Push exists for the customer app through expo-notifications, but there is no fleet-wide broadcast endpoint and no record of what was sent.',
   },
   support: {
     what: 'No support tickets',
@@ -187,6 +198,12 @@ export function AdminConsole() {
         <Bookings rides={rides} />
       ) : section === 'notifications' ? (
         <Notifications rides={rides} />
+      ) : section === 'broadcast' || section === 'messages' ? (
+        <Broadcast rides={rides} />
+      ) : section === 'coverage' ? (
+        <Coverage />
+      ) : section === 'users' ? (
+        <UsersAndRoles />
       ) : (
         <Empty what={EMPTY[section]?.what ?? 'Nothing here'} needs={EMPTY[section]?.needs ?? ''} />
       )}

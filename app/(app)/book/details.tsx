@@ -12,6 +12,7 @@ import { AppText } from '../../../src/components/ui/Typography';
 import { DateTimeField } from '../../../src/components/booking/DateTimeField';
 import { space, theme } from '../../../src/theme';
 import { getRoute } from '../../../src/lib/googlePlaces';
+import { shouldOfferFlightNumber } from '../../../src/lib/airportDetection';
 import { useBookingFormStore } from '../../../src/store/bookingFormStore';
 
 const MIN_LEAD_TIME_MS = 60 * 60 * 1000;
@@ -97,6 +98,19 @@ export default function DetailsStep() {
   }
 
   const isHourly = draft.serviceType === 'hourly';
+  /*
+   * EITHER END, not just the airport service type.
+   *
+   * This was `serviceType === 'airport'` alone, so a point-to-point booking
+   * from home to DFW -- a very common way to book an airport run -- never saw
+   * the flight field. shouldOfferFlightNumber() also reads the two addresses.
+   *
+   * It is a heuristic on a string and it only ever WIDENS where an optional
+   * field is offered. It never picks a policy: the complimentary waiting window
+   * still comes from servicePolicy keyed on the real ServiceType. A guess must
+   * not reach a promise.
+   */
+  const isAirport = shouldOfferFlightNumber(draft.serviceType, draft.pickupAddress, draft.dropoffAddress);
   const duration = draft.hourlyDurationHours ?? 3;
 
   function handleDateTime(next: Date | null) {
@@ -228,11 +242,35 @@ export default function DetailsStep() {
         style={styles.stepper}
       />
 
+      {/*
+        CAPTURED, NOT TRACKED — said plainly, right here, not just in a comment.
+        `flight_number` reaches the chauffeur's job view (ChauffeurJob.tsx) so
+        they know what flight to watch for themselves. There is no live feed
+        behind it — no tracking, no automatic delay/gate lookup — and the
+        caption says so, because implying otherwise is a promise this app does
+        not keep.
+      */}
+      {isAirport ? (
+        <TextField
+          label="Flight number (optional)"
+          value={draft.flightNumber}
+          onChangeText={(text) => update({ flightNumber: text })}
+          placeholder="e.g. AA1234"
+          autoCapitalize="characters"
+          containerStyle={styles.notes}
+        />
+      ) : null}
+      {isAirport ? (
+        <AppText variant="captionSm" color={theme.content.tertiary} style={styles.flightCaption}>
+          Shared with your chauffeur — not used for live flight tracking.
+        </AppText>
+      ) : null}
+
       <TextField
         label="Notes for your chauffeur (optional)"
         value={draft.specialRequests}
         onChangeText={(text) => update({ specialRequests: text })}
-        placeholder="Child seat, extra stop, meet-and-greet sign…"
+        placeholder="Child seat, extra stop, meet-and-greet sign, terminal or gate code…"
         multiline
         containerStyle={styles.notes}
       />
@@ -271,5 +309,6 @@ const styles = StyleSheet.create({
   heading: { marginBottom: space.mdl },
   stepper: { marginBottom: space.sm },
   notes: { marginTop: space.sm },
+  flightCaption: { marginTop: -space.xs, marginBottom: space.sm },
   missing: { marginBottom: space.sm, color: theme.content.tertiary },
 });

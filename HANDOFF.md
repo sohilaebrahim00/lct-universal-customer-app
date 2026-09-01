@@ -227,6 +227,26 @@ collect. §8 is the highest risk, because it is wrong silently.
 
 ---
 
+## 5 · Specified by the client, correctly deferred
+
+Requested, scoped, and not built on purpose — a decision or a backend
+missing, not an oversight. These stay client requests, not absences.
+
+| what | needs | who unblocks it |
+|---|---|---|
+| **Book for a guest** — a passenger record separate from the account holder, with notifications going to a number that is not the payer's | A guest-passenger data shape (name, phone, relationship to the booking) and a decision on who the booking confirmation and trip updates are sent to — the payer, the guest, or both. `bookingFormStore`'s `primaryPassengerName`/`primaryPassengerPhone` fields already exist and are never read from any screen — the shape was anticipated, the UI and the notification-routing decision were not | Backend for the notification routing; product/business for who gets notified |
+| **Promotion codes** — the client's own panel has a Promotions section, so the concept exists on their side | An endpoint to validate a code and the rules for it, most importantly how a discount interacts with a fare that is fixed and all-inclusive at booking (does it reduce the total shown at quote time, or apply after — the latter would violate "the fare is fixed at booking") | Backend for the endpoint; business for the interaction rule — this is a pricing-model decision, not a wiring one |
+| **Apple Pay / Google Pay** | `merchantIdentifier` is already declared in `app.config.ts` (`merchant.com.lctuniversal.customer` — a placeholder, not a registered merchant ID) and `STRIPE_MERCHANT_IDENTIFIER` is documented in `.env.example`. Needs a real Apple Developer merchant ID and Google Pay configuration in the Stripe dashboard, and can only be verified on a physical device — neither wallet renders in a simulator | Whoever holds the Stripe dashboard and an Apple Developer account, then a device for verification |
+| **A support conversation with history** — different from the Concierge that exists today (a stateless Gemini-backed assistant with no ticket store, no history across sessions, no human handoff) | A decision on which product this actually is: a persisted ticket/thread system, or Concierge extended with memory and human escalation. Building either without that answer risks building the wrong one | The client — say which of the two is wanted before either is scoped |
+| **Chauffeur-to-class attachment** — the client's own panel groups chauffeurs by the vehicle class they drive; found while checking the admin console preview against it (2026-09-01) | A `chauffeur_class` field (or equivalent) on the backend. Today's assign flow correctly shows "class attachment unknown" for every chauffeur rather than guessing or sorting by an invented field | Backend — a schema addition, not a business decision |
+
+**Owner, collectively:** the client for the three that are genuinely product
+decisions (guest notification routing, promo/fixed-fare interaction, support
+vs. Concierge); the backend for the two that are schema work once a decision
+lands (or, for chauffeur-class attachment, with no decision needed at all).
+
+---
+
 ## Where things are
 
 ### Deployment
@@ -442,3 +462,36 @@ and it needs a decision about what it should say. Recorded here rather than
 guessed at.
 **Owner:** the business, for the copy. Low urgency: it only fires in a build
 that has no staff surfaces at all.
+
+---
+
+## 8 · The operations console, as delivered
+
+**Eighteen sections, matching the client's own panel.** Eight carry real data;
+ten are designed empty states naming the missing table, endpoint or question.
+
+| real | source |
+|---|---|
+| Overview | counted from the same rides Live Dispatch lists — seven order-board counts, no separate figure |
+| Live Dispatch | the demo bookings. **The only panel that writes**: chauffeur assignment |
+| Fleet | `DEMO_VEHICLES`, with plate and colour absent and saying why (§1) |
+| Class Builder | `observedRateCards.ts`, labelled unconfirmed, edits lost on reload |
+| Chauffeurs | `DEMO_CHAUFFEURS`, with no rating, tenure or trip count (§2) |
+| Bookings | the demo bookings, showing the app's own ids because `LX-XXXXXX` is unconfirmed |
+| Notifications | derived from real state — unassigned, late and cancelled rides |
+| **Coverage** | **`lctuniversal.com/service-areas`, read 2026-08-26.** 57 communities, sourced and dated. Does not gate booking |
+| **Users & Roles** | **the app's own `UserRole` model.** No account list — there are no users to enumerate |
+| **Messages / Push Broadcast** | **composes, does not deliver.** No channel exists — C-5 |
+
+| empty, and what would fill it |
+|---|
+| Ratings — no rating column on a chauffeur (§2), and the site publishes no verified reviews |
+| Revenue — no payments or invoices table |
+| Promotions — a `promo_codes` table exists server-side; no endpoint, no rules |
+| Driver Apps — no auth project, no install telemetry |
+| Onboarding — no documents or compliance table; the requirements are a business question |
+| Support — support is the dispatch phone number; no ticket store |
+| Settings — the policies live in `servicePolicy.ts` with their sources; making them editable would move a confirmed fact into demo memory |
+
+**A revenue chart with no revenue is a fabrication.** So is a ratings panel for a
+business whose own site says it publishes none.
