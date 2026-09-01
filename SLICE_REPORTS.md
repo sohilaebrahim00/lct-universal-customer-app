@@ -953,3 +953,91 @@ staleness that let `catalogueIntegrity` pass against a display name the app no
 longer used, and let the admin walk report on sixteen sections when there were
 eighteen.** Third time tonight. Copying the thing you check is how a check stops
 checking.
+
+---
+
+# The three journeys, walked — and cross-tab sync
+
+## Part 1 — the reload is gone
+
+`BroadcastChannel`, with the `storage` event as fallback. The storage event
+already fired on every persist: **the demo had been broadcasting this all along
+with nobody listening.**
+
+A notification alone was not enough. Each tab loads `state` once at module init
+and mutates it in place, so tab B's object is untouched by tab A's write.
+`adoptPersistedState()` re-reads storage into the **same** object every module
+already references — replacing it would leave `demoApi`'s own closures on the
+old one.
+
+Every condition met: purely additive (persist writes exactly what it wrote
+before and now also announces it; every screen keeps its focus reload), no
+change to what is written or where, all gates green, lifecycle walk passing.
+
+**Verified with two real tabs in one browser context.** The passenger tab was
+never touched, reloaded or focused, and reached *"Your chauffeur is outside"*
+with a live countdown after the chauffeur pressed arrived in the other tab.
+
+**Two phones still do not sync.** That is G-3, unchanged, and the documentation
+says so in the same words it did yesterday.
+
+## Part 2 — 24 of 24 steps work
+
+| journey | steps | working |
+|---|---|---|
+| Passenger | 11 | 11 |
+| Chauffeur | 7 | 7 |
+| Operator | 6 | 6 |
+
+**No dead ends.** One "it depends" worth naming: `/book/vehicle` reached by deep
+link with no draft shows its guard state — *"We need your pickup time first"* —
+which is correct behaviour, not a dead end, but means the screen has two faces
+depending on how it is reached.
+
+### And the booking flow now drives continuously, which it never had
+
+Previous walks reached each screen directly. The continuous path had defeated
+automation twice, because expo-router keeps prior screens mounted and text
+queries match the screen underneath. Two fixes: click the **last** match, and
+target saved locations by **address** rather than label — `.last()` on `^Home$`
+was hitting the bottom tab bar, not the saved location.
+
+Home → pickup → destination → details → vehicle → review, in one pass, with the
+date and time set through the browser's own controls.
+
+**This closes three items I previously reported as NOT observed rendering.** The
+swap row, the passenger/luggage counts on the class cards, and the *"Arrives
+approx."* line are all confirmed on screen in the built app. My earlier report
+said they compiled and shipped but had never been seen. They have now.
+
+## Part 3 — two operator gaps, reported not built
+
+Their panel does both; ours does neither, because the console was deliberately
+scoped to write exactly one thing.
+
+**An operator cannot create a booking.** For a dispatcher, taking a booking over
+the phone is as common as assigning one. What it would take: the console already
+has every input — the customer list, the vehicle classes, the same
+`calculateFarePreview` the customer app quotes from. The work is a form and one
+call to the same `POST /bookings` path the customer flow uses, so **the fare
+would be quoted from the same source by construction**, not re-implemented.
+Roughly a screen. The scope decision is that it makes the console a second
+writer, and every write is a place a demo can diverge from a customer's view.
+
+**An operator cannot cancel or reschedule.** Cancel is smaller — `demoApi`
+already has the path the customer's cancel uses. Reschedule is not: changing the
+time changes the late-night surcharge, so it is a **re-quote**, not an edit, and
+it collides with the fixed-fare promise exactly as recurring bookings do. Cancel
+is an afternoon; reschedule is a design decision first.
+
+Neither should be built the night before a delivery, which is why neither was.
+
+## What I could not verify
+
+- **The deployed build.** `lctapp.netlify.app` still times out from this machine
+  while `lctuniversal.com` answers. Everything above was walked against the
+  local production build — the same `expo export` output that deploys, served
+  with SPA fallback. That is a real difference and it is stated rather than
+  glossed.
+- **Payment completion.** The walk stops at the review screen; confirming needs
+  Stripe and an account.
