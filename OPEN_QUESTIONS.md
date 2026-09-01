@@ -302,10 +302,56 @@ provenance**, and two of the renders have specific problems:
   is *Executive Sprinter, 14 passengers*. The van in the picture visibly cannot
   carry them.
 
-**The question:** may we use LCT's own photography? The coach image suggests it
-exists. If it does not cover every class, that is a conversation about a
-photographer — and a better use of the budget than another week of code.
-**Owner:** the business.
+**The question was "may we use LCT's own photography?" It is answered, from
+primary source, and the answer changes the question — 2026-09-02.**
+
+### It exists, it is client-supplied, and the website already ships it
+
+`../LCT-Universal-Vite-Ready-v2` is on this machine. Read directly:
+
+| what | evidence |
+|---|---|
+| The app's three images are the website's **renders** | md5-identical to `public/assets/fleet-{sedan,suv,sprinter}.jpg` |
+| The website **replaced** all three | `src/lib/image-map.ts` maps `fleetSedan` → `official/sedan-chauffeur-crop.jpg`, `fleetSuv` → `official/suv-escalade-corporate.jpg`, `fleetSprinter` → `official/sprinter-exterior.jpg` |
+| Those are the client's own | that file's notes name the camera originals — `IMG_8626.JPEG`, `IMG_2444.PNG`, `IMG_0964.HEIC` — and say "the client's own supplied photo" and "a real photo of the actual Sprinter" |
+
+`official/sprinter-exterior.jpg` is exactly the vehicle this app's Sprinter card
+promises and its render is not: an extended-wheelbase **passenger** Sprinter,
+full window line, conversion badging, photographed in a DFW lot. **The problem
+was never that the photography did not exist. It is that this app took the
+superseded set.**
+
+### Why they have not been swapped in, which is the real question now
+
+**Two of the three client-supplied photographs visibly carry another company's
+branding.** On `suv-escalade-corporate.jpg`: a front plate reading **LUXLANE
+TRANSPORTS**, `(682) 344-1891`, `www.luxlanetransports.com`. On
+`fleet-escalade.jpg`: a rear-window decal for the same company with a QR code,
+and a plate frame carrying the same domain.
+
+These are photographs the **client supplied as their own fleet**, and the
+website ships them today. So the branding is not evidence of a mistake — it is
+evidence of a relationship this repository cannot characterise. LuxLane may be
+a DBA, a predecessor, a parent, an affiliate, or the operator whose livery the
+cars wear.
+
+**That is not a question the code or the website can settle, so it is not one to
+guess at.** Putting another company's name, domain, phone number and scannable
+QR code inside LCT's app is a decision about who the customer believes they are
+booking from.
+
+**The question, restated:**
+
+1. Are LCT Universal and LuxLane Transports the same business, or related such
+   that LuxLane-branded vehicles may appear in LCT's app? **If yes, this is a
+   twenty-minute change** — the files are on disk and the mapping is one
+   literal each in `src/lib/vehicleImages.ts`.
+2. If no: the website is currently publishing them, which is a bigger problem
+   than this app's picker and should be raised there first.
+
+Either way the app should stop shipping a cargo van for a 14-passenger class.
+**Owner:** the business, and it is now a yes/no rather than a budget
+conversation.
 
 ---
 

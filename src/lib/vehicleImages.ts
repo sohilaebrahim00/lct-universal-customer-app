@@ -1,9 +1,35 @@
 import type { VehicleType } from '../types/api';
 
-// Real LCT Universal fleet photography, copied from the website's asset
-// library (LCT-Universal-Vite-Ready-v2/public/assets) — not stock/placeholder
-// images. Metro requires static string literals for require(), so this is a
-// literal map rather than a computed path.
+/**
+ * ── THESE ARE NOT THE FLEET PHOTOGRAPHS, AND THE COMMENT HERE SAID THEY WERE ─
+ *
+ * The previous version of this comment read "Real LCT Universal fleet
+ * photography … not stock/placeholder images." **That was false**, and it was
+ * false in the most durable way — asserted in the file that loads them, where
+ * nobody rechecks it.
+ *
+ * Verified 2026-09-02 by md5 against the website repo: these three files are
+ * byte-identical to `public/assets/fleet-{sedan,suv,sprinter}.jpg`, which are
+ * studio RENDERS on black. The website has **superseded all three** — its
+ * `src/lib/image-map.ts` points `fleetSedan`, `fleetSuv` and `fleetSprinter` at
+ * client-supplied photographs under `public/assets/official/`, with camera
+ * originals named in its notes (`IMG_8626.JPEG`, `IMG_2444.PNG`).
+ *
+ * Two of the three renders are also wrong about the product:
+ *   - the sedan is an S-Class on **gold aftermarket wheels**, with a short run
+ *     of garbled characters where a model badge sits;
+ *   - the Sprinter is a **cargo/panel van on steel wheels**, illustrating a
+ *     class this app sells as *up to 14 passengers*.
+ *
+ * ── Why they have NOT been swapped ────────────────────────────────────────
+ * The real photographs visibly carry **another company's branding** — a
+ * "LuxLane Transports" plate, decal, QR code and phone number. Putting that
+ * inside this app is a decision about who the customer thinks they are booking
+ * from, and it is the business's to make. `OPEN_QUESTIONS.md` #13.
+ *
+ * Metro requires static string literals for require(), so this is a literal map
+ * rather than a computed path.
+ */
 export const VEHICLE_IMAGES: Record<string, number> = {
   executive_sedan: require('../../assets/vehicles/executive-sedan.jpg'),
   suv: require('../../assets/vehicles/luxury-suv.jpg'),

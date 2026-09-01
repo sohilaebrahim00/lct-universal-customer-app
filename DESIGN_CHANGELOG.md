@@ -1224,7 +1224,43 @@ The second is the first in miniature, and the repair is the same both times:
 report only what ran, and say so when the run was partial. The summary now
 enumerates the passes that executed and appends `[PARTIAL RUN]` otherwise.
 
-### A sixth: `innerText` sees through what is on top of it — in both directions
+### Five matcher failures, one tool, and the rule that covers all of them
+
+Not five accidents. **Five instances of string search over rendered text**, which
+cannot tell a label from a value or a layer from the layer above it:
+
+| # | what it reported | what was true | sign |
+|---|---|---|---|
+| 1–3 | swap row, capacity counts, "Arrives approx.", name sign, flight, notes — **absent** | all on screen; matchers were case-sensitive against uppercase labels | false negative |
+| 4 | `.last()` on `^Home$` selected the saved location | it selected the bottom tab bar | wrong node |
+| 5 | `$199.30` **in the cancellation confirmation** | the fare on a trip row *behind* a transparent modal | false positive |
+| 6 | `OPEN present: true` on the dispatcher board | it matched the **caption** of the "0 unassigned" counter, while the value was 0 | label read as value |
+
+`innerText` returns a flattened string with no idea what is on top, what is a
+heading, and what is a counter caption. So the rule is not "be careful with
+matchers". It is narrower, and it is testable:
+
+> **A check that must distinguish a value from a label, or content from an
+> overlay, cannot be a text search.** It needs a scoped selector — the panel, the
+> row, the specific node. A text search is safe only where *any* occurrence
+> anywhere would be equally wrong.
+
+Applied:
+
+- `cancel-walk.mjs` reads the confirmation through `panelText()`, anchored on two
+  of the panel's own strings so it cannot climb to `<body>`. **Rule satisfied.**
+- `sweep.mjs`'s blank-screen check reads `body.innerText` and is **correct to** —
+  its question is "did anything render at all", where any text anywhere is
+  exactly what it wants. The line now says so, so nobody copies it into a check
+  where it would be wrong.
+- `admin-walk.mjs:88` runs `/\$\d/` over `body.innerText` to prove the data-less
+  panels show no money. It is asking *what can a person see*, so it **violates
+  the rule** and is clean only because no admin panel opens an overlay today.
+  Labelled at the check with its one-line fix.
+
+Written as a rule so the seventh does not have to be found first.
+
+### `innerText` sees through what is on top of it — in both directions
 
 Three matcher failures in this project were **false negatives** — swap rows,
 capacity counts, "Arrives approx.", name signs, flight numbers, all reported
@@ -1291,6 +1327,48 @@ Both render sites read that one predicate, and a test asserts the full stage lis
 so a stage added later cannot default to showing an ETA. An absent number beats
 an unattributable one, because a customer cannot tell that an unattributable one
 is wrong.
+
+#### The same defect again, in a test: a necessary condition asserted as sufficient
+
+`clampToLocalDay()` promises one thing — *the result is on today's local day*.
+Its fallback returned `now + 10 minutes` without re-checking the day, so after
+23:50 it returned **tomorrow**, and the dispatcher board silently lost both
+future fleet rides. Opened cold at 23:51 it read *2 rides · 0 unassigned · 1
+late* against four seeded rides.
+
+The unit test covering that branch sampled **23:55 — inside the defect window.
+It had the bug in its hands.** It asserted:
+
+```ts
+expect(clampToLocalDay(target, now).getTime()).toBeGreaterThan(now.getTime());
+```
+
+`out > now` is a *necessary consequence* of staying inside today, and it was
+asserted as if it were *equivalent* to it. The buggy return — 00:05 tomorrow —
+satisfies it perfectly.
+
+**That is the ETA bug, in a test file.** There, gating the headline was a
+necessary part of "no unattributable ETA is rendered", and was treated as the
+whole of it while the progress bar drew from the same number. Here, `out > now`
+was treated as the whole of "same local day". Both times something true and
+insufficient stood in for the actual promise.
+
+**Ranking the two causes matters, because they cost different amounts.** The
+grid — 24 hours sampled at one minute, `:38` — is *not* why this was missed. It
+explains why the other 23 samples were silent; it is the reason there was no
+second chance, not the reason the first one failed. "Sample more finely" is
+expensive, permanent, and **would not have caught this**: a finer grid still
+passes an assertion the bug satisfies. "Assert the property the function
+promises" is free and sufficient on its own.
+
+Both were done — the 23:55 test now asserts `isSameLocalDay` as well, and the
+grid was widened to the boundary minutes and to all 1,440 — but they are not
+equal, and a reader taking only one lesson from this entry should take the
+assertion.
+
+**Where to look next:** anywhere a check asserts a consequence of the rule
+instead of the rule. That is now two recurrences, which makes it a habit rather
+than an incident.
 
 ### The timezone: the instruction was wrong and the file was right
 
