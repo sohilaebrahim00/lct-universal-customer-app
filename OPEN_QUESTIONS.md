@@ -253,3 +253,56 @@ primary source and a date.
 accommodate reasonable delays without additional charge", with no minutes
 anywhere. The 30/60 figures stay business-confirmed rather than site-published —
 the site does not contradict them.
+
+---
+
+## 12 · What vehicle IS the Executive SUV? The image on its card is an Escalade
+
+**Found by opening the file rather than reading the filename** — the same way
+the class name was found, one layer down.
+
+`VEHICLE_DISPLAY_NAME.suv` was corrected to **Executive SUV** (From $110) on
+2026-08-28. It still points at `assets/vehicles/luxury-suv.jpg`, and that file
+**is a Cadillac Escalade** — confirmed visually: Cadillac crest, Escalade
+proportions.
+
+**Why that is a problem.** The only recorded association of "Escalade" with any
+class is the operations panel's **Luxury SUV**, the **$130** class — and the
+app's own demo description, *"Cadillac Escalade or equivalent"*, which almost
+certainly came from the same place.
+
+**Checked against the site, 2026-08-30:** `/fleet` and `/rates` name **S-Class**
+and **Sprinter** and nothing else. **Neither page names a make for either SUV
+class.** So there is no published source saying what an Executive SUV is.
+
+So the $110 card may be showing the $130 class's vehicle. Not changed — an
+image and a description are customer-facing class values, and there is nothing
+published to change them *to*.
+
+**The question:** what make and model is the Executive SUV, and what is the
+Luxury SUV? One line each settles the image, the description and the remaining
+half of question 2.
+**Owner:** the business.
+
+---
+
+## 13 · Are the vehicle images LCT's own cars?
+
+Three of the four are studio renders on a black background. The fourth —
+`coach.jpg` — is a real photograph of a chauffeur in front of a black motor
+coach, wearing what appears to be an LCT lapel pin. **The set is inconsistent in
+provenance**, and two of the renders have specific problems:
+
+- **`executive-sedan.jpg`** — a Mercedes S-Class, correct for the class, but on
+  **gold aftermarket wheels**. That reads as a customised car, not discreet
+  executive transport, and it is the opposite of the restraint the brand is
+  built on.
+- **`sprinter.jpg`** — a Mercedes Sprinter, but a **cargo/panel van**: solid
+  side panels, one small window strip, steel wheels. The class it illustrates
+  is *Executive Sprinter, 14 passengers*. The van in the picture visibly cannot
+  carry them.
+
+**The question:** may we use LCT's own photography? The coach image suggests it
+exists. If it does not cover every class, that is a conversation about a
+photographer — and a better use of the budget than another week of code.
+**Owner:** the business.

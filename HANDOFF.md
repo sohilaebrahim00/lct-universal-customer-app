@@ -11,17 +11,27 @@ useful than a document that ends on the word "done":**
 | Anything verified on hardware | Whoever holds a device — see `DEVICE_VERIFICATION.md`, text scaling first |
 | A resolved price or class name | The business — see `OPEN_QUESTIONS.md` #2 and #9 |
 
-**A sixth, found today rather than pre-listed:** today's push (`c6cd28f`) was
-**not** confirmed live at `https://lctapp.netlify.app/`. Every attempt to load
-it — `curl` (IPv4 and IPv6), a verbose TCP trace, `ping`, `WebFetch` — timed
-out at the connection level, while `lctuniversal.com` and Netlify's own sites
-answered fine seconds apart on the same connection, so this is specific to
-that one URL, not a general network block. This does not mean the deploy
-failed; it means it was not checked, and per this document's own standard
-that distinction matters. **Owner:** whoever has network access to that URL
-or Netlify dashboard access to `lctapp.netlify.app` — confirm it serves
-`c6cd28f` (build-mode marker, or just that Settings no longer shows a
-language switcher). Full diagnostic trail in `SLICE_REPORTS.md`, Part D.
+**A sixth, and the cause is now known — it was never the deploy.**
+`https://lctapp.netlify.app/` could not be loaded from this workspace or from
+the project owner's browser: connection-level timeouts, while
+`lctuniversal.com` — itself Netlify-hosted — answered fine seconds later on the
+same connection.
+
+**It is an ISP-level block on the `netlify.app` domain from this network.** The
+site opens normally over a VPN. Every deploy this was raised against was fine;
+what failed was reaching it, and only from here.
+
+**Mitigation: put the demo on a custom domain** (e.g. `app.lctuniversal.com`)
+pointed at the same Netlify site. Worth doing regardless of the block: a
+client-facing demo on a vendor subdomain is fragile in exactly this way — one
+network's filtering policy decides whether the product exists — and a custom
+domain also stops the demo looking like a staging link.
+**Owner:** whoever holds DNS for `lctuniversal.com`.
+
+**What this does not excuse:** every claim in this document that says a build
+was not confirmed live still stands as written. Not-confirmed remains
+not-confirmed; the reason simply turned out to be the network rather than the
+deployment.
 
 Four lists follow. Every item in them names who can unblock it too.
 
