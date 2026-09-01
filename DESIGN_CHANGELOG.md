@@ -1735,3 +1735,57 @@ than trusting the checker's own report) of the claim that unconfirmed rate
 cards and role-preview screens are absent from a production bundle. Full
 numbers and the exact commands are in `SLICE_REPORTS.md`, Part D — not
 duplicated here to avoid two places drifting out of sync with each other.
+
+---
+
+## Two rules from the last night, both about the instrument rather than the thing
+
+### When several tools fail the same way, suspect what they share
+
+`lctapp.netlify.app` could not be loaded by `curl`, by a headless browser, or by
+a browser pane on the same machine. Three independent tools, one symptom, and
+the conclusion drawn was *"the deploy is unconfirmed"* — which sat in the
+handoff overnight and shaped two reports.
+
+The cause was an **ISP-level block on the `netlify.app` domain from that
+network**. The site opens over a VPN. Every deploy was fine the whole time.
+
+> **When three different tools fail the same way, suspect what they share before
+> suspecting what they test.**
+
+What they shared was the network path. Nothing about the deployment was ever in
+question, and one traceroute-shaped thought would have found it faster than
+three careful confirmations of the same negative.
+
+The mitigation is recorded in `HANDOFF.md`: a custom domain on the client's own
+DNS. Worth doing for its own sake — a client-facing demo on a vendor subdomain
+lets one network's filtering policy decide whether the product exists.
+
+### An all-negative result is a signature, not a finding
+
+Three times in one session **the harness was wrong and the app was right**:
+
+| what the harness said | what was true |
+|---|---|
+| swap row, capacity counts and "Arrives approx." all absent | all three present; the checks were case-sensitive against uppercase labels |
+| name sign, flight and notes all absent on the chauffeur job | all three present; same cause |
+| `.last()` on `^Home$` selected the saved location | it selected the bottom tab bar's Home |
+
+That is a category, not a run of bad luck, and the shape is always the same: **a
+confident negative, arriving in a group.** Real defects rarely make three
+unrelated features vanish at once; a broken matcher always does.
+
+> **When a presence check returns nothing found, suspect the matcher before
+> believing the answer.** An all-negative result is a signature.
+
+Written into both walk scripts, next to the matchers it applies to.
+
+### And the quiet twin of a check nobody ran
+
+The `storage` event has fired on every `persist()` since demo persistence was
+built. Nothing listened. **A signal nobody consumes is the same defect as a
+check nobody runs** — present, correct, and doing nothing — and it is the sixth
+member of the family this file opens with.
+
+The cross-tab work did not add that signal. It subscribed to one that had been
+there all along.

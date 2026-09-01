@@ -32,6 +32,27 @@
  *
  * Usage: node scripts/lifecycle-walk.mjs   (needs `serve dist -l 5055 --single`)
  */
+/**
+ * ── AN ALL-NEGATIVE RESULT IS A SIGNATURE, NOT A FINDING ──────────────────
+ *
+ * Three times in one session this project had a walk report features absent
+ * that were present:
+ *
+ *   - swap row, capacity counts and "Arrives approx." -- all three reported
+ *     missing, all three on screen. The checks were case-sensitive against
+ *     labels the app renders in uppercase.
+ *   - name sign, flight and notes on the chauffeur job -- same cause.
+ *   - .last() on ^Home$ selected the bottom tab bar, not the saved location.
+ *
+ * The shape is always the same: a CONFIDENT NEGATIVE, ARRIVING IN A GROUP.
+ * A real defect rarely makes three unrelated features vanish at once. A broken
+ * matcher always does.
+ *
+ * So: when a presence check here returns nothing found, suspect the matcher
+ * before believing the answer. Case, uppercase labels, ambiguous text that
+ * appears in a tab bar as well as in content, and expo-router keeping prior
+ * screens mounted are all known causes in this app.
+ */
 import { createRequire } from 'node:module';
 import { existsSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';

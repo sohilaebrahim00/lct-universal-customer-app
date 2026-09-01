@@ -306,3 +306,67 @@ provenance**, and two of the renders have specific problems:
 exists. If it does not cover every class, that is a conversation about a
 photographer — and a better use of the budget than another week of code.
 **Owner:** the business.
+
+---
+
+## 14 · Three requests, one rule underneath them
+
+The same collision was found twice from opposite directions — once from a
+competitor's calendar control, once from an operator's reschedule button. It is
+worth stating once as a rule rather than twice as an observation:
+
+> ### A change to a booking's time is a NEW QUOTE, never an edit to an existing one.
+
+The fare is fixed at booking and all-inclusive. Move the pickup and the
+late-night surcharge may apply or stop applying — a Monday 05:00 airport run and
+a Monday 14:00 one do not cost the same. So anything that moves a time produces
+a different fare, and a different fare is a different quote.
+
+`tests/quoteIsNotScaled.test.ts` already forbids a quoted fare being scaled
+after the fact. This rule is the same promise stated forwards: **the app may
+issue a new quote, and may never revise an old one.**
+
+That rule settles all three of the following before they are designed.
+
+### 14a · Recurring or repeat booking — a decision
+
+Never raised by anyone in this project; found by comparing against the
+competitor's app. Plausible for a corporate chauffeur business — the same
+airport run every Monday.
+
+**It is not "repeat this booking".** Under the rule above it is *create N
+bookings, each quoted at its own date*, which changes what the customer is
+agreeing to and what the confirmation says. A design decision before it is a
+feature.
+**Owner:** the business.
+
+### 14b · Operator reschedule — a decision, same rule
+
+Their panel does it; ours does not. Changing a ride's time is a re-quote, so a
+reschedule is *cancel and rebook at the new price*, not an edit — and somebody
+has to decide who absorbs a difference when the new price is higher.
+**Owner:** the business.
+
+### 14c · Operator cancel — not a decision, just work
+
+Cancel moves no time and re-quotes nothing, so the rule does not bite. The path
+`demoApi` already uses for a customer cancellation is the same one an operator
+would use, and `servicePolicy` already carries the published windows and the fee
+tiers.
+
+**Roughly an afternoon.** The only open part is whether an operator cancelling
+on a customer's behalf should be able to waive a fee — which is a policy
+question, not an engineering one.
+**Owner:** the business for the waiver; otherwise ready to build.
+
+### And create-a-booking stays reported, not built
+
+An operator taking a booking over the phone is as common as assigning one, and
+the console has every input it needs. Done properly it calls the same
+`POST /bookings` the customer flow calls, so **the fare is quoted from the same
+source by construction** rather than reimplemented.
+
+What stops it being a task is not difficulty: it makes the console a **second
+writer**, and every write is a place the demo can diverge from what a customer
+sees. That is a scope decision.
+**Owner:** the business.
