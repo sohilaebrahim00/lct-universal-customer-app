@@ -877,3 +877,79 @@ than reconcile it with a guess.
   guarded and tested; the strings could not be removed without making the code
   worse. See `HANDOFF.md` §7.
 - **No device verification.** Everything tonight was checked in a browser.
+
+---
+
+# Empty dispatcher board — two causes, both fixed
+
+## What was wrong
+
+The board showed 0 rides, 0 unassigned, 0 late and an empty table. Nothing threw.
+**Two independent causes, compounding:**
+
+**1. Persisted state froze the timestamps.** The fleet rides ARE seeded relative
+to now — 25 minutes ago, 95 minutes ahead — but the seed runs once and the
+result is written to `localStorage`. Open the demo the next day and every ride
+is still stamped with yesterday's clock, so the board's local-day filter removed
+all of them. **This is the dominant cause** and the one that produced a
+completely empty table.
+
+**2. Offsets crossed midnight.** Even freshly seeded at 21:38, the `+5.5h` ride
+lands at 03:08 *tomorrow* and falls off the board on its own. By 23:50 the
+`+95m` one goes with it.
+
+## The fixes
+
+**Stale state is discarded.** `load()` now returns null if no persisted booking
+falls on today's local day, so the seed runs again. Same-day state is still
+preserved — which is what the persistence was for: a client reloading
+mid-showing keeps the booking they just made, the assignment dispatch gave and
+the arrival the chauffeur marked. Across days there was nothing worth keeping.
+
+**`clampToLocalDay()`** pulls an offset back inside the day when it would cross
+midnight, to 23:30 or 00:20, with a guard so a "future" ride can never land in
+the past. It changes *when* a demo ride is scheduled, never what it is. No ride
+was added, no price moved, every row still labelled demonstration data.
+
+## Which surfaces were affected — checked, not assumed
+
+| surface | affected | why |
+|---|---|---|
+| **Dispatcher board** | **empty** | local-day filter, both causes |
+| **Chauffeur's job list** | **empty** | same `loadRides()` |
+| **Console → Bookings** | **empty** | same `loadRides()` |
+| **Console → Overview** | **all counters 0** | same `loadRides()` |
+| Customer Trips | not empty, but **stale-dated** | filters on STATUS, not date — an "upcoming" trip showed a date in the past |
+| Home recent trips | not empty, but **countdown vanished** | `countdownTo()` returns null once the pickup has passed |
+
+Four surfaces were broken outright; two were quietly wrong. The stale-day
+discard fixes all six, because they all read the same store.
+
+## Verified in the built app, not inferred
+
+Board now reads **4 rides / 1 unassigned / 1 late**:
+
+- 8:40 PM — Trip In Progress
+- **LATE** 9:25 PM — Chauffeur Assigned
+- **OPEN** 11:25 PM — Unassigned, Confirmed (the assign flow has something to act on)
+- 11:30 PM — later today, assigned (clamped from +5.5h)
+
+Trips, Home, the chauffeur list and both console sections all populated.
+
+A test runs the seed at **all 24 hours** and asserts the board never drops below
+four rides and always contains one in progress, one unassigned, one late and one
+still ahead. That is the invariant, pinned — the failure was invisible until
+somebody opened the screen at the wrong hour on the wrong day.
+
+## One refactor it forced
+
+`isSameLocalDay` lived in `roleData.ts`, which imports the API client and
+therefore Supabase, so a node-environment test could not import the board's own
+rule without failing to load. It moved to `src/lib/localDay.ts` and is
+re-exported, so every caller is unchanged.
+
+The alternative was to copy the three-line rule into the test — **the same
+staleness that let `catalogueIntegrity` pass against a display name the app no
+longer used, and let the admin walk report on sixteen sections when there were
+eighteen.** Third time tonight. Copying the thing you check is how a check stops
+checking.

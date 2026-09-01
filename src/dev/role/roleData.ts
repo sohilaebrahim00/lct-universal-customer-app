@@ -5,6 +5,7 @@ import { RIDE_STAGE_LABELS, stageFor } from '../../lib/rideStage';
 import { arrivedAtOf } from '../demoApi';
 import { DEMO_CHAUFFEURS, DEMO_VEHICLES, chauffeurById, customerById } from '../demoData';
 import { api } from '../../lib/apiClient';
+import { isSameLocalDay } from '../../lib/localDay';
 
 /**
  * What the chauffeur and dispatcher views read, derived from the one demo store.
@@ -71,11 +72,9 @@ function toRide(booking: Booking, chauffeurId: string | null, now: Date): RoleRi
  * saying out loud because the backend has no date-scoped query at all — see the
  * gap list — so this rule currently lives only on the client.
  */
-export function isSameLocalDay(a: Date, b: Date): boolean {
-  return (
-    a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate()
-  );
-}
+// Moved to src/lib/localDay.ts so a test can use the board's own rule without
+// dragging the API client in. Re-exported so every caller is unchanged.
+export { isSameLocalDay };
 
 /**
  * LATE — computed, because nothing in the schema expresses it.

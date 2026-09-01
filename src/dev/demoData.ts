@@ -470,6 +470,45 @@ const suv = DEMO_VEHICLES[1] as Vehicle;
  * to the signed-in persona, the way the real endpoint scopes to the
  * authenticated profile, so the client's Trips list is unchanged by any of this.
  */
+/**
+ * Keeps a relative demo time inside TODAY, in local time.
+ *
+ * The fleet rides are seeded as offsets from now -- 25 minutes ago, 95 minutes
+ * ahead, and so on -- and the dispatcher board filters to the current local
+ * day. Those two facts fight near midnight: at 21:38 a +5.5h ride lands at
+ * 03:08 TOMORROW and vanishes from the board, and by 23:50 the +95m one goes
+ * with it.
+ *
+ * An operations console that is empty is indistinguishable from one that is
+ * broken, so the offsets are pulled back inside the day rather than allowed to
+ * fall off it. 23:30 and 00:20 keep a visible gap from midnight so the times
+ * still read as real pickups rather than as artefacts of a clamp.
+ *
+ * This changes WHEN a demo ride is scheduled, never what it is. No ride is
+ * added, no price moves, and every row stays labelled demonstration data.
+ */
+export function clampToLocalDay(target: Date, now: Date): Date {
+  const sameDay =
+    target.getFullYear() === now.getFullYear() &&
+    target.getMonth() === now.getMonth() &&
+    target.getDate() === now.getDate();
+  if (sameDay) return target;
+
+  const clamped = new Date(now);
+  if (target.getTime() > now.getTime()) clamped.setHours(23, 30, 0, 0);
+  else clamped.setHours(0, 20, 0, 0);
+
+  // If now is itself past the clamp point, sit just off now instead of
+  // producing a time that has already gone.
+  if (target.getTime() > now.getTime() && clamped.getTime() <= now.getTime()) {
+    return new Date(now.getTime() + 10 * 60_000);
+  }
+  if (target.getTime() < now.getTime() && clamped.getTime() >= now.getTime()) {
+    return new Date(now.getTime() - 10 * 60_000);
+  }
+  return clamped;
+}
+
 function fleetBookings(now: Date): Booking[] {
   const MIN = 60_000;
   return [
@@ -479,7 +518,7 @@ function fleetBookings(now: Date): Booking[] {
       id: 'demo-fleet-late',
       vehicle: suv,
       status: 'driver_assigned',
-      scheduledAt: new Date(now.getTime() - 25 * MIN),
+      scheduledAt: clampToLocalDay(new Date(now.getTime() - 25 * MIN), now),
       distanceMiles: 18.6,
       pickup: 'Hotel Crescent Court, 400 Crescent Ct, Dallas, TX',
       dropoff: 'Dallas Love Field, 8008 Herb Kelleher Way, Dallas, TX',
@@ -497,7 +536,7 @@ function fleetBookings(now: Date): Booking[] {
       id: 'demo-fleet-inprogress',
       vehicle: sedan,
       status: 'trip_started',
-      scheduledAt: new Date(now.getTime() - 70 * MIN),
+      scheduledAt: clampToLocalDay(new Date(now.getTime() - 70 * MIN), now),
       distanceMiles: 12.1,
       pickup: '1717 McKinney Ave, Dallas, TX',
       dropoff: 'Gaylord Texan, 1501 Gaylord Trail, Grapevine, TX',
@@ -513,7 +552,7 @@ function fleetBookings(now: Date): Booking[] {
       id: 'demo-fleet-unassigned',
       vehicle: sedan,
       status: 'confirmed',
-      scheduledAt: new Date(now.getTime() + 95 * MIN),
+      scheduledAt: clampToLocalDay(new Date(now.getTime() + 95 * MIN), now),
       distanceMiles: 9.4,
       pickup: 'Meridian Law, 2101 Cedar Springs Rd, Dallas, TX',
       dropoff: 'The Ritz-Carlton, 2121 McKinney Ave, Dallas, TX',
@@ -531,7 +570,7 @@ function fleetBookings(now: Date): Booking[] {
       id: 'demo-fleet-evening',
       vehicle: suv,
       status: 'driver_assigned',
-      scheduledAt: new Date(now.getTime() + 5.5 * HOURS),
+      scheduledAt: clampToLocalDay(new Date(now.getTime() + 5.5 * HOURS), now),
       distanceMiles: 22.8,
       pickup: 'DFW Terminal A, 2337 S International Pkwy, DFW Airport, TX',
       dropoff: '3400 Oak Lawn Ave, Dallas, TX',

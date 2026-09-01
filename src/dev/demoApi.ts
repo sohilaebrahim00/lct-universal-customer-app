@@ -101,6 +101,38 @@ function load(): DemoState | null {
     if (!raw) return null;
     const parsed = JSON.parse(raw) as Partial<DemoState>;
     if (!Array.isArray(parsed.bookings) || parsed.bookings.length === 0) return null;
+
+    /*
+     * ── STALE STATE IS DISCARDED, AND THIS IS THE BIG ONE ──────────────────
+     *
+     * The fleet rides are seeded as offsets from NOW and the dispatcher board
+     * filters to the current local day. But the seed runs once and the result
+     * is persisted, so the ISO timestamps freeze at whatever the clock said on
+     * the first visit. Open the demo the next day and every fleet ride is on
+     * yesterday: the board filters them all out and shows 0 rides,
+     * 0 unassigned, 0 late and an empty table.
+     *
+     * That is how a populated console became an empty one without anything
+     * breaking, and an empty operations console is indistinguishable from a
+     * broken one in front of a client.
+     *
+     * So: state from a PREVIOUS LOCAL DAY is dropped and the seed runs again.
+     * Same-day state is still preserved, which is what the persistence was for
+     * -- a client reloading mid-showing keeps the booking they just made, the
+     * assignment dispatch just gave and the arrival the chauffeur just marked.
+     * Across days there is nothing worth keeping: a booking made yesterday
+     * should not be sitting on today's board.
+     */
+    const seededToday = (parsed.bookings as Booking[]).some((b) => {
+      const at = new Date(b.scheduled_at);
+      const today = new Date();
+      return (
+        at.getFullYear() === today.getFullYear() &&
+        at.getMonth() === today.getMonth() &&
+        at.getDate() === today.getDate()
+      );
+    });
+    if (!seededToday) return null;
     return {
       bookings: parsed.bookings as Booking[],
       // Tolerated as missing rather than version-bumped: `assignments` arrived
