@@ -89,12 +89,21 @@ invocation each, all clean. Verbatim from the tools:
 |---|---|
 | `npm run typecheck` | no output, exit 0 |
 | `npm run lint` | no output, exit 0 |
-| `npm test` | `Tests: 1911 passed, 1911 total` · `Test Suites: 20 passed, 20 total` |
+| `npm test` | `Tests: 1922 passed, 1922 total` · `Test Suites: 21 passed, 21 total` |
 | `npm run export:web` | `build mode verified: EXPO_PUBLIC_DEMO_MODE=true matches the emitted bundle (dist)` |
 | `node scripts/sweep.mjs` | `clean: zero console errors, zero blank screens` |
 | `npm run verify:a11y` | `clean: 22 routes at 5 viewports (320/390/430/834/1440) — 0 targets under 44x44, 0 content above the fold, 0 horizontal overflow (incl. WCAG 1.4.10 at 320px)` |
 | `npm run verify:lifecycle` | `clean: all seven stages driven from the chauffeur view, reflected in the customer and dispatcher views` |
 | `npm run verify:admin` | `clean: all 18 sections reachable, no console errors, no fabricated figures` |
+| `npm run verify:cancel` | `clean: cancel reachable from the trip screen and the upcoming row, states the window and no charge, produces a cancelled record with no figure, and is absent once the ride is under way` |
+
+`verify:cancel` is new with this change, because none of the seven gates above
+touched the cancel path. Its two absence claims each run a **positive control
+first** — the same matcher finding the button present in the same browser
+context — so an absence can only be reported by a matcher that has just been
+shown to work. Its own first run reported a price in the list confirmation;
+that was the matcher reading the rows behind a transparent modal, not the
+panel, and the scope was fixed rather than the finding waved away.
 
 **Owner:** nobody. These are closed.
 
