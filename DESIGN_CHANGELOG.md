@@ -1224,6 +1224,67 @@ The second is the first in miniature, and the repair is the same both times:
 report only what ran, and say so when the run was partial. The summary now
 enumerates the passes that executed and appends `[PARTIAL RUN]` otherwise.
 
+### The environment gap: no gate has ever run where the client is served
+
+Every failure recorded above is the same shape — *the assertion is true in the
+failure state*. **This one is not, and it is harder to see:**
+
+> **The assertion was true. In the environment where it ran.**
+
+```
+Every gate in this project runs on WINDOWS, against a local `dist/`.
+The artifact runs on LINUX, served by Netlify.
+No gate has ever executed in the environment that serves the client.
+```
+
+That gap has existed since the first slice, invisible because nothing had
+depended on it. **Case sensitivity is the first thing through it.** Windows
+resolves `Sprinter-Passenger.jpg` to `sprinter-passenger.jpg`; Linux does not.
+A mis-cased literal therefore loads locally, verifies in a local `dist/`, passes
+every gate honestly, and 404s on the deploy. Path separators, line endings and
+case-insensitive route matching all live in the same gap.
+
+**And the symptom is silent in exactly the way this project keeps meeting.** A
+missing image is not a blank screen, and on web a failed image request is not a
+console error. `sweep.mjs` visits `/fleet`, finds text, finds no console error,
+and passes over a hole in the layout.
+
+#### The mitigation, and it is one rule
+
+> **A check that compares a name to a file must compare STRINGS. Never ask the
+> filesystem whether a file exists — on Windows, the filesystem is the thing
+> that lies.**
+
+Demonstrated rather than asserted, on this machine:
+
+```
+existsSync('assets/vehicles/Sprinter-Passenger.jpg')   ->  true
+readdirSync('assets/vehicles').includes(...)           ->  false
+```
+
+`scripts/verify-assets.mjs` is that rule, and it runs INSIDE `export:web`, so a
+build cannot produce an artifact it has not checked. Two halves, both probed red
+before being trusted:
+
+1. **Source** — every `require('.../assets/...')` literal matched against a
+   directory listing, character for character. Probed by changing one literal's
+   case: caught, with the message naming Windows and Linux explicitly.
+2. **Artifact** — every asset URL the emitted bundle references must exist in
+   the export. Probed by deleting one emitted file: caught.
+
+Its own first run reported **all 31 references missing** — a confident negative
+arriving in a group, which is this project's signature for a broken matcher
+rather than a finding. It was: the path join prepended `assets/` twice. Its
+second run reported two more, `icon.png` and `favicon.png`, which turned out to
+be strings inside the serialized app manifest rather than loaded images.
+
+#### What it still does not do
+
+**It does not run on Linux.** It checks names, not the environment, so it closes
+the first hole in the gap and not the gap. The gap closes only by running a gate
+in the environment that serves the client — a CI step on Linux, or a check
+against the deployed URL rather than a local `dist/`.
+
 ### Five matcher failures, one tool, and the rule that covers all of them
 
 Not five accidents. **Five instances of string search over rendered text**, which
