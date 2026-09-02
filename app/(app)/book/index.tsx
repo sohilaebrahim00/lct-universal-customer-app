@@ -10,6 +10,14 @@ import { useBookingFormStore } from '../../../src/store/bookingFormStore';
 import { SERVICES } from '../../../src/lib/services';
 import { SERVICE_ICON_COMPONENTS } from '../../../src/lib/serviceIcons';
 import { AppImage } from '../../../src/components/ui/AppImage';
+import { isDemoMode } from '../../../src/lib/env';
+
+/**
+ * Mirrors `HomeView`'s fence, and for the same reason stated there: hourly
+ * needs a duration the current route order does not collect. Both doors into
+ * the booking flow now agree.
+ */
+const HOURLY_UNAVAILABLE_IN_DEMO = isDemoMode;
 
 export default function ServiceStep() {
   const router = useRouter();
@@ -30,14 +38,37 @@ export default function ServiceStep() {
         {SERVICES.map((service, i) => {
           const selected = draft.serviceType === service.type;
           const Icon = SERVICE_ICON_COMPONENTS[service.icon];
+          /*
+            THE SAME FENCE THE HOME TILE HAS, AT THE ENTRY POINT THAT MISSED IT.
+
+            `HomeView` marks Hourly unavailable in a demo build because hourly
+            needs a duration the route order does not collect, so it reaches the
+            vehicle screen with both mainstream classes reading "Not available
+            for this trip" — a dead end at step 4 of 5, with no reason given.
+
+            That fence was applied to ONE of five entry points. This screen is
+            the other four: `/about`, `/corporate-info`, `/demo-trip` and
+            `/fleet/[id]` all push here, and it listed Hourly with no fence at
+            all. Walked from About → "Reserve Your Ride" it took a customer
+            straight into the dead end the tile exists to prevent. Found by
+            driving it, not by reading it.
+
+            One decision, made once, now applied at both doors.
+          */
+          const unavailable = HOURLY_UNAVAILABLE_IN_DEMO && service.type === 'hourly';
           return (
             <FadeSlideIn key={service.type} delay={i * 60}>
               <Pressable
-                onPress={() => update({ serviceType: service.type })}
+                onPress={unavailable ? undefined : () => update({ serviceType: service.type })}
                 accessibilityRole="radio"
-                accessibilityLabel={service.label}
-                accessibilityState={{ selected }}
-                style={[styles.card, styles.cardShadow, selected ? styles.cardSelected : null]}
+                accessibilityLabel={unavailable ? `${service.label} — not in this preview` : service.label}
+                accessibilityState={{ selected, disabled: unavailable }}
+                style={[
+                  styles.card,
+                  styles.cardShadow,
+                  selected ? styles.cardSelected : null,
+                  unavailable ? styles.cardUnavailable : null,
+                ]}
               >
                 <AppImage source={service.image} style={styles.image} />
                 <View style={styles.scrim} />
@@ -52,7 +83,7 @@ export default function ServiceStep() {
                 <View style={styles.textBlock}>
                   <AppText variant="subheading">{service.label}</AppText>
                   <AppText variant="caption" style={{ marginTop: 2 }}>
-                    {service.description}
+                    {unavailable ? 'Not in this preview — available in the full app.' : service.description}
                   </AppText>
                 </View>
               </Pressable>
@@ -95,6 +126,8 @@ const styles = StyleSheet.create({
     borderColor: theme.border.hairline,
     justifyContent: 'flex-end',
   },
+  /* Visibly out of reach, calmly — the same treatment the home tile gives it. */
+  cardUnavailable: { opacity: 0.45 },
   cardSelected: {
     borderColor: theme.content.accent,
     borderWidth: 1.5,

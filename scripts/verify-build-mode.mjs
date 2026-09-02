@@ -144,7 +144,57 @@ for (const check of CHECKS) {
   }
 }
 
-const demo = requestedEnv('EXPO_PUBLIC_DEMO_MODE') === 'true';
+/**
+ * ── UNSET IS NOT "false". IT IS A BUILD NOBODY CONFIGURED. ────────────────
+ *
+ * This gate compares the REQUESTED flag against the EMITTED bundle, and that
+ * comparison could not detect the one failure it exists to prevent.
+ *
+ * `.env` is gitignored and untracked — correctly, no secrets in the repo — so
+ * on a CI host there is no `.env` and the flag must come from the dashboard.
+ * With it unset, `requestedEnv()` returned `undefined`, `=== 'true'` made that
+ * `false`, the bundle was ALSO built false, **the two agreed, and this script
+ * printed a green line over a non-demo bundle with no reachable backend** —
+ * the empty-`/fleet` symptom `HANDOFF.md` tells people to come here to
+ * diagnose. The assertion was true in the failure state.
+ *
+ * ── The rule this is the third instance of ────────────────────────────────
+ * Name the failure the gate exists to prevent, and ask whether the assertion
+ * would be FALSE in that state. Here it was true, so the gate was decorative
+ * however green it ran. Same shape as the ETA (headline gated, progress bar
+ * drawing from the same number) and `clampToLocalDay` (`out > now` satisfied
+ * by 00:05 tomorrow). See DESIGN_CHANGELOG.
+ *
+ * So: unset is now a hard failure with its own message. "Unset" becomes loud,
+ * which is the only state it should ever be — a build with no configuration
+ * stops rather than quietly shipping the wrong one.
+ */
+const requestedDemo = requestedEnv('EXPO_PUBLIC_DEMO_MODE');
+if (requestedDemo === undefined) {
+  fail([
+    'EXPO_PUBLIC_DEMO_MODE is not set, and this script will not guess.',
+    '',
+    'Unset used to be treated as "false", which made this gate agree with an',
+    'unconfigured build and print a green line over it. A demo deploy built',
+    'that way shows empty screens: no seeded rides, no /_role routes, and an',
+    'API base pointing at localhost.',
+    '',
+    'Set it explicitly, to the value you actually intend:',
+    '  - locally:   EXPO_PUBLIC_DEMO_MODE=true  in .env  (gitignored)',
+    '  - on Netlify: Site configuration -> Environment variables',
+    '',
+    'A production build for real users sets it to false, deliberately, and',
+    'this gate then checks the bundle agrees.',
+  ]);
+}
+if (requestedDemo !== 'true' && requestedDemo !== 'false') {
+  fail([
+    `EXPO_PUBLIC_DEMO_MODE is "${requestedDemo}", which is neither "true" nor "false".`,
+    'Anything that is not exactly "true" was previously read as false — so a',
+    'typo like "True" or "1" silently produced a production build.',
+  ]);
+}
+const demo = requestedDemo === 'true';
 
 /**
  * THE ROLE FENCE, CHECKED AS STRINGS AND NOT ONLY AS SCREENS.

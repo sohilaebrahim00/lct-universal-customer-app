@@ -19,12 +19,33 @@ const browser = await chromium.launch({ channel:'chrome' });
 const ctx = await browser.newContext({ viewport:{width:390,height:844}, deviceScaleFactor:2, colorScheme:'dark' });
 const page = await ctx.newPage();
 const problems=[];
+/** Routes that redirected. Named in the result, never silently screenshotted. */
+const redirects=[];
 page.on('console', m=>{ if(m.type()==='error') problems.push(`[console] ${page.url().replace(BASE,'')} :: ${m.text().slice(0,200)}`); });
 page.on('pageerror', e=>problems.push(`[pageerror] ${page.url().replace(BASE,'')} :: ${e.message.slice(0,200)}`));
 
 async function go(path, name, settle=2600){
   await page.goto(BASE+path,{waitUntil:'load',timeout:120000});
   await page.waitForTimeout(settle);
+  /*
+    A SCREENSHOT FILED UNDER A NAME IT IS NOT A PICTURE OF.
+
+    This function screenshotted whatever it landed on. `/(auth)/login` redirects
+    to `/` in a demo build — authStore signs in as DEMO_PROFILE and the (auth)
+    layout bounces every route under it — so `D-login.png` was a picture of the
+    home screen, and had been for as long as the file existed. Same defect as
+    the a11y gate counting `/login` as measured, in a different medium.
+
+    A redirect is reported and the shot is NOT filed under the requested name.
+  */
+  const landed = new URL(page.url()).pathname.replace(/\/$/,'') || '/';
+  const asked = path.replace(/\([^)]*\)\//g,'').replace(/\/$/,'') || '/';
+  if (landed !== asked) {
+    console.log(`  redirected ${path} -> ${landed}  (not screenshotted; nothing to file it under)`);
+    redirects.push(`${path} -> ${landed}`);
+    return;
+  }
+
   /*
     `body.innerText` reads every layer, not the visible one — see the note in
     `admin-walk.mjs`. For THIS check that is the safe direction: the question
@@ -75,3 +96,9 @@ await browser.close();
 console.log('\n=== SWEEP RESULT ===');
 if (problems.length){ console.log(`${problems.length} problem(s):`); [...new Set(problems)].forEach(p=>console.log('  - '+p)); process.exit(1); }
 console.log('clean: zero console errors, zero blank screens');
+if (redirects.length) {
+  console.log(`NOT VISITED — ${redirects.length} route(s) redirected in this build mode:`);
+  redirects.forEach(r => console.log('  ' + r));
+  console.log('  No screenshot was filed for these. D-login.png was previously a picture of');
+  console.log('  the home screen, because /(auth)/login redirects in a demo build.');
+}

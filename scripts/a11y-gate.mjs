@@ -106,6 +106,15 @@ const VIEWPORTS = [
   },
 ];
 
+/**
+ * Routes that redirected instead of rendering themselves.
+ *
+ * NOT a problem — a route can be legitimately unreachable in one build mode.
+ * It is an honest subtraction from the coverage count, reported by name so the
+ * gate never claims to have measured a screen it did not reach.
+ */
+const redirected = [];
+
 const ROUTES = [
   '/', '/welcome', '/onboarding', '/book', '/book/vehicle', '/book/details',
   '/book/payment', '/book/confirmed', '/trips', '/account', '/concierge',
@@ -155,6 +164,31 @@ async function assertRendered(page, route, tag) {
    * removes the race without removing the assertion, and a screen that is still
    * empty after four seconds is empty.
    */
+  /*
+   * ── A REDIRECT IS THE 404 PROBLEM WITH A WORKING PAGE ────────────────────
+   *
+   * This function caught 404s and blanks, and passed anything that rendered.
+   * `/login` renders beautifully — because in a demo build `authStore` signs in
+   * as DEMO_PROFILE and `app/(auth)/_layout.tsx` redirects every (auth) route
+   * to `/(app)`. `/` is ALSO in ROUTES. So the gate measured the home screen
+   * twice and reported the second one as `/login`: five viewports of true
+   * assertions, none of them about the route named.
+   *
+   * Name the failure this function exists to prevent — "measuring a screen
+   * that is not the one asked for" — and ask whether the old assertion would
+   * be false in that state. It was true. Hence this check.
+   *
+   * NOT treated as a defect in the app: `/login` is genuinely unreachable in a
+   * demo build, by design. It is reported as UNMEASURABLE and excluded from
+   * the count, because a truthful 21 beats a false 22.
+   */
+  const landed = new URL(page.url()).pathname.replace(/\/$/, '') || '/';
+  const asked = route.replace(/\/$/, '') || '/';
+  if (landed !== asked) {
+    redirected.push({ route, landed, tag });
+    return false;
+  }
+
   let text = (await page.evaluate(() => document.body.innerText || '')).trim();
   if (text.length < 20) {
     await page.waitForTimeout(2600);
@@ -273,14 +307,22 @@ async function runViewport(vp) {
 
   await ctx.close();
 
-  if (measured !== ROUTES.length) {
-    problems.push(`[coverage ${vp.name}] only ${measured}/${ROUTES.length} routes measured`);
+  /*
+   * Reachable = asked for, minus the ones this build mode redirects away.
+   * Coverage is judged against THAT, so a redirect is neither a silent pass
+   * nor a false failure — it is a named subtraction.
+   */
+  const skipped = [...new Set(redirected.filter((r) => r.tag === vp.name).map((r) => r.route))];
+  const reachable = ROUTES.length - skipped.length;
+  if (measured !== reachable) {
+    problems.push(`[coverage ${vp.name}] only ${measured}/${reachable} reachable routes measured`);
   } else {
     // Marked done ONLY on full coverage. A viewport that skipped a route has
     // not run, whatever else it reported.
     done.add(vp.name);
   }
-  console.log(`${vp.name.padEnd(12)} ${String(vp.width).padStart(4)}x${vp.height}  routes ${measured}/${ROUTES.length}  offscreen ${offscreen}  overflow ${overflow}`);
+  const note = skipped.length ? `  (${skipped.length} redirected: ${skipped.join(', ')})` : '';
+  console.log(`${vp.name.padEnd(12)} ${String(vp.width).padStart(4)}x${vp.height}  routes ${measured}/${reachable}  offscreen ${offscreen}  overflow ${overflow}${note}`);
 }
 
 /**
@@ -314,10 +356,32 @@ if (missing.length > 0) {
 }
 if (problems.length === 0) {
   const widths = VIEWPORTS.map((v) => v.width).join('/');
+  /*
+   * The count is what was MEASURED, not what was asked for. A route this build
+   * mode redirects away is named in the result rather than folded into a total
+   * that would imply it was checked.
+   */
+  const skipped = [...new Set(redirected.map((r) => r.route))];
+  const measuredCount = ROUTES.length - skipped.length;
   console.log(
-    `clean: ${ROUTES.length} routes at ${VIEWPORTS.length} viewports (${widths}) — ` +
+    `clean: ${measuredCount} routes at ${VIEWPORTS.length} viewports (${widths}) — ` +
       '0 targets under 44x44, 0 content above the fold, 0 horizontal overflow (incl. WCAG 1.4.10 at 320px)',
   );
+  if (skipped.length) {
+    console.log(
+      `NOT MEASURED — ${skipped.length} route(s) redirect in this build mode and were excluded rather than counted:`,
+    );
+    for (const route of skipped) {
+      const to = redirected.find((r) => r.route === route)?.landed ?? '?';
+      console.log(`  ${route} -> ${to}`);
+    }
+    console.log(
+      '  These are UNMEASURED SURFACES, not passing ones. `/login` is unreachable in a\n' +
+        '  demo build by design, but in a production build it is the first screen a real\n' +
+        '  user meets — and nothing has ever measured it for targets, reflow or 320px.\n' +
+        '  See HANDOFF.md; measuring it needs a non-demo export.',
+    );
+  }
   process.exit(0);
 }
 console.log(`${problems.length} problems`);
