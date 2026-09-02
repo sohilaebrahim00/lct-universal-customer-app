@@ -340,18 +340,48 @@ guess at.** Putting another company's name, domain, phone number and scannable
 QR code inside LCT's app is a decision about who the customer believes they are
 booking from.
 
-**The question, restated:**
+### It is ONE class, not the fleet — narrowed and shipped 2026-09-02
 
-1. Are LCT Universal and LuxLane Transports the same business, or related such
-   that LuxLane-branded vehicles may appear in LCT's app? **If yes, this is a
-   twenty-minute change** — the files are on disk and the mapping is one
-   literal each in `src/lib/vehicleImages.ts`.
-2. If no: the website is currently publishing them, which is a bigger problem
-   than this app's picker and should be raised there first.
+The branding is on the two **Escalade** files and nowhere else. The other two
+classes were checked individually and swapped the same night:
 
-Either way the app should stop shipping a cargo van for a 14-passenger class.
-**Owner:** the business, and it is now a yes/no rather than a budget
-conversation.
+| class | now | branding |
+|---|---|---|
+| `sprinter` | `official/sprinter-exterior.jpg` — the real extended-wheelbase **passenger** Sprinter | none. Only the coachbuilder's "Legend" badging |
+| `executive_sedan` | `official/sedan-chauffeur-crop.jpg` — chauffeur beside the S-Class, Harwood district Dallas | none |
+| `suv` | **unchanged**, still the render | LuxLane plate, decal, QR code — held |
+
+Copied into `assets/vehicles/` and resized to the 1200px width the other assets
+use (no crop): 216 KB and 228 KB against 560/633 KB originals, because §9 of
+`HANDOFF.md` measures a 6–10 second first load and 1.2 MB of picker art would
+have worked against it. The app does not reference a sibling checkout.
+
+**Nothing regresses by holding the SUV.** It keeps the image it has had all
+along, and the question stops being "should we change our vehicle photography",
+which is a meeting, and becomes "what image should the Executive SUV use",
+which is a sentence.
+
+### The question, and why the QR code makes it urgent
+
+A logo is a claim. **A scannable QR code is a working link**, and it would sit
+on the vehicle-selection screen — the one screen where a customer is comparing
+what to pay for. A customer who scans it leaves the checkout at the moment of
+purchase. That is true whatever LuxLane turns out to be; even a parent company
+would want to decide it deliberately rather than by default.
+
+**To send, as written:**
+
+> Two of the fleet photographs you supplied — both Escalade shots — carry
+> **LuxLane Transports** branding: a front plate with the name, phone number and
+> web address, and a rear-window decal with a **scannable QR code**. They are on
+> the website today. Before we put them in the app, on the screen where a
+> customer chooses their vehicle: should the app show them as they are, or should
+> we use different shots for the SUV classes?
+
+If the answer is "show them", it is one literal in `src/lib/vehicleImages.ts`.
+If the answer is "different shots", the website is publishing them today and
+that is the larger conversation, not this app's picker.
+**Owner:** the business. A yes/no, not a budget.
 
 ---
 

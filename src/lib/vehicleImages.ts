@@ -1,39 +1,62 @@
 import type { VehicleType } from '../types/api';
 
 /**
- * ── THESE ARE NOT THE FLEET PHOTOGRAPHS, AND THE COMMENT HERE SAID THEY WERE ─
+ * ── THE COMMENT HERE ONCE CLAIMED THESE WERE THE FLEET PHOTOGRAPHS ─────────
  *
- * The previous version of this comment read "Real LCT Universal fleet
- * photography … not stock/placeholder images." **That was false**, and it was
- * false in the most durable way — asserted in the file that loads them, where
- * nobody rechecks it.
+ * It read "Real LCT Universal fleet photography … not stock/placeholder
+ * images." **That was false**, and false in the most durable way — asserted in
+ * the file that loads them, where nobody rechecks it. There is an irony in it
+ * worth keeping: the claim was not merely wrong, it was **true of images this
+ * app did not have.** The real photography existed the whole time, one
+ * directory away in the website repo.
  *
- * Verified 2026-09-02 by md5 against the website repo: these three files are
- * byte-identical to `public/assets/fleet-{sedan,suv,sprinter}.jpg`, which are
- * studio RENDERS on black. The website has **superseded all three** — its
- * `src/lib/image-map.ts` points `fleetSedan`, `fleetSuv` and `fleetSprinter` at
- * client-supplied photographs under `public/assets/official/`, with camera
- * originals named in its notes (`IMG_8626.JPEG`, `IMG_2444.PNG`).
+ * Verified 2026-09-02 by md5: the old files were byte-identical to
+ * `public/assets/fleet-{sedan,suv,sprinter}.jpg` — studio RENDERS, which the
+ * website itself superseded. Its `src/lib/image-map.ts` points every fleet
+ * class at client-supplied photographs under `public/assets/official/`, naming
+ * the camera originals in its notes (`IMG_8626.JPEG`, `IMG_2444.PNG`).
  *
- * Two of the three renders are also wrong about the product:
- *   - the sedan is an S-Class on **gold aftermarket wheels**, with a short run
- *     of garbled characters where a model badge sits;
- *   - the Sprinter is a **cargo/panel van on steel wheels**, illustrating a
- *     class this app sells as *up to 14 passengers*.
+ * ── Two classes moved to the real photographs, 2026-09-02 ─────────────────
+ *   `sprinter`        ← `official/sprinter-exterior.jpg`
+ *   `executive_sedan` ← `official/sedan-chauffeur-crop.jpg`
  *
- * ── Why they have NOT been swapped ────────────────────────────────────────
- * The real photographs visibly carry **another company's branding** — a
- * "LuxLane Transports" plate, decal, QR code and phone number. Putting that
- * inside this app is a decision about who the customer thinks they are booking
- * from, and it is the business's to make. `OPEN_QUESTIONS.md` #13.
+ * The renders they replace were **wrong about the product**, not merely plain:
+ * the Sprinter was a *cargo panel van on steel wheels* illustrating a class
+ * this app sells as up to 14 passengers, and the sedan was an S-Class on gold
+ * aftermarket wheels with a short run of garbled characters where a model badge
+ * sits. Both are on the booking picker, which is where a customer compares what
+ * to pay for.
+ *
+ * Copied INTO this repository and resized to the 1200px width the other assets
+ * use (`@expo/image-utils`, quality 80, no crop) — 216 KB and 228 KB, against
+ * 560 KB and 633 KB camera originals. This app does not reference a sibling
+ * checkout, and `HANDOFF.md` §9 records a 6-10s first load on cellular that
+ * 1.2 MB of picker art would have made worse.
+ *
+ * Neither carries third-party branding. The Sprinter's only lettering is the
+ * coachbuilder's "Legend" badging; the sedan carries none.
+ *
+ * ── Why the SUV is HELD, and it is one class rather than the fleet ────────
+ * The client-supplied Escalade photographs — both of them — visibly carry
+ * **another company's branding**: a LuxLane Transports front plate with phone
+ * number and web address, and a rear-window decal with a **scannable QR code**.
+ *
+ * A logo is a claim; a QR code is a working link, and this one would sit on the
+ * screen where a customer chooses what to pay for. Whatever LuxLane is —
+ * possibly the same business under another name — routing a customer out of the
+ * checkout is a decision to take deliberately rather than by default. So `suv`
+ * keeps the render it has, nothing regresses, and the open question is now one
+ * class. `OPEN_QUESTIONS.md` #13.
  *
  * Metro requires static string literals for require(), so this is a literal map
  * rather than a computed path.
  */
 export const VEHICLE_IMAGES: Record<string, number> = {
-  executive_sedan: require('../../assets/vehicles/executive-sedan.jpg'),
+  // Real photographs, client-supplied. See the note above for provenance.
+  executive_sedan: require('../../assets/vehicles/executive-sedan-chauffeur.jpg'),
+  sprinter: require('../../assets/vehicles/sprinter-passenger.jpg'),
+  // STILL THE RENDER, and deliberately. See "why the SUV is held" below.
   suv: require('../../assets/vehicles/luxury-suv.jpg'),
-  sprinter: require('../../assets/vehicles/sprinter.jpg'),
   coach: require('../../assets/vehicles/coach.jpg'),
 };
 
