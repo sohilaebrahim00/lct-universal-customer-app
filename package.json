@@ -77,7 +77,8 @@
     "verify:admin": "node scripts/admin-walk.mjs",
     "verify:cancel": "node scripts/cancel-walk.mjs",
     "verify:booking": "node scripts/booking-walk.mjs",
-    "verify:assets": "node scripts/verify-assets.mjs dist"
+    "verify:assets": "node scripts/verify-assets.mjs dist",
+    "verify:reachable": "node scripts/verify-reachable.mjs"
   },
   "jest": {
     "preset": "ts-jest",

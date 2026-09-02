@@ -90,7 +90,24 @@ async function step(page, label, expectPath, what) {
   }
   await el.click({ timeout: 12000 }).catch(() => {});
   await page.waitForTimeout(2200);
-  const after = path(page);
+
+  /*
+   * ONE BOUNDED RE-CHECK, and no more.
+   *
+   * Run back-to-back with three other Chromium walks, this step once reported
+   * `"Reserve Your Ride" left the flow at /about` and passed in isolation
+   * seconds later — CPU contention, not a defect. Same race `assertRendered()`
+   * met in the a11y gate, and the same repair: a little patience, not a
+   * softened assertion. An intermittent gate teaches people to re-run until
+   * green, which is worse than no gate.
+   *
+   * A screen that has not navigated after five seconds has not navigated.
+   */
+  let after = path(page);
+  if (expectPath && after !== expectPath) {
+    await page.waitForTimeout(2800);
+    after = path(page);
+  }
   if (expectPath && after !== expectPath) {
     problems.push(`[${what}] "${label}" left the flow at ${after}, expected ${expectPath}`);
     console.log(`  MISS  ${what.padEnd(26)} ${before} -> ${after} (wanted ${expectPath})`);

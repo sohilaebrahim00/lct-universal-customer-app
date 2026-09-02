@@ -139,6 +139,19 @@ export default function AccountScreen() {
         {/* Fleet is a route now, not a tab — this is where browsing it lives. */}
         <ListRow icon={Car} title="Our fleet" onPress={() => router.push('/(app)/fleet')} />
         <ListRow icon={Info} title="About LCT Universal" onPress={() => router.push('/(app)/about')} />
+        {/*
+          A SECOND SCREEN THAT WAS LINKED FROM NOTHING.
+
+          `/airport` shipped, was swept, was measured at five viewports — and no
+          `router.push` anywhere in the app pointed at it. Found by
+          `verify-reachable.mjs` in the same run that named `/_role/admin`,
+          which is the point of a gate that asks about navigation rather than
+          about routes.
+
+          It belongs here, beside its siblings: Fleet, About and Corporate
+          solutions are the same kind of thing and all three already had a row.
+        */}
+        <ListRow icon={Navigation} title="Airport transfers" onPress={() => router.push('/(app)/airport')} />
         {profile?.corporate_account_id ? (
           <ListRow
             icon={Building2}
@@ -172,24 +185,53 @@ export default function AccountScreen() {
       {isDemoMode ? (
         <>
           <SectionHeader title="Role preview" />
+          {/*
+            THE OPERATIONS CONSOLE WAS LINKED FROM NOTHING.
+
+            This list held two rows — chauffeur and dispatcher — and `/_role/admin`
+            appeared in neither. The console's eighteen sections shipped, were
+            walked by `verify:admin` every run, and could be reached only by
+            typing the URL. `DispatcherBoard` sends its back button here, so
+            there was no lateral path either.
+
+            It was found by somebody USING the app: she went looking for the
+            features in the client's own recording, took the only operator-shaped
+            entry the app offered, landed on the order board, and correctly
+            reported that the eighteen sections were not there.
+
+            A screen that ships, passes its gates and is linked from nothing is a
+            screen that does not exist. `scripts/verify-reachable.mjs` now asserts
+            that every shipped route is reachable by interaction, or is listed as
+            deliberately URL-only with a reason.
+
+            The console goes FIRST: it is the surface the client's recording is
+            of, and the two focused tools follow it.
+          */}
           <Surface level="card" style={styles.block}>
+            <ListRow
+              icon={LayoutGrid}
+              title="Operations console"
+              subtitle="The operator's whole surface — eighteen sections"
+              onPress={() => router.push('/_role/admin')}
+            />
+            <ListRow
+              icon={Navigation}
+              title="Dispatcher board"
+              subtitle="The focused kerbside tool: today's rides, and assigning one"
+              onPress={() => router.push('/_role/dispatcher')}
+            />
             <ListRow
               icon={Car}
               title="Chauffeur view"
               subtitle="Today's jobs, kerbside detail, status"
-              onPress={() => router.push('/_role/chauffeur')}
-            />
-            <ListRow
-              icon={LayoutGrid}
-              title="Dispatcher view"
-              subtitle="Today's board and ride assignment"
               divider={false}
-              onPress={() => router.push('/_role/dispatcher')}
+              onPress={() => router.push('/_role/chauffeur')}
             />
           </Surface>
           <AppText variant="captionSm" style={styles.previewNote}>
-            Previews of two products LCT does not have yet, built from this demo&apos;s data. Not part of the client
-            app.
+            Previews of three products LCT does not have yet, built from this demo&apos;s data. Not part of the client
+            app. The console and the board overlap deliberately — the board is the one screen an operator watches at
+            the kerb, and it is also a panel inside the console.
           </AppText>
         </>
       ) : null}
