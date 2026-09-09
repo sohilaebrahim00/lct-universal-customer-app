@@ -4,6 +4,7 @@ import { useFocusEffect } from 'expo-router';
 import { radius, space } from '../../../theme/ref';
 import { roleColor, roleTarget, roleText } from '../roleTheme';
 import { RoleShell } from '../RoleShell';
+import { ConsoleSearch } from './ConsoleSearch';
 import { useDemoStateSync } from '../../useDemoStateSync';
 import { type RoleRide, loadRides } from '../roleData';
 import {
@@ -186,6 +187,32 @@ export function AdminConsole() {
           );
         })}
       </ScrollView>
+
+      {/*
+        SEARCH, above the panels and below the nav.
+
+        One field for the whole console rather than one per section: a
+        dispatcher looking for a reference does not know which tab it is under,
+        which is the reason the client's own panel puts it in the header.
+        Rendered only once rides are loaded, so it never offers to search
+        nothing.
+      */}
+      {rides !== null ? (
+        <ConsoleSearch
+          rides={rides}
+          /*
+            Narrowed through NAV rather than cast. `setSection` takes a
+            SectionKey and the search hands back a string; `as SectionKey` would
+            compile and then silently do nothing if a result ever named a
+            section that does not exist. Looking the key up means an unknown
+            section is a no-op that cannot corrupt the tab state.
+          */
+          onOpenSection={(s) => {
+            const target = NAV.find((n) => n.key === s);
+            if (target) setSection(target.key);
+          }}
+        />
+      ) : null}
 
       {rides === null ? (
         <Text style={roleText.bodySoft}>Loading…</Text>

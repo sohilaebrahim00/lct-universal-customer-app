@@ -702,3 +702,76 @@ that can only catch this for twenty minutes a day is the same mistake in a
 different file.
 
 **Owner:** nobody. Closed.
+
+---
+
+## 11 · Google Maps on web — implemented, and what it needs to switch on
+
+`TrackingMap.web.tsx` was a designed placeholder. It is now a **real Google map**
+when a browser key is present, and the same placeholder when one is not.
+
+**No package was added.** The Maps JS API is a script tag
+(`src/components/maps/googleMapsLoader.ts`), and the web map reuses
+`MAP_STYLE_NIGHT` — the array both native maps already pass to `customMapStyle`
+— so this project has one map style rather than two that agree today.
+
+### The credential, and the restrictions it must carry
+
+| | |
+|---|---|
+| Variable | `EXPO_PUBLIC_GOOGLE_MAPS_API_KEY` (the name already in `src/lib/env.ts`) |
+| Where | Netlify → Site configuration → Environment variables, **and** a local `.env` for development |
+| Status here | **NOT SET.** The fallback is what renders in this workspace today |
+
+**Use a separate browser key.** Do not reuse an unrestricted mobile key: this one
+is visible in the bundle by design, and its security is entirely the Google Cloud
+restrictions on it.
+
+- **Application restriction: HTTP referrers.** `https://lctapp.netlify.app/*`,
+  any custom domain (e.g. `https://app.lctuniversal.com/*`), and
+  `http://localhost:5055/*` for local verification. Nothing wider.
+- **API restriction: Maps JavaScript API only.** The loader requests no
+  `libraries=`; Places geocoding is a separate server-side call in
+  `googlePlaces.ts` and does not use this key in the browser.
+- **No server-secret key in frontend code**, ever. This one is a browser key or
+  it is nothing.
+
+### What the map shows, and what it deliberately does not
+
+**Markers only — pickup, drop-off, chauffeur — and no route line.**
+`getRoute()` fetches a genuine Directions `overview_polyline`, but into the
+**booking draft**. `routePolyline` is not on `CreateBookingInput`, not on
+`Booking` and not on `Trip`, so by the time a customer is tracking a ride there
+is no route geometry to draw. Drawing a straight line between two points and
+presenting it as the drive would be a fabrication; the native map has always
+been markers-only for the same reason. **If `Trip` ever carries a polyline,
+`TrackingMap.web.tsx` is the one place it goes.**
+
+### Every failure degrades to the placeholder
+
+`unconfigured` (no key) · `auth-failed` (key rejected, or the referrer list does
+not include this domain — Google reports this through `gm_authFailure`, not a
+failed request, so it is trapped explicitly) · `load-failed` (blocked, offline,
+timeout at 12s) · no coordinates at all. Each states which, and the **real
+closing distance is still shown in every state where a chauffeur position
+exists**.
+
+**Not verified visually here**, because no key is configured in this workspace
+and `*.netlify.app` is unreachable from this network. What is verified: it
+typechecks, lints, builds, and the fallback path is the one exercised by every
+gate in this repository.
+
+---
+
+## 12 · Backend dependencies, restated after the 2026-09-09 pass
+
+| Feature | What is missing | Where it would connect |
+|---|---|---|
+| Route line on the tracking map | `route_polyline` on `Trip` or `Booking` | `TrackingMap.web.tsx` / `TrackingMap.tsx`, marker block |
+| Live chauffeur position | A live channel. `driver_current_lat/lng/updated_at` exist; nothing streams them (G-3) | The tracking screen's position source |
+| Passenger notifications | Per-passenger routing. Trip updates reach the account holder only | Stated in `PassengerSelector` rather than promised |
+| Add to calendar on **native** | `expo-file-system` + `expo-sharing`, or `expo-calendar` | `book/confirmed.tsx`; the `.ics` builder is platform-neutral and already written |
+| `cancelled_by` attribution | No column | Demo overlay only, same pattern as `arrived_at` |
+| Modify a booking | No endpoint; a time change is a NEW QUOTE by project rule | — |
+| Server-side console search | A query endpoint. Client-side is correct for one day of rides and would not be at scale | `ConsoleSearch.tsx` |
+| Chauffeur ↔ class attachment | No `chauffeur_class` field, so the assign list labels every chauffeur "class attachment unknown" rather than sorting by an invented one | `AdminPanels.tsx` assign modal |
