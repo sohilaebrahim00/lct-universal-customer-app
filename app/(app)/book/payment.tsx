@@ -257,6 +257,30 @@ export default function PaymentStep() {
             <ListRow title="Arrives approx." value={arrivesApprox} chevron={false} />
           ) : null}
           <ListRow title="Car" value={draft.vehicle?.name ?? '—'} chevron={false} divider={false} />
+          {/*
+            WHO IS TRAVELLING — shown only when it is not the account holder.
+
+            A booking for someone else must never be indistinguishable from one
+            for yourself on the screen where money is committed. When the
+            booking IS for yourself the row is omitted rather than filled with
+            your own name, which would be noise on every ordinary booking.
+
+            The phone is included when given, because it is what dispatch would
+            use to reach the passenger at the kerb — and it is the customer's
+            last chance to notice a typo in it.
+          */}
+          {draft.primaryPassengerName ? (
+            <ListRow
+              title="Passenger"
+              value={
+                draft.primaryPassengerPhone
+                  ? `${draft.primaryPassengerName} · ${draft.primaryPassengerPhone}`
+                  : draft.primaryPassengerName
+              }
+              chevron={false}
+              divider={false}
+            />
+          ) : null}
         </Card>
 
         {shownTotal !== null ? (

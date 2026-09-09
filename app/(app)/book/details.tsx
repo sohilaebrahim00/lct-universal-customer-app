@@ -10,10 +10,12 @@ import { Stepper } from '../../../src/components/ui/Stepper';
 import { TextField } from '../../../src/components/ui/TextField';
 import { AppText } from '../../../src/components/ui/Typography';
 import { DateTimeField } from '../../../src/components/booking/DateTimeField';
+import { PassengerSelector } from '../../../src/components/booking/PassengerSelector';
 import { space, theme } from '../../../src/theme';
 import { getRoute } from '../../../src/lib/googlePlaces';
 import { shouldOfferFlightNumber } from '../../../src/lib/airportDetection';
 import { useBookingFormStore } from '../../../src/store/bookingFormStore';
+import { useAuthStore } from '../../../src/store/authStore';
 
 const MIN_LEAD_TIME_MS = 60 * 60 * 1000;
 
@@ -40,6 +42,7 @@ export default function DetailsStep() {
   const router = useRouter();
   const draft = useBookingFormStore((s) => s.draft);
   const update = useBookingFormStore((s) => s.update);
+  const profile = useAuthStore((s) => s.profile);
 
   // Computed once, at mount — recomputing per render would silently push the
   // earliest bookable time later while the customer is still on this screen.
@@ -222,6 +225,24 @@ export default function DetailsStep() {
           style={styles.stepper}
         />
       ) : null}
+
+      {/*
+        WHO IS TRAVELLING — the step that decides the chauffeur's name sign.
+
+        It sits ABOVE the guest and luggage counts deliberately: "who is this
+        for" changes the meaning of everything under it, and a customer booking
+        for a colleague should meet that question before counting bags. The
+        component writes `primaryPassengerName`/`primaryPassengerPhone`, which
+        the payload has always carried and nothing has ever set.
+      */}
+      <PassengerSelector
+        accountHolderName={profile?.full_name ?? null}
+        passengerName={draft.primaryPassengerName}
+        passengerPhone={draft.primaryPassengerPhone}
+        onChange={(primaryPassengerName, primaryPassengerPhone) =>
+          update({ primaryPassengerName, primaryPassengerPhone })
+        }
+      />
 
       <Stepper
         label="Guests"

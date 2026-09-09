@@ -307,6 +307,28 @@ export async function handleDemoRequest(
         scheduled_at: String(input.scheduledAt ?? template.scheduled_at),
         passenger_count: Number(input.passengerCount ?? 1),
         luggage_count: Number(input.luggageCount ?? 0),
+        /*
+         * THE FIELDS THE TEMPLATE WAS SILENTLY OVERWRITING.
+         *
+         * This object spreads `template` — the first existing booking — to
+         * inherit the shape. That also inherited its PASSENGER, its special
+         * requests and its flight number, and none of the four was read from
+         * the caller. So a customer who booked for a named guest got the
+         * template's passenger stored instead, and the chauffeur's name sign
+         * showed the wrong person. Special requests and the flight number were
+         * dropped the same way.
+         *
+         * Invisible until the passenger selector shipped, because nothing had
+         * ever written `primaryPassengerName` for it to lose.
+         *
+         * `?? null` rather than `?? template.x`: absent means absent. A booking
+         * with no guest is for the account holder, and inheriting a stranger's
+         * name would be worse than an empty field.
+         */
+        primary_passenger_name: (input.primaryPassengerName as string | undefined) ?? null,
+        primary_passenger_phone: (input.primaryPassengerPhone as string | undefined) ?? null,
+        special_requests: (input.specialRequests as string | undefined) ?? null,
+        flight_number: (input.flightNumber as string | undefined) ?? null,
         status: 'confirmed',
       };
       // Fares come from the caller's own computed breakdown when present, so the

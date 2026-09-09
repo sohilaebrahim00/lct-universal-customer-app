@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Pressable, ScrollView, Share, StyleSheet, View } from 'react-native';
+import { Platform, Pressable, ScrollView, Share, StyleSheet, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { hapticSuccess } from '../../../src/lib/haptics';
 import Animated, {
@@ -20,6 +20,7 @@ import { bookingsApi } from '../../../src/api/bookings';
 import type { Booking } from '../../../src/types/api';
 import { formatCurrency, formatDateTime } from '../../../src/lib/format';
 import { useMotion } from '../../../src/lib/useMotion';
+import { downloadIcs } from '../../../src/lib/calendarEvent';
 import { cancellationSentenceFor, complimentaryWaitSentenceFor } from '../../../src/config/servicePolicy';
 
 /**
@@ -182,6 +183,22 @@ export default function ConfirmedStep() {
                 {route}
               </AppText>
             ) : null}
+            {/*
+              THE PASSENGER, when it is not the person who booked.
+
+              This screen tells a customer what they have just committed to, and
+              "for someone else" is part of that. It also closes the loop on the
+              name sign: the name shown here is the name the chauffeur will hold
+              up, so a typo is visible at the moment it can still be fixed by
+              rebooking rather than discovered at a kerb.
+
+              Omitted entirely for a booking the account holder is taking.
+            */}
+            {booking?.primary_passenger_name ? (
+              <AppText variant="caption" color={theme.content.secondary} style={styles.passenger} numberOfLines={2}>
+                {`Passenger: ${booking.primary_passenger_name}`}
+              </AppText>
+            ) : null}
           </View>
 
           {/* The perforated ticket edge. */}
@@ -215,22 +232,43 @@ export default function ConfirmedStep() {
         ) : null}
 
         <View style={styles.actionsRow}>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Add to calendar"
-            onPress={() => {
-              // Calendar write needs expo-calendar and a permission prompt —
-              // neither is installed, and adding a dependency is not in scope.
-              // The control is present and inert rather than absent, so the
-              // shape of the screen is right when it is wired.
-            }}
-            style={styles.secondaryAction}
-          >
-            <Calendar size={iconSize.sm} color={theme.content.accentSoft} strokeWidth={iconStroke.interactive} />
-            <AppText variant="caption" color={theme.content.accentSoft} style={styles.secondaryLabel}>
-              Add to calendar
-            </AppText>
-          </Pressable>
+          {/*
+            ADD TO CALENDAR — real on web, absent on native.
+
+            This was a present, labelled, focusable control whose `onPress` was
+            an empty function. A customer pressed it, nothing happened, and the
+            reasonable conclusion was that the app is broken — the same shape as
+            a failure rendering as silence, which this project removes wherever
+            it finds it.
+
+            An .ics file needs no package and no permission (§14), so on web it
+            now downloads one. Native has no `expo-file-system` to write to and
+            no `expo-calendar` to write into, and adding a dependency is a
+            decision to raise rather than take — so the control is NOT RENDERED
+            there. A missing button is honest; an inert one is not.
+          */}
+          {Platform.OS === 'web' ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Add this ride to your calendar"
+              onPress={() =>
+                downloadIcs({
+                  scheduledAt: booking?.scheduled_at ?? draft.scheduledAt?.toISOString() ?? new Date().toISOString(),
+                  pickupAddress: booking?.pickup_address ?? draft.pickupAddress ?? null,
+                  dropoffAddress: booking?.dropoff_address ?? draft.dropoffAddress ?? null,
+                  reservationCode,
+                  vehicleName: draft.vehicle?.name ?? null,
+                  passengerName: booking?.primary_passenger_name ?? null,
+                })
+              }
+              style={styles.secondaryAction}
+            >
+              <Calendar size={iconSize.sm} color={theme.content.accentSoft} strokeWidth={iconStroke.interactive} />
+              <AppText variant="caption" color={theme.content.accentSoft} style={styles.secondaryLabel}>
+                Add to calendar
+              </AppText>
+            </Pressable>
+          ) : null}
 
           <Pressable
             accessibilityRole="button"
@@ -287,6 +325,7 @@ const styles = StyleSheet.create({
 
   reservation: { marginBottom: space.mdl },
   reservationTop: { padding: space.md },
+  passenger: { marginTop: 4 },
   codeRow: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: space.smd },
   when: { marginBottom: space.xs },
   perforation: { borderBottomWidth: 1, borderStyle: 'dashed', borderBottomColor: theme.border.hairlineStrong },
