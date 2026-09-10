@@ -108,7 +108,8 @@ describe('the ride .ics', () => {
   });
 
   it('produces a recognisable filename', () => {
-    expect(icsFileName(RIDE)).toBe('lct-lct-4f2a19.ics');
+    // Not 'lct-lct-…' — the code already carries the prefix.
+    expect(icsFileName(RIDE)).toBe('lct-4f2a19.ics');
     expect(icsFileName({ ...RIDE, reservationCode: null })).toBe('lct-ride.ics');
   });
 });

@@ -121,9 +121,17 @@ export function buildRideIcs(event: RideCalendarEvent, now: Date = new Date()): 
   return lines.map(fold).join('\r\n');
 }
 
-/** A filename a person can recognise in a downloads folder. */
+/**
+ * A filename a person can recognise in a downloads folder.
+ *
+ * The reservation code already begins with `LCT-`, so prefixing it blindly gave
+ * `lct-lct-bx7shc.ics` — caught by downloading a real one and reading the
+ * filename, not by reading the function. The prefix is added only when the code
+ * does not already carry it, which keeps a code-less ride at `lct-ride.ics`.
+ */
 export function icsFileName(event: RideCalendarEvent): string {
-  return `lct-${(event.reservationCode ?? 'ride').toLowerCase().replace(/[^a-z0-9-]/g, '')}.ics`;
+  const code = (event.reservationCode ?? 'ride').toLowerCase().replace(/[^a-z0-9-]/g, '');
+  return code.startsWith('lct-') ? `${code}.ics` : `lct-${code}.ics`;
 }
 
 /**
