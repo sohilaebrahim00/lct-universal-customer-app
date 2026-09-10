@@ -477,3 +477,63 @@ What stops it being a task is not difficulty: it makes the console a **second
 writer**, and every write is a place the demo can diverge from what a customer
 sees. That is a scope decision.
 **Owner:** the business.
+
+---
+
+## 15 · The seven-class fleet — four classes need a rate card, not an image
+
+**2026-09-10.** The client supplied seven clean vehicle images and asked for
+seven customer-facing classes. **Three shipped. Four did not, and the reason is
+pricing, not artwork.**
+
+### What shipped
+
+| class | ID | image | why it could ship |
+|---|---|---|---|
+| Executive SUV | `suv` | clean Cadillac Escalade | has a rate card: $85 base / $3.75 mi / $120 hr |
+| Executive Sprinter | `sprinter` | LCT-liveried Sprinter | has a rate card |
+| Coach | `coach` | LCT-liveried MCI J4500 | image only — see below |
+| Executive Sedan | `executive_sedan` | unchanged | the client's own chauffeur photograph |
+
+### What did not, and exactly what each needs
+
+| requested class | blocker |
+|---|---|
+| **Luxury SUV** | `/rates` publishes **From $130** — a *starting label*, not a rate card. Needs **base rate, per-mile rate, per-hour rate** |
+| **First Class** | published **$150/hour**. Needs the same three figures |
+| **Mini Bus — 27 pax** | **not published anywhere**, on either page. Needs a name, a price model and capacities |
+| **Mini Coach / Motor Coach split** | `coach` has an image and a `VehicleType` but **no vehicle row at all** — no rates. Splitting one unpriced class into two priced ones needs six figures |
+
+**A starting label is not a rate card.** The fare engine multiplies a base, a
+per-mile and a per-hour figure; "From $130" cannot be turned into those three
+without inventing two of them, and the result would price real bookings.
+
+Their images are preserved unreferenced in `design/fleet-supplied-2026-09-10/`.
+**One line per class with the three rates and this becomes an afternoon.**
+
+### Three conflicts found while mapping, none resolved here
+
+1. **Which SUV is which.** The client's message maps **Premium SUV → Escalade,
+   Luxury SUV → Suburban**. Their own operations panel, read 2026-08-26, maps
+   them **the other way** — its Luxury SUV is "Cadillac Escalade or equivalent",
+   its Premium SUV is "Suburban or equivalent". Both cannot be true. The app has
+   not adopted "Premium SUV", because adopting it asserts one source over the
+   other. `tests/publishedNameConflicts.test.ts` records this.
+2. **Sprinter capacity.** The client says **13**; `/rates` said **14** on
+   2026-08-26. The client's figure is applied — they own the vehicle and it is
+   the newer statement — and the contradiction is recorded in the row itself.
+   Luggage moved 14 → **10**, which `/rates` publishes and which corrects a
+   value that was passenger capacity copied into the luggage field.
+3. **Mini Coach capacity.** The client says **40**; `/rates` said **39**. Moot
+   until the class exists, but it will need settling then.
+
+### Two supplied images have garbled lettering
+
+Neither is in the shipped set, but both should be regenerated before use:
+
+- **Suburban** — the door badge reads **"SUBURBIAY"**.
+- **Freightliner mini-coach** — the tagline reads **"EXECUTIVE TRANSPOR T5"**,
+  a misspelling **inside LCT's own logo lockup**. This is the more serious of
+  the two: it would put a misspelt brand mark on a customer-facing card.
+
+**Owner:** the business. The rates are the blocker; everything else is ready.

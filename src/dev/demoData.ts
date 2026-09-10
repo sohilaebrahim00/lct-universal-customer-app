@@ -104,10 +104,26 @@ export const DEMO_VEHICLES: Vehicle[] = [
   {
     id: 'demo-vehicle-sprinter',
     type: 'sprinter',
-    name: 'Sprinter Van',
-    description: 'Mercedes-Benz Sprinter — up to 14 passengers, corporate groups and event transport.',
-    capacity_passengers: 14,
-    capacity_luggage: 14,
+    /*
+     * NAME: both published pages agree on "Executive Sprinter" — /fleet and
+     * /rates, read 2026-08-26 — and the client's 2026-09-10 fleet list says the
+     * same. "Sprinter Van" was a third name nothing published. Renamed because
+     * all three sources now agree, which is the only condition under which a
+     * customer-facing class name changes here.
+     *
+     * PASSENGERS 14 -> 13: the client's own fleet list, supplied 2026-09-10.
+     * **This CONTRADICTS the published /rates page, which said 14 on
+     * 2026-08-26** — recorded rather than reconciled silently. The client owns
+     * the vehicle and the instruction is the newer of the two.
+     *
+     * LUGGAGE 14 -> 10: /rates publishes "Sprinter 14/10". The row carried 14,
+     * which is passenger capacity copied into the luggage field — the exact
+     * inference this project forbids, and the site contradicts it outright.
+     */
+    name: 'Executive Sprinter',
+    description: 'Mercedes-Benz Sprinter — up to 13 passengers, corporate groups and event transport.',
+    capacity_passengers: 13,
+    capacity_luggage: 10,
     base_rate: '150.00',
     per_mile_rate: '4.50',
     per_hour_rate: '200.00',

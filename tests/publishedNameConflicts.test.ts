@@ -210,7 +210,42 @@ describe('the two names for the suv class', () => {
     expect(suvRow).toContain('capacity_passengers: 6');
     expect(suvRow).toContain('capacity_luggage: 6');
 
+    /*
+     * The asset was `luxury-suv.jpg` — a studio render — and is now
+     * `premium-suv-escalade.jpg`, the client's clean Escalade supplied
+     * 2026-09-10. The assertion is on the VEHICLE, which is what this test is
+     * about; the filename changed and the Escalade did not.
+     */
     const images = readFileSync('src/lib/vehicleImages.ts', 'utf8');
-    expect(images).toContain('luxury-suv.jpg');
+    expect(images).toMatch(/suv: require\([^)]*escalade[^)]*\)/i);
+  });
+
+  /**
+   * ── A CONFLICT THE 2026-09-10 FLEET LIST INTRODUCED ───────────────────────
+   *
+   * The client's message maps **Premium SUV → Escalade** and **Luxury SUV →
+   * Suburban**. Their own operations panel, read 2026-08-26 and recorded in the
+   * test above, maps them **the other way**: Luxury SUV is "Cadillac Escalade
+   * or equivalent", Premium SUV is "Suburban or equivalent".
+   *
+   * Both cannot be true, and this app cannot settle it — one is a message and
+   * the other is their live panel. So nothing here picks a side: `suv` keeps
+   * its published name and its row keeps the Escalade its own description
+   * names. This test exists so the contradiction cannot be quietly forgotten
+   * the next time somebody reads only one of the two sources.
+   */
+  it('records that the client message and the operations panel disagree on which SUV is which', () => {
+    const demoData = readFileSync('src/dev/demoData.ts', 'utf8');
+    const suvRow = (demoData.split("id: 'demo-vehicle-suv'")[1] ?? '').split('},')[0] ?? '';
+
+    // The row describes an Escalade. Whatever the class ends up being CALLED,
+    // the image must be the vehicle the row names — that much is not in dispute.
+    expect(suvRow).toContain('Cadillac Escalade or equivalent');
+
+    // And the app has not adopted "Premium SUV", because adopting it would
+    // assert the client's mapping over the panel's without an answer.
+    const images = readFileSync('src/lib/vehicleImages.ts', 'utf8');
+    const displayBlock = images.split('VEHICLE_DISPLAY_NAME')[1] ?? '';
+    expect(displayBlock).not.toContain('Premium SUV');
   });
 });

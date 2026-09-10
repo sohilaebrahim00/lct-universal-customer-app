@@ -36,28 +36,49 @@ import type { VehicleType } from '../types/api';
  * Neither carries third-party branding. The Sprinter's only lettering is the
  * coachbuilder's "Legend" badging; the sedan carries none.
  *
- * ── Why the SUV is HELD, and it is one class rather than the fleet ────────
- * The client-supplied Escalade photographs — both of them — visibly carry
- * **another company's branding**: a LuxLane Transports front plate with phone
- * number and web address, and a rear-window decal with a **scannable QR code**.
+ * ── The SUV was HELD, and the hold is now RESOLVED — 2026-09-10 ───────────
+ * The website's Escalade photographs both carried another operator's branding:
+ * a front plate with a phone number and web address, and a rear-window decal
+ * with a **scannable QR code**. A logo is a claim; a QR code is a working link,
+ * and it would have sat on the screen where a customer chooses what to pay for.
+ * So the class kept a studio render and the question went to the business.
  *
- * A logo is a claim; a QR code is a working link, and this one would sit on the
- * screen where a customer chooses what to pay for. Whatever LuxLane is —
- * possibly the same business under another name — routing a customer out of the
- * checkout is a decision to take deliberately rather than by default. So `suv`
- * keeps the render it has, nothing regresses, and the open question is now one
- * class. `OPEN_QUESTIONS.md` #13.
+ * **It was answered by supply rather than by argument.** On 2026-09-10 the
+ * client sent clean imagery — an Escalade, a Suburban, an S-Class, and four
+ * LCT-liveried group vehicles, none carrying a third party's marks and none
+ * carrying a QR code. `suv` therefore moves to the clean Escalade, which is
+ * also the vehicle its own row has always named.
+ *
+ * ── Four of the seven supplied images are NOT here, deliberately ──────────
+ * The same message asked for seven customer-facing classes. Four of them —
+ * Luxury SUV, First Class, Mini Bus (27) and a Motor Coach split from Mini
+ * Coach — **have no rate card**. `/rates` publishes "From $130" and
+ * "$150/hour" as STARTING LABELS; the fare engine needs a base rate, a
+ * per-mile rate and a per-hour rate, and the Mini Bus has nothing published at
+ * all. Creating those classes would mean typing three numbers per class and
+ * quoting real bookings from them.
+ *
+ * Their images are preserved, unreferenced, in
+ * `design/fleet-supplied-2026-09-10/` so nothing is lost while the rates are
+ * asked for. They are deliberately NOT in `assets/vehicles/`, where
+ * `tests/vehicleImages.test.ts` forbids an unreferenced file — an orphan
+ * beside its siblings is an invitation to wire it up by accident.
  *
  * Metro requires static string literals for require(), so this is a literal map
  * rather than a computed path.
  */
 export const VEHICLE_IMAGES: Record<string, number> = {
-  // Real photographs, client-supplied. See the note above for provenance.
+  // The client's own chauffeur-and-S-Class photograph. Kept: the studio
+  // Mercedes supplied on 2026-09-10 is mapped to FIRST CLASS, a class that
+  // does not exist yet — see the fleet note below.
   executive_sedan: require('../../assets/vehicles/executive-sedan-chauffeur.jpg'),
-  sprinter: require('../../assets/vehicles/sprinter-passenger.jpg'),
-  // STILL THE RENDER, and deliberately. See "why the SUV is held" below.
-  suv: require('../../assets/vehicles/luxury-suv.jpg'),
-  coach: require('../../assets/vehicles/coach.jpg'),
+  // Client-supplied 2026-09-10. Replaces the studio render that was held
+  // pending the LuxLane question — that question is now resolved by supply.
+  suv: require('../../assets/vehicles/premium-suv-escalade.jpg'),
+  // Client-supplied 2026-09-10, LCT-liveried. Replaces the DFW-lot photograph.
+  sprinter: require('../../assets/vehicles/executive-sprinter.jpg'),
+  // Client-supplied 2026-09-10, MCI J4500 in LCT livery.
+  coach: require('../../assets/vehicles/motor-coach-mci.jpg'),
 };
 
 /**
@@ -99,6 +120,7 @@ export const VEHICLE_IMAGES: Record<string, number> = {
 export const VEHICLE_DISPLAY_NAME: Record<VehicleType, string> = {
   executive_sedan: 'Executive Sedan',
   suv: 'Executive SUV',
-  sprinter: 'Mercedes Sprinter',
+  // Both published pages and the client's 2026-09-10 list agree on this name.
+  sprinter: 'Executive Sprinter',
   coach: 'Coach',
 };
