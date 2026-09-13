@@ -1,153 +1,224 @@
+import { useRef, useState } from 'react';
 import { useRouter } from 'expo-router';
-import { Image, Pressable, StyleSheet, View } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import {
+  Dimensions,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  View,
+  type LayoutChangeEvent,
+  type NativeScrollEvent,
+  type NativeSyntheticEvent,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from '../src/components/ui/Button';
+import { AppImage } from '../src/components/ui/AppImage';
 import { AppText } from '../src/components/ui/Typography';
-import { space, theme } from '../src/theme';
+import { gutter, radius, space, theme } from '../src/theme';
 import { markOnboardingSeen } from '../src/lib/onboarding';
+import { useAuthStore } from '../src/store/authStore';
 
 /**
- * ONBOARDING — one slide, per artboard 2a.
+ * FIRST RUN — the intro, and the one screen a client sees before anything else.
  *
- * ── Why the copy changed ────────────────────────────────────────────────────
- * The previous version led with "Book in Seconds" and "Executive
- * Transportation, On Demand". The app enforces a one-hour minimum lead time and
- * on-demand is unconfirmed with dispatch (`servicePolicy.onDemandEnabled` is
- * false), so both lines promised something the system actively refuses. The
- * first screen a customer sees is the worst place in the product to make a
- * promise that the second screen breaks.
+ * ── Why this had never been seen ──────────────────────────────────────────
+ * It existed as a single slide and `app/index.tsx` checked `status ===
+ * 'signed-in'` before it checked whether onboarding was needed. A demo build
+ * auto-signs-in on launch, so the redirect fired first and the screen was
+ * unreachable in the build that ships. The ordering is fixed there; this file
+ * is the intro it now reaches.
  *
- * Replaced with the company's own language: "Reserve executive transportation
- * across Dallas–Fort Worth and Grapevine, Texas." Reserve, not book-in-seconds —
- * which is what LCT actually does, and what the flow actually supports.
+ * ── What the third slide does NOT say ─────────────────────────────────────
+ * "Stay informed throughout your ride", not "track your chauffeur live".
+ * There is no live driver location: `Trip.driver_current_lat/lng` exist in the
+ * contract and no backend writes them, and the web build has no map at all.
+ * A promise of live tracking on the first screen a customer reads would be
+ * contradicted three taps later, which is the one thing an intro must not do.
  *
- * ── Why one slide ───────────────────────────────────────────────────────────
- * Three slides ran before the customer had any reason to care. The other two
- * are earned rather than asserted: the fleet lives in the Fleet screen, and
- * tracking is demonstrated from Trips. Value goes behind one Continue.
- *
- * The logo also appears here at the same size it appears everywhere else, which
- * ends the three-stage splash reveal (native splash → loading screen → welcome,
- * each at a different size).
+ * ── Persistence is device-local, and only claims to be ────────────────────
+ * `markOnboardingSeen()` writes one AsyncStorage key. It is not synced to an
+ * account and nothing here suggests it is: the same person on a second device
+ * sees the intro again, which is correct rather than a bug.
  */
+
+const SLIDES = [
+  {
+    key: 'confidence',
+    image: require('../assets/onboarding/ride.jpg'),
+    headline: 'Ride with confidence.',
+    copy: 'Professional transportation for business, airport and private travel.',
+  },
+  {
+    key: 'booking',
+    image: require('../assets/onboarding/book.jpg'),
+    headline: 'Book in just a few taps.',
+    copy: 'Choose your ride, schedule your pickup and manage your journey in one place.',
+  },
+  {
+    key: 'informed',
+    image: require('../assets/onboarding/track.jpg'),
+    headline: 'Stay informed throughout your ride.',
+    // Deliberately "when available" — see the note above.
+    copy: 'View your chauffeur, trip status and journey details when available.',
+  },
+  {
+    key: 'ready',
+    image: require('../assets/home/hero.jpg'),
+    headline: 'Ready when you are.',
+    copy: 'Sign in to keep your trips and saved places, or take a look around first.',
+  },
+] as const;
+
 export default function OnboardingScreen() {
   const router = useRouter();
-  const insets = useSafeAreaInsets();
+  const continueAsGuest = useAuthStore((s) => s.continueAsGuest);
+  const scroller = useRef<ScrollView>(null);
+  const [index, setIndex] = useState(0);
+  /*
+   * Measured rather than assumed. `Dimensions.get('window').width` is the right
+   * starting value but wrong after a web resize or a tablet rotation, and a
+   * paging ScrollView whose page width disagrees with its container settles
+   * between slides.
+   */
+  const [width, setWidth] = useState(() => Dimensions.get('window').width);
 
-  async function handleContinue() {
-    await markOnboardingSeen();
-    router.replace('/welcome');
+  const last = index === SLIDES.length - 1;
+
+  function onLayout(e: LayoutChangeEvent) {
+    const w = e.nativeEvent.layout.width;
+    if (w > 0 && w !== width) setWidth(w);
   }
 
-  async function handleSignIn() {
+  function onScroll(e: NativeSyntheticEvent<NativeScrollEvent>) {
+    const next = Math.round(e.nativeEvent.contentOffset.x / Math.max(width, 1));
+    if (next !== index) setIndex(next);
+  }
+
+  function goTo(i: number) {
+    scroller.current?.scrollTo({ x: i * width, animated: true });
+    setIndex(i);
+  }
+
+  /** Every exit from this screen records that it was seen. */
+  async function leave(to: '/welcome' | '/(auth)/login' | 'guest') {
     await markOnboardingSeen();
-    router.replace('/(auth)/login');
+    if (to === 'guest') {
+      await continueAsGuest();
+      router.replace('/(app)');
+      return;
+    }
+    router.replace(to);
   }
 
   return (
     <View style={styles.screen}>
-      {/*
-        The interior shot with the chauffeur — it says what the service is.
-        The treatment is the design's: saturation pulled back and brightness
-        down, so the photograph reads as a ground for type rather than
-        competing with it.
-      */}
-      <Image
-        source={require('../assets/onboarding/ride.jpg')}
-        style={StyleSheet.absoluteFill}
-        resizeMode="cover"
-        accessibilityIgnoresInvertColors
-      />
-      <View style={styles.desaturate} pointerEvents="none" />
-
-      {/*
-        React Native has no CSS filter, so `saturate(.75) brightness(.62)` is
-        approximated: a low-opacity neutral wash flattens saturation, and the
-        vertical scrim below carries the brightness reduction. Flagged as an
-        approximation rather than presented as the filter.
-      */}
-      <LinearGradient
-        colors={['rgba(2,2,1,0.55)', 'rgba(2,2,1,0.15)', 'rgba(2,2,1,0.92)', theme.background.primary]}
-        locations={[0, 0.34, 0.78, 1]}
-        style={StyleSheet.absoluteFill}
-        pointerEvents="none"
-      />
-
-      <View style={[styles.content, { paddingTop: insets.top + space.smd, paddingBottom: insets.bottom + space.xl }]}>
-        <Image
-          source={require('../assets/brand/lct-logo.png')}
-          style={styles.logo}
-          resizeMode="contain"
-          accessibilityLabel="LCT Universal Executive Transports"
-        />
-
-        <View style={styles.copy}>
-          <AppText variant="eyebrow" style={styles.eyebrow}>
-            Est. Dallas–Fort Worth
-          </AppText>
-
-          <AppText variant="display" accessibilityRole="header" style={styles.headline}>
-            A car, a chauffeur,{'\n'}and nothing else{'\n'}to think about.
-          </AppText>
-
-          <AppText variant="bodyLead" style={styles.body}>
-            Reserve executive transportation across Dallas–Fort Worth and Grapevine, Texas.
-          </AppText>
-
-          <Button label="Continue" haptic onPress={() => void handleContinue()} />
-
+      <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
+        {/*
+          SKIP is always reachable, on every slide, and is a real control with
+          a label rather than a bare chevron — a first-run screen a customer
+          cannot leave is the fastest way to lose one.
+        */}
+        <View style={styles.skipRow}>
           <Pressable
-            onPress={() => void handleSignIn()}
+            onPress={() => void leave('/welcome')}
             accessibilityRole="button"
-            accessibilityLabel="Already a client? Sign in"
-            style={styles.signIn}
+            accessibilityLabel="Skip the introduction"
+            style={({ pressed }) => [styles.skip, pressed ? styles.pressed : null]}
           >
-            <AppText variant="caption" center>
-              Already a client?{' '}
-              <AppText variant="caption" color={theme.content.accent}>
-                Sign in
-              </AppText>
+            <AppText variant="caption" color={theme.content.secondary}>
+              Skip
             </AppText>
           </Pressable>
         </View>
-      </View>
+
+        <ScrollView
+          ref={scroller}
+          horizontal
+          pagingEnabled
+          showsHorizontalScrollIndicator={false}
+          onScroll={onScroll}
+          scrollEventThrottle={16}
+          onLayout={onLayout}
+          style={styles.pager}
+        >
+          {SLIDES.map((slide, i) => (
+            <View
+              key={slide.key}
+              style={[styles.slide, { width }]}
+              accessible
+              accessibilityLabel={`${slide.headline} ${slide.copy}. Slide ${i + 1} of ${SLIDES.length}.`}
+            >
+              {/*
+                `contentFit="cover"` inside a reserved box: the image fills its
+                frame at any width without the vehicle being stretched, and the
+                box is reserved so nothing below it moves when the photo
+                decodes.
+              */}
+              <AppImage source={slide.image} style={styles.image} contentFit="cover" aspectRatio={4 / 5} />
+              <View style={styles.copyBlock}>
+                <AppText variant="display" style={styles.headline}>
+                  {slide.headline}
+                </AppText>
+                <AppText variant="bodyMuted" style={styles.copy}>
+                  {slide.copy}
+                </AppText>
+              </View>
+            </View>
+          ))}
+        </ScrollView>
+
+        {/*
+          THE DOTS ARE NOT THE ONLY WAY THROUGH.
+          Each is a real 44px control with its own label, and the primary button
+          advances as well — so the carousel is usable by keyboard on web and by
+          anyone who cannot swipe.
+        */}
+        <View style={styles.dots} accessibilityRole="tablist">
+          {SLIDES.map((slide, i) => (
+            <Pressable
+              key={slide.key}
+              onPress={() => goTo(i)}
+              accessibilityRole="tab"
+              accessibilityState={{ selected: i === index }}
+              accessibilityLabel={`Go to slide ${i + 1} of ${SLIDES.length}`}
+              style={styles.dotHit}
+            >
+              <View style={[styles.dot, i === index ? styles.dotActive : null]} />
+            </Pressable>
+          ))}
+        </View>
+
+        <View style={styles.actions}>
+          {last ? (
+            <>
+              <Button label="Sign In" onPress={() => void leave('/(auth)/login')} haptic />
+              <Button label="Continue as Guest" variant="secondary" onPress={() => void leave('guest')} />
+            </>
+          ) : (
+            <Button label="Continue" onPress={() => goTo(index + 1)} haptic />
+          )}
+        </View>
+      </SafeAreaView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  /*
-   * `overflow: 'hidden'` is load-bearing on web, not tidiness.
-   *
-   * `ride.jpg` is 1400×2535. React Native Web renders `<Image>` as an element
-   * that keeps the source's intrinsic width, and every ancestor here computes
-   * `overflow-x: visible`, so the photograph leaked past its absolutely
-   * positioned box and set the DOCUMENT's scrollWidth to 1400 against a 390
-   * viewport. `body` clips, so there was no scrollbar to notice — but
-   * `window.scrollTo(500, 0)` moved, which on a phone is the first screen a new
-   * customer sees sliding sideways under their thumb.
-   *
-   * Native is unaffected: `absoluteFill` genuinely constrains there. This is a
-   * web-only leak, which is why nothing caught it until the reflow gate was
-   * pointed at the right URL.
-   *
-   * ── Why only this screen ────────────────────────────────────────────────
-   * Every other full-bleed photograph goes through `AppImage`, whose frame
-   * already sets `overflow: 'hidden'` — so `welcome.tsx`, on the same
-   * `absoluteFill` pattern with the same kind of asset, never leaked. This is
-   * the last raw `<Image>` used as a background, and it was therefore the only
-   * one exposed. That is an argument for the wrapper existing, not for hunting
-   * the next instance by hand.
-   */
-  screen: { flex: 1, backgroundColor: theme.background.primary, overflow: 'hidden' },
-  /** Stands in for `saturate(.75)`; RN has no filter primitive. */
-  desaturate: { position: 'absolute', top: 0, bottom: 0, left: 0, right: 0, backgroundColor: 'rgba(28,26,24,0.22)' },
-  content: { flex: 1, paddingHorizontal: 26, justifyContent: 'space-between' },
-  logo: { width: 104, height: 70 },
-  copy: { paddingBottom: space.smd },
-  eyebrow: { marginBottom: 14 },
-  headline: { marginBottom: space.smd },
-  body: { marginBottom: 26, maxWidth: 300 },
-  signIn: { minHeight: 44, alignItems: 'center', justifyContent: 'center', marginTop: space.smd },
+  screen: { flex: 1, backgroundColor: theme.background.primary },
+  safe: { flex: 1 },
+  skipRow: { flexDirection: 'row', justifyContent: 'flex-end', paddingHorizontal: gutter },
+  /* 44 high and 44 wide: a real target, not a word in a corner. */
+  skip: { minHeight: 44, minWidth: 44, alignItems: 'flex-end', justifyContent: 'center' },
+  pressed: { opacity: 0.7 },
+  pager: { flex: 1 },
+  slide: { paddingHorizontal: gutter, justifyContent: 'center' },
+  image: { width: '100%', borderRadius: radius.lg, overflow: 'hidden' },
+  copyBlock: { marginTop: space.xl },
+  headline: { marginBottom: space.sm },
+  copy: { maxWidth: 520 },
+  dots: { flexDirection: 'row', justifyContent: 'center', gap: space.xs, paddingVertical: space.sm },
+  dotHit: { minHeight: 44, minWidth: 44, alignItems: 'center', justifyContent: 'center' },
+  dot: { width: 8, height: 8, borderRadius: radius.full, backgroundColor: theme.background.skeleton },
+  dotActive: { backgroundColor: theme.content.accent, width: 22 },
+  actions: { paddingHorizontal: gutter, paddingBottom: space.md, gap: space.sm },
 });

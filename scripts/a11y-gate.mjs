@@ -67,6 +67,29 @@ function rp() {
 }
 const { chromium } = createRequire(import.meta.url)(rp());
 
+/*
+ * ── EVERY GATE MEASURES THE RETURNING-USER APP ────────────────────────────
+ *
+ * First-run onboarding now comes BEFORE demo auto-sign-in, so a cold browser
+ * context lands on /onboarding rather than the app. Every gate opens a fresh
+ * context, so without this each one measured the intro instead of the screen
+ * it names — the a11y gate correctly reported `/` as redirected and dropped it
+ * from coverage, which is the truth and also a loss.
+ *
+ * So the gates declare themselves returning users. Onboarding is not left
+ * untested: `scripts/onboarding-walk.mjs` covers the first run explicitly, in
+ * a context that deliberately does NOT set this.
+ */
+async function markOnboardingSeen(ctx) {
+  await ctx.addInitScript(() => {
+    try {
+      window.localStorage.setItem('lct-universal:onboarding-seen', 'true');
+    } catch {
+      /* private mode or blocked storage — the gate still runs, it just sees the intro */
+    }
+  });
+}
+
 const BASE = 'http://localhost:5055';
 
 /**
@@ -278,6 +301,7 @@ async function runViewport(vp) {
     deviceScaleFactor: 2,
     colorScheme: 'dark',
   });
+  await markOnboardingSeen(ctx);
   const page = await ctx.newPage();
   let measured = 0;
   let offscreen = 0;

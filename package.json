@@ -67,7 +67,7 @@
     "typecheck": "tsc --noEmit",
     "lint": "eslint app src scripts",
     "test": "jest",
-    "export:web": "expo export --platform web --clear && node scripts/verify-build-mode.mjs dist && node scripts/verify-assets.mjs dist && node scripts/verify-maps-keys.mjs web",
+    "export:web": "expo export --platform web --clear && node scripts/verify-build-mode.mjs dist && node scripts/verify-assets.mjs dist && node scripts/verify-no-private-data.mjs dist && node scripts/verify-maps-keys.mjs web",
     "export:ios": "node scripts/verify-maps-keys.mjs ios && expo export --platform ios --clear",
     "build:dev": "node scripts/verify-maps-keys.mjs ios,android && eas build --profile development",
     "verify:build-mode": "node scripts/verify-build-mode.mjs",
@@ -78,7 +78,9 @@
     "verify:cancel": "node scripts/cancel-walk.mjs",
     "verify:booking": "node scripts/booking-walk.mjs",
     "verify:assets": "node scripts/verify-assets.mjs dist",
-    "verify:reachable": "node scripts/verify-reachable.mjs"
+    "verify:reachable": "node scripts/verify-reachable.mjs",
+    "verify:privacy": "node scripts/verify-no-private-data.mjs dist",
+    "verify:onboarding": "node scripts/onboarding-walk.mjs"
   },
   "jest": {
     "preset": "ts-jest",

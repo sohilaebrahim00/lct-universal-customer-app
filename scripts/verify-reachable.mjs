@@ -57,6 +57,29 @@ function rp() {
 }
 const { chromium } = createRequire(import.meta.url)(rp());
 
+/*
+ * ── EVERY GATE MEASURES THE RETURNING-USER APP ────────────────────────────
+ *
+ * First-run onboarding now comes BEFORE demo auto-sign-in, so a cold browser
+ * context lands on /onboarding rather than the app. Every gate opens a fresh
+ * context, so without this each one measured the intro instead of the screen
+ * it names — the a11y gate correctly reported `/` as redirected and dropped it
+ * from coverage, which is the truth and also a loss.
+ *
+ * So the gates declare themselves returning users. Onboarding is not left
+ * untested: `scripts/onboarding-walk.mjs` covers the first run explicitly, in
+ * a context that deliberately does NOT set this.
+ */
+async function markOnboardingSeen(ctx) {
+  await ctx.addInitScript(() => {
+    try {
+      window.localStorage.setItem('lct-universal:onboarding-seen', 'true');
+    } catch {
+      /* private mode or blocked storage — the gate still runs, it just sees the intro */
+    }
+  });
+}
+
 const BASE = 'http://localhost:5055';
 const problems = [];
 
@@ -72,7 +95,8 @@ const URL_ONLY = {
   '/_role/status': 'The chauffeur status screen, keyed by ride id. Reached from a job.',
   '/login': 'Unreachable in a demo build by design — demo auto-signs-in and (auth)/_layout redirects. In a production build it is reached from /welcome.',
   '/welcome': 'The signed-out entry screen. A demo build auto-signs-in as DEMO_PROFILE, so no press reaches it here; in a production build it is where a signed-out user starts.',
-  '/onboarding': 'First-run only, and a demo build starts already signed in. Reached on a real first launch.',
+  '/onboarding':
+    'First-run only, and it is now the FIRST thing a cold visitor sees — ahead of demo auto-sign-in. This crawl cannot reach it because it declares itself a returning user, which is what lets it measure the app rather than the intro. Covered instead by `npm run verify:onboarding`, whose whole point is a cold context.',
   '/corporate-info': "Reached from Account for a customer with NO corporate account (account/index.tsx). The demo persona HAS one, so it correctly shows 'Corporate account' instead — persona-conditional, not orphaned.",
   '/demo-trip': "Reached from the GUEST Account view ('Preview live tracking'). The demo persona is signed in, so this crawl never sees that branch — persona-conditional, not orphaned.",
   '/signup': 'Same (auth) group as /login, same redirect in a demo build.',
@@ -97,6 +121,7 @@ const SHIPPED = [
 
 const browser = await chromium.launch({ channel: 'chrome' });
 const ctx = await browser.newContext({ viewport: { width: 390, height: 1200 }, colorScheme: 'dark' });
+  await markOnboardingSeen(ctx);
 const page = await ctx.newPage();
 
 /** Normalised path, so `/x/` and `/x` are one thing. */
