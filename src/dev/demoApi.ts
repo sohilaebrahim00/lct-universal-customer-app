@@ -1,4 +1,4 @@
-import type { Booking } from '../types/api';
+import type { Booking, TripStatusEvent } from '../types/api';
 import type { TripStatus } from '../lib/tripStatus';
 import { nextTripStage } from '../lib/tripStatus';
 import { canMarkArrived } from '../lib/rideStage';
@@ -66,6 +66,24 @@ interface DemoState {
    * reads the column instead. Nothing else changes. See `src/lib/rideStage.ts`.
    */
   arrivals: Record<string, string>;
+  /**
+   * bookingId → the stages this ride actually reached, each stamped at the
+   * moment it reached them.
+   *
+   * ── Why this exists, and what it replaces ───────────────────────────────
+   * `advanceTripStatus()` moved `booking.status` and persisted, recording
+   * NOTHING about when. The only history available was `seedTripEvents()`,
+   * whose timestamps are evenly spaced across the four hours before pickup —
+   * placeholders, by its own comment.
+   *
+   * So a ride's history could not be shown without inventing it. A real
+   * transition now writes a real event, and the seeded ones are marked
+   * `estimated` so nothing displays a time nobody recorded.
+   *
+   * Demo-side only. A real backend owns its own event table; this is the same
+   * overlay pattern as `arrivals`, for the same reason.
+   */
+  events: Record<string, TripStatusEvent[]>;
 }
 
 /**
@@ -143,6 +161,8 @@ function load(): DemoState | null {
       // Same tolerance as `assignments`: `arrivals` arrived with the lifecycle
       // slice, so a state saved by an earlier build simply has no key.
       arrivals: (parsed.arrivals as Record<string, string> | undefined) ?? {},
+      // Same tolerance again: a store persisted before events existed has none.
+      events: (parsed.events as Record<string, TripStatusEvent[]> | undefined) ?? {},
     };
   } catch {
     return null;
@@ -168,6 +188,7 @@ export function resetDemoState(): void {
   state.bookings = seedBookings(new Date());
   state.assignments = { ...seedAssignments() };
   state.arrivals = {};
+  state.events = {};
   const store = storage();
   try {
     store?.removeItem(STORAGE_KEY);
@@ -197,7 +218,12 @@ function seedAssignments(): Record<string, string> {
   };
 }
 
-const state: DemoState = load() ?? { bookings: seedBookings(new Date()), assignments: seedAssignments(), arrivals: {} };
+const state: DemoState = load() ?? {
+  bookings: seedBookings(new Date()),
+  assignments: seedAssignments(),
+  arrivals: {},
+  events: {},
+};
 
 /** Deliberate, small, and uniform — a demo with zero latency reads as fake. */
 const LATENCY_MS = 260;
@@ -377,7 +403,13 @@ export async function handleDemoRequest(
              */
             arrived_at: state.arrivals[booking.id] ?? null,
           },
-          events: seedTripEvents(booking),
+          /*
+            RECORDED events where they exist, seeded ones where they do not.
+            The two are never mixed for one stage: a stage the chauffeur
+            actually drove carries its real time, and a stage only the seed
+            knows about is marked `estimated` so no clock is shown for it.
+          */
+          events: tripEventsFor(booking),
           driver: chauffeurById(driverId),
           vehicle: tripVehicleFor(booking),
         }),
@@ -388,6 +420,7 @@ export async function handleDemoRequest(
       const booking = bookingById(second);
       if (!booking) return { handled: false };
       booking.status = 'cancelled';
+      recordEvent(booking.id, 'cancelled');
       persist();
       return { handled: true, data: await delay({ booking }) };
     }
@@ -466,6 +499,7 @@ export function assignChauffeur(bookingId: string, chauffeurId: string): void {
   state.assignments[bookingId] = chauffeurId;
   if (booking.status === 'pending' || booking.status === 'confirmed') {
     booking.status = 'driver_assigned';
+    recordEvent(booking.id, 'driver_assigned');
   }
   persist();
 }
@@ -481,12 +515,47 @@ export function assignChauffeur(bookingId: string, chauffeurId: string): void {
  *
  * Returns the new status, or null if there was nowhere legal to go.
  */
+/**
+ * Writes down that a ride reached a stage, at the moment it reached it.
+ *
+ * The whole point is the clock: `new Date()` here is a RECORD, where a time
+ * derived from `scheduled_at` would be a guess. Called from every real
+ * transition, so a ride driven through the chauffeur view carries a genuine
+ * history afterwards.
+ */
+function recordEvent(bookingId: string, status: TripStatus, note: string | null = null): void {
+  const log = state.events[bookingId] ?? [];
+  // A stage is recorded once. Re-entering it (a double tap, a replayed
+  // assignment) keeps the ORIGINAL time — the same rule `markArrived` applies.
+  if (log.some((e) => e.status === status)) return;
+  log.push({ status, note, created_at: new Date().toISOString() });
+  state.events[bookingId] = log;
+}
+
+/**
+ * The ride's history: what was recorded, plus what only the seed knows.
+ *
+ * A seeded stage is included so a first-visit demo still shows the shape of a
+ * completed ride — but flagged `estimated`, which `rideTimeline` reads as
+ * "this happened, and nobody wrote down when".
+ */
+function tripEventsFor(booking: Booking): TripStatusEvent[] {
+  const recorded = state.events[booking.id] ?? [];
+  const have = new Set(recorded.map((e) => e.status));
+  const seeded = seedTripEvents(booking)
+    .filter((e) => !have.has(e.status))
+    .map((e) => ({ ...e, estimated: true }));
+  return [...recorded, ...seeded];
+}
+
 export function advanceTripStatus(bookingId: string): TripStatus | null {
   const booking = bookingById(bookingId);
   if (!booking) return null;
   const next = nextTripStage(booking.status);
   if (!next) return null;
   booking.status = next;
+  // The clock is the point: recorded now, not derived from `scheduled_at`.
+  recordEvent(bookingId, next);
   persist();
   return next;
 }

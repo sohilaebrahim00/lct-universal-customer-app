@@ -17,11 +17,10 @@ import { vehiclesApi } from '../../../src/api/vehicles';
 // One name per class: the picker showed the API's `vehicle.name` while /fleet
 // showed the catalogue's, so one class read differently on the two screens a
 // customer compares. Same pattern fleet/[id] and corporate-info already use.
-import { VEHICLE_DISPLAY_NAME } from '../../../src/lib/vehicleImages';
 import type { Vehicle } from '../../../src/types/api';
 import { calculateFarePreview, type FareBreakdown } from '../../../src/lib/pricingPreview';
 import { formatCurrency, formatDateTime } from '../../../src/lib/format';
-import { VEHICLE_IMAGES } from '../../../src/lib/vehicleImages';
+import { VEHICLE_DISPLAY_NAME, VEHICLE_IMAGES } from '../../../src/lib/vehicleImages';
 import { asyncState, type AsyncState } from '../../../src/lib/asyncState';
 import { isQuoteOnly } from '../../../src/config/publishedFleet';
 import { PRICING_STATEMENT } from '../../../src/config/servicePolicy';
