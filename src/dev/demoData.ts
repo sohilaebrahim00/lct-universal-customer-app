@@ -72,7 +72,29 @@ export const DEMO_VEHICLES: Vehicle[] = [
     capacity_luggage: 3,
     base_rate: '65.00',
     per_mile_rate: '3.25',
-    per_hour_rate: '100.00',
+    /*
+     * ── $100 → $150, AND NOTHING ELSE MOVED — confirmed 2026-09-13 ────────
+     *
+     * The client confirmed **First Class = $150/hour** directly. That is an
+     * authoritative figure for THIS component of the rate card, so the hourly
+     * rate changes and an hourly booking of this class is now quoted at $150
+     * an hour rather than $100.
+     *
+     * **`base_rate` and `per_mile_rate` are deliberately untouched.** The
+     * confirmation was one number. Deriving a base fare or a per-mile rate
+     * from "$150/hour" would be inventing two figures the business never gave
+     * and then charging real customers from them — and a one-way trip is
+     * priced from exactly those two. So a one-way First Class fare still
+     * computes from $65 + $3.25/mile, unchanged, and what stopped being shown
+     * is the claim that "$95" is this class's published starting price.
+     *
+     * ── The backend seed still says $100 ─────────────────────────────────
+     * These rates are copied from `lct-universal-backend/db/seed.sql`, so this
+     * row and that one now disagree by $50/hour. Recorded in
+     * `BACKEND_FOLLOWUPS.md` §6: the same confirmation needs applying there,
+     * or a live build will quote the old figure.
+     */
+    per_hour_rate: '150.00',
     image_url: null,
     is_active: true,
     // Null on every real row too: `vehicles` is a fare-class table, so no

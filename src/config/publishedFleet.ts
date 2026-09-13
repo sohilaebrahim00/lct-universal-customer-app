@@ -105,13 +105,48 @@ export const PUBLISHED_STARTING_LABELS: Readonly<Record<string, string>> = {
 export const QUOTE_ONLY_VEHICLE_TYPES: readonly string[] = ['sprinter', 'coach'];
 
 /**
+ * ── WHAT THE CLIENT HAS CONFIRMED DIRECTLY, OVERRIDING A SITE READING ─────
+ *
+ * `PUBLISHED_STARTING_LABELS` above is a record of what the WEBSITE said on
+ * 2026-08-26. This is a record of what the CLIENT said afterwards, and it wins,
+ * because a direct confirmation from the business is a better source than a
+ * page read three weeks earlier.
+ *
+ * Kept separate rather than edited into the map above, for two reasons: the
+ * site reading stays intact as provenance, and the reason a customer sees this
+ * figure rather than that one is legible at the point of the override.
+ *
+ * ── First Class, confirmed 2026-09-13 ────────────────────────────────────
+ * The app's `executive_sedan` class was showing **From $95**, which is what
+ * `/fleet` publishes for "Executive Sedan". Renamed to **First Class** on the
+ * client's 2026-09-10 fleet list, it then carried a label belonging to a
+ * differently-named class while the site published *First Class Sedan* at
+ * **$150/hour**. The client has now confirmed **$150/hour** is the First Class
+ * price, which settles it.
+ *
+ * **This is a LABEL, and the client confirmed only this one figure.** No base
+ * fare and no per-mile rate were supplied, so none were invented — see the
+ * `per_hour_rate` note in `src/dev/demoData.ts` for what did and did not move
+ * in the fare engine.
+ */
+export const CLIENT_CONFIRMED_LABELS: Readonly<Record<string, string>> = {
+  executive_sedan: '$150/hour',
+};
+
+/** When each override was confirmed, so a later site re-read can be dated against it. */
+export const CLIENT_CONFIRMED_LABELS_SOURCE = {
+  executive_sedan: { confirmedOn: '2026-09-13', by: 'client, direct confirmation', supersedes: 'From $95' },
+} as const;
+
+/**
  * The published starting label for a class, or null when none is published.
  *
- * Null renders NOTHING — no dash, no placeholder, no computed substitute. Same
- * rule as `servicePolicy`.
+ * A client confirmation takes precedence over a site reading. Null renders
+ * NOTHING — no dash, no placeholder, no computed substitute. Same rule as
+ * `servicePolicy`.
  */
 export function publishedStartingLabel(vehicleType: string): string | null {
-  return PUBLISHED_STARTING_LABELS[vehicleType] ?? null;
+  return CLIENT_CONFIRMED_LABELS[vehicleType] ?? PUBLISHED_STARTING_LABELS[vehicleType] ?? null;
 }
 
 export function isQuoteOnly(vehicleType: string): boolean {

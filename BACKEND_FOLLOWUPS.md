@@ -258,6 +258,30 @@ backwards from a headline figure.
 
 ---
 
+
+### 6c · First Class is now $150/hour, and the backend seed still says $100
+
+**Confirmed by the client 2026-09-13**, directly: **First Class = $150/hour**.
+
+`src/dev/demoData.ts` applies it — the `executive_sedan` row's
+`per_hour_rate` moved **100.00 → 150.00** — and
+`CLIENT_CONFIRMED_LABELS` in `src/config/publishedFleet.ts` shows
+**$150/hour** to customers in place of the site's older "From $95".
+
+**`lct-universal-backend/db/seed.sql` has not been changed and still carries
+$100.00/hour for that class.** These rates were copied from that file, so the
+two now disagree by $50 an hour. **A build pointed at the live API will quote
+the old figure** — the demo is correct and production is not, which is the
+opposite of the usual direction and easy to miss.
+
+**What is needed:** the same one-line change in the backend seed and in any
+deployed `vehicles` row. Nothing else moved: `base_rate` ($65.00) and
+`per_mile_rate` ($3.25) are untouched, because the client confirmed one
+figure and the other two were not supplied. A **one-way** First Class fare is
+still computed from those two, unchanged.
+
+**Owner:** whoever holds the backend.
+
 ## 7. Role preview — every field the chauffeur and dispatcher views could not get
 
 **This section is the starting specification for two products LCT does not have:

@@ -1,7 +1,14 @@
 import { describe, expect, it } from '@jest/globals';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { PUBLISHED_NAMES_BY_PAGE } from '../src/config/publishedFleet';
+import {
+  CLIENT_CONFIRMED_LABELS,
+  CLIENT_CONFIRMED_LABELS_SOURCE,
+  PUBLISHED_NAMES_BY_PAGE,
+  PUBLISHED_STARTING_LABELS,
+  publishedStartingLabel,
+} from '../src/config/publishedFleet';
+import { calculateFarePreview } from '../src/lib/pricingPreview';
 
 /**
  * THE FLEET, AFTER THE 2026-09-10 IMAGE SUPPLY.
@@ -276,5 +283,99 @@ describe('the four classes that were NOT created, and why', () => {
     // with `appType: null` — a starting label, not a rate card.
     const unpriced = PUBLISHED_NAMES_BY_PAGE.classes.filter((c) => c.appType === null);
     expect(unpriced.map((c) => c.fleet)).toEqual(['Luxury SUV', 'First Class Sedan']);
+  });
+});
+
+describe('First Class pricing, confirmed 2026-09-13', () => {
+  /**
+   * THE CONFIRMATION WAS ONE NUMBER, AND ONLY ONE NUMBER MOVED.
+   *
+   * The client confirmed **First Class = $150/hour**. That is authoritative for
+   * the hourly component and for the customer-facing label, and for nothing
+   * else. A base fare and a per-mile rate were not supplied, so neither was
+   * derived — and a one-way trip is priced from exactly those two, which is why
+   * this block asserts they are untouched as carefully as it asserts the change.
+   */
+  const sedanRow = () => (DEMO.split("id: 'demo-vehicle-sedan'")[1] ?? '').split('},')[0]!;
+
+  it('quotes $150 an hour', () => {
+    expect(sedanRow()).toContain("per_hour_rate: '150.00'");
+    expect(sedanRow()).not.toContain("per_hour_rate: '100.00'");
+  });
+
+  it('leaves base and per-mile exactly as they were', () => {
+    // Not supplied by the client, so not invented. A one-way First Class fare
+    // still computes from these two, unchanged.
+    expect(sedanRow()).toContain("base_rate: '65.00'");
+    expect(sedanRow()).toContain("per_mile_rate: '3.25'");
+  });
+
+  it('shows $150/hour to the customer, and no longer "From $95"', () => {
+    expect(publishedStartingLabel('executive_sedan')).toBe('$150/hour');
+    expect(publishedStartingLabel('executive_sedan')).not.toBe('From $95');
+  });
+
+  /*
+   * The 2026-08-26 site reading is KEPT as provenance rather than edited away.
+   * The override records what it supersedes and when, so a later re-read of the
+   * site can be dated against the confirmation instead of silently undoing it.
+   */
+  it('supersedes the site reading without erasing it', () => {
+    expect(PUBLISHED_STARTING_LABELS.executive_sedan).toBe('From $95');
+    expect(CLIENT_CONFIRMED_LABELS.executive_sedan).toBe('$150/hour');
+    expect(CLIENT_CONFIRMED_LABELS_SOURCE.executive_sedan.supersedes).toBe('From $95');
+    expect(CLIENT_CONFIRMED_LABELS_SOURCE.executive_sedan.confirmedOn).toBe('2026-09-13');
+  });
+
+  /**
+   * NO OTHER CLASS MOVED. The confirmation named one class; every other rate in
+   * the fare-class table must be byte-identical to what it was at 71a425f.
+   */
+  it('changes no other class’s rate card', () => {
+    const suv = (DEMO.split("id: 'demo-vehicle-suv'")[1] ?? '').split('},')[0]!;
+    expect(suv).toContain("base_rate: '85.00'");
+    expect(suv).toContain("per_mile_rate: '3.75'");
+    expect(suv).toContain("per_hour_rate: '120.00'");
+
+    const sprinter = (DEMO.split("id: 'demo-vehicle-sprinter'")[1] ?? '').split('},')[0]!;
+    expect(sprinter).toContain("base_rate: '150.00'");
+    expect(sprinter).toContain("per_mile_rate: '4.50'");
+    expect(sprinter).toContain("per_hour_rate: '200.00'");
+  });
+
+  it('leaves every other class’s customer-facing label alone', () => {
+    expect(publishedStartingLabel('suv')).toBe('From $110');
+    expect(publishedStartingLabel('sprinter')).toBe('Request Quote');
+    expect(publishedStartingLabel('coach')).toBe('Request Quote');
+    // Exactly one override exists. A second would mean something else moved.
+    expect(Object.keys(CLIENT_CONFIRMED_LABELS)).toEqual(['executive_sedan']);
+  });
+
+  /**
+   * THE ARITHMETIC, not just the constant.
+   *
+   * `calculateFarePreview` multiplies `perHourRate × hours` for an hourly
+   * service, so a three-hour First Class booking must cost $450 of time fare
+   * where it used to cost $300. Asserted through the real function, because a
+   * constant being right and a fare being right are different claims — and the
+   * whole 1,982-test suite passed across this change without noticing it.
+   */
+  it('actually charges the new rate on an hourly booking', () => {
+    const vehicle = { baseRate: 65, perMileRate: 3.25, perHourRate: 150 };
+    const at = new Date('2026-10-01T14:00:00Z');
+
+    const now = calculateFarePreview({ vehicle, serviceType: 'hourly', hourlyDurationHours: 3, scheduledAt: at });
+    const before = calculateFarePreview({
+      vehicle: { ...vehicle, perHourRate: 100 },
+      serviceType: 'hourly',
+      hourlyDurationHours: 3,
+      scheduledAt: at,
+    });
+
+    // $150 x 3 hours, exactly — against $100 x 3 before.
+    expect(now.timeFare).toBe(450);
+    expect(before.timeFare).toBe(300);
+    // And it reaches the total rather than being absorbed on the way.
+    expect(now.totalFare).toBeGreaterThan(before.totalFare);
   });
 });

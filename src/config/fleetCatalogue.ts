@@ -1,5 +1,5 @@
 import type { VehicleType } from '../types/api';
-import { PUBLISHED_NAMES_BY_PAGE } from './publishedFleet';
+import { PUBLISHED_NAMES_BY_PAGE, publishedStartingLabel } from './publishedFleet';
 
 /**
  * THE CUSTOMER-FACING FLEET CATALOGUE — a display layer, not a price list.
@@ -88,6 +88,18 @@ function publishedLabelFor(fleetName: string): string {
 }
 
 /**
+ * A label the client confirmed directly, which outranks a site reading.
+ *
+ * Same principle as `publishedLabelFor`: read back from the one place that
+ * records the figure and its date, never retyped here. If the confirmation is
+ * ever withdrawn, deleting the entry restores the published label with no
+ * change to this file.
+ */
+function confirmedLabelFor(vehicleType: string): string {
+  return publishedStartingLabel(vehicleType) ?? REQUEST_QUOTE;
+}
+
+/**
  * The seven, in the order the client listed them.
  *
  * ── Naming, and the conflict it resolves ──────────────────────────────────
@@ -143,24 +155,28 @@ export const FLEET_CATALOGUE: readonly FleetClass[] = [
      * is kept so historical bookings, dispatch records and the fare engine are
      * untouched, and only the customer-facing name moves.
      *
-     * ── A PRICING DISCREPANCY THAT NEEDS THE BUSINESS ────────────────────
-     * This class keeps `executive_sedan`'s COMPLETE rate card and therefore its
-     * own published label, "From $95". The site separately publishes a "First
-     * Class Sedan" at **$150/hour**. Those are two different published classes
-     * and the client's list has only one sedan tier.
+     * ── THE PRICING DISCREPANCY IS RESOLVED — confirmed 2026-09-13 ───────
+     * This class showed "From $95", which is what `/fleet` publishes for
+     * "Executive Sedan". Renamed to First Class, it was carrying a label
+     * belonging to a differently-named class while the site published *First
+     * Class Sedan* at $150/hour.
      *
-     * The complete rate card is deliberately NOT overwritten with the
-     * incomplete label — that is the rule this file exists to enforce. But a
-     * customer now sees "First Class · From $95" while the site says
-     * "$150/hour", and only the business can say which is intended.
-     * `OPEN_QUESTIONS.md` #15.
+     * **The client confirmed $150/hour directly**, so that is what a customer
+     * sees, via `CLIENT_CONFIRMED_LABELS` — which records the date and what it
+     * supersedes, rather than editing the 2026-08-26 site reading away.
+     *
+     * What the confirmation did NOT include: a base fare or a per-mile rate.
+     * Neither was invented. The hourly component of the rate card moved to
+     * $150 and the other two did not, so a ONE-WAY First Class trip is still
+     * computed from $65 + $3.25/mile exactly as before — see the note on
+     * `per_hour_rate` in `src/dev/demoData.ts`.
      */
     vehicleType: 'executive_sedan',
     image: require('../../assets/vehicles/first-class-sedan.jpg'),
     passengers: 3,
     luggage: 3,
     pricingMode: 'bookable',
-    priceLabel: publishedLabelFor('Executive Sedan'),
+    priceLabel: confirmedLabelFor('executive_sedan'),
     description: 'Executive sedan service for a refined private travel experience.',
   },
   {
