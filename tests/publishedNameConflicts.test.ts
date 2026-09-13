@@ -183,7 +183,18 @@ describe('the two names for the suv class', () => {
      * of the two the business wants is OPEN_QUESTIONS.md 2, and changing it is
      * one line.
      */
-    expect(displayNames().suv).toBe('Executive SUV');
+    /*
+     * ── UPDATED 2026-09-10 ──────────────────────────────────────────────
+     * This read "Executive SUV" from 2026-08-28 — `lctuniversal.com/fleet`'s
+     * name for the $110 class. The client's fleet list then renamed it
+     * **"Premium SUV"** for customers: a third name, published on neither
+     * page, adopted because it is an explicit and later instruction from the
+     * business that owns the fleet.
+     *
+     * **Neither the ID nor the rate card moved**, so what this test actually
+     * guards is unchanged — one class, one name, on every screen.
+     */
+    expect(displayNames().suv).toBe('Premium SUV');
     const demoData = readFileSync('src/dev/demoData.ts', 'utf8');
     expect(demoData).toContain("name: 'Executive SUV'");
   });
@@ -242,10 +253,26 @@ describe('the two names for the suv class', () => {
     // the image must be the vehicle the row names — that much is not in dispute.
     expect(suvRow).toContain('Cadillac Escalade or equivalent');
 
-    // And the app has not adopted "Premium SUV", because adopting it would
-    // assert the client's mapping over the panel's without an answer.
+    /*
+     * ── AND THE APP NOW FOLLOWS THE CLIENT, WHICH IS THE POINT TO RECORD ──
+     *
+     * The first version of this test asserted the app had NOT adopted "Premium
+     * SUV", because adopting it asserted the client's mapping over the panel's
+     * without an answer. The client then gave that answer directly, so the
+     * display name is theirs.
+     *
+     * **The contradiction did not go away — the app simply picked a side, on
+     * instruction.** The panel still describes its Premium SUV as a Suburban
+     * while this class is an Escalade, so anyone reading only the panel will
+     * find the two disagree. That is what stays asserted here.
+     */
     const images = readFileSync('src/lib/vehicleImages.ts', 'utf8');
     const displayBlock = images.split('VEHICLE_DISPLAY_NAME')[1] ?? '';
-    expect(displayBlock).not.toContain('Premium SUV');
+    expect(displayBlock).toContain('Premium SUV');
+
+    // The row is an Escalade; the panel's class of that name is a Suburban.
+    // Both facts remain true and only the business can reconcile them.
+    expect(suvRow).toContain('Cadillac Escalade or equivalent');
+    expect(suvRow).not.toContain('Suburban');
   });
 });

@@ -32,11 +32,33 @@ import { join } from 'node:path';
  */
 
 const ASSET_DIR = join(__dirname, '..', 'assets', 'vehicles');
-const SRC = readFileSync(join(__dirname, '..', 'src', 'lib', 'vehicleImages.ts'), 'utf8');
+/*
+ * BOTH modules that require a vehicle asset.
+ *
+ * This read only `vehicleImages.ts`, so when the fleet catalogue began
+ * requiring images of its own, two perfectly-referenced files were reported as
+ * orphans. A guard that knows about one of two callers reports the truth about
+ * neither.
+ */
+const IMAGES_SRC = readFileSync(join(__dirname, '..', 'src', 'lib', 'vehicleImages.ts'), 'utf8');
+const CATALOGUE_SRC = readFileSync(join(__dirname, '..', 'src', 'config', 'fleetCatalogue.ts'), 'utf8');
+const SRC = [IMAGES_SRC, CATALOGUE_SRC].join('\n');
 
-/** The asset filenames the module actually `require()`s, parsed from source. */
+/**
+ * Every vehicle asset required from ANYWHERE, for the orphan check.
+ *
+ * This parsed only the `VEHICLE_IMAGES` block, so when the fleet catalogue
+ * began requiring images of its own, two perfectly-referenced files were
+ * reported as orphans. A guard that knows about one of two callers reports the
+ * truth about neither.
+ */
+function allReferencedFiles(): string[] {
+  return [...SRC.matchAll(/require\('\.\.\/\.\.\/assets\/vehicles\/([^']+)'\)/g)].map((m) => m[1]!);
+}
+
+/** The `VehicleType` → asset map specifically, for the per-class checks. */
 function referenced(): { key: string; file: string }[] {
-  const map = SRC.slice(SRC.indexOf('export const VEHICLE_IMAGES'));
+  const map = IMAGES_SRC.slice(IMAGES_SRC.indexOf('export const VEHICLE_IMAGES'));
   const body = map.slice(0, map.indexOf('\n};'));
   return [...body.matchAll(/^\s*(\w+):\s*require\('\.\.\/\.\.\/assets\/vehicles\/([^']+)'\)/gm)].map((m) => ({
     key: m[1]!,
@@ -71,7 +93,7 @@ describe('vehicle art', () => {
    * is what keeps that true.
    */
   it('leaves no unreferenced image in assets/vehicles', () => {
-    const used = new Set(referenced().map((r) => r.file));
+    const used = new Set(allReferencedFiles());
     const orphans = readdirSync(ASSET_DIR)
       .filter((f) => /\.(jpg|jpeg|png|webp)$/i.test(f))
       .filter((f) => !used.has(f));
@@ -84,7 +106,7 @@ describe('vehicle art', () => {
    * resized on the way in. This is the guard on that, not a style preference.
    */
   it('keeps every image small enough to ship on the booking picker', () => {
-    for (const { file } of referenced()) {
+    for (const file of allReferencedFiles()) {
       const kb = readFileSync(join(ASSET_DIR, file)).byteLength / 1024;
       if (kb > 320) throw new Error(`assets/vehicles/${file} is ${kb.toFixed(0)} KB — resize before shipping`);
     }

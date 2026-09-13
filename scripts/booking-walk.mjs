@@ -210,7 +210,18 @@ async function journey(key, hourly) {
   const picked = onPicker[0];
   console.log(`  ok    ${'picker fare'.padEnd(26)} ${picked}`);
 
-  if (!(await step(page, 'Executive Sedan', '/book/vehicle', 'select a class'))) {
+  /*
+   * The class's CUSTOMER-FACING name, which changed on 2026-09-10 when
+   * `executive_sedan` became "First Class" on the client's instruction.
+   *
+   * This walk read "Executive Sedan" and went green on the click while
+   * selecting nothing — `step()` only requires the URL not to change, and
+   * selecting a class never navigates. The next step then failed on a missing
+   * "Review & pay", which is how the rename surfaced at all. Worth noting that
+   * the gate caught a real break one step LATER than the break, because the
+   * discriminating assertion lives on the step after.
+   */
+  if (!(await step(page, 'First Class', '/book/vehicle', 'select a class'))) {
     await ctx.close();
     return;
   }

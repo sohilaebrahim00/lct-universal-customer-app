@@ -14,6 +14,10 @@ import { Briefcase, ChevronLeft, Users } from 'lucide-react-native';
 import { gutter, iconSize, iconStroke, radius, space, theme } from '../../../src/theme';
 import { useBookingFormStore } from '../../../src/store/bookingFormStore';
 import { vehiclesApi } from '../../../src/api/vehicles';
+// One name per class: the picker showed the API's `vehicle.name` while /fleet
+// showed the catalogue's, so one class read differently on the two screens a
+// customer compares. Same pattern fleet/[id] and corporate-info already use.
+import { VEHICLE_DISPLAY_NAME } from '../../../src/lib/vehicleImages';
 import type { Vehicle } from '../../../src/types/api';
 import { calculateFarePreview, type FareBreakdown } from '../../../src/lib/pricingPreview';
 import { formatCurrency, formatDateTime } from '../../../src/lib/format';
@@ -282,7 +286,7 @@ function VehicleCard({
       accessibilityRole="button"
       accessibilityState={{ selected, disabled }}
       accessibilityLabel={[
-        vehicle.name,
+        VEHICLE_DISPLAY_NAME[vehicle.type] ?? vehicle.name,
         quoteOnly ? 'request quote' : fare ? `${formatCurrency(fare.totalFare)} all in` : null,
         `${vehicle.capacity_passengers} guests, ${vehicle.capacity_luggage} bags`,
         reason,
@@ -298,7 +302,7 @@ function VehicleCard({
           <View style={styles.cardBody}>
             <View style={styles.titleRow}>
               <AppText variant="subheading" numberOfLines={2} style={styles.name}>
-                {vehicle.name}
+                {VEHICLE_DISPLAY_NAME[vehicle.type] ?? vehicle.name}
               </AppText>
               {quoteOnly ? (
                 <AppText variant="caption" color={theme.content.accentEmphasis}>

@@ -9,9 +9,7 @@ import { EmptyState } from '../../../src/components/ui/EmptyState';
 import { radius, space, theme } from '../../../src/theme';
 import { vehiclesApi } from '../../../src/api/vehicles';
 import type { Vehicle } from '../../../src/types/api';
-import { VEHICLE_DISPLAY_NAME, VEHICLE_IMAGES } from '../../../src/lib/vehicleImages';
-import { VEHICLE_TAGLINE } from '../../../src/lib/vehicleFeatures';
-import { publishedStartingLabel } from '../../../src/config/publishedFleet';
+import { FLEET_CATALOGUE, fleetAccessibilityLabel } from '../../../src/config/fleetCatalogue';
 import { AppImage } from '../../../src/components/ui/AppImage';
 
 export default function FleetScreen() {
@@ -44,72 +42,93 @@ export default function FleetScreen() {
       ) : null}
 
       <View style={{ gap: space.md }}>
-        {vehicles?.map((vehicle, i) => {
-          const image = VEHICLE_IMAGES[vehicle.type];
-          const displayName = VEHICLE_DISPLAY_NAME[vehicle.type] ?? vehicle.name;
-          const tagline = VEHICLE_TAGLINE[vehicle.type];
+        {FLEET_CATALOGUE.map((entry, i) => {
+          /*
+            The API row is the AUTHORITY for a bookable class: its capacities
+            come from there, so this catalogue never holds a second copy of a
+            number the fare engine also uses. A display-only class has no row,
+            and the catalogue's own figures are all there is.
+          */
+          const row = entry.vehicleType ? vehicles?.find((v) => v.type === entry.vehicleType) : undefined;
+          const passengers = row?.capacity_passengers ?? entry.passengers;
+          const luggage = row ? row.capacity_luggage : entry.luggage;
+          const bookable = entry.pricingMode === 'bookable' && Boolean(row);
 
           return (
-            <FadeSlideIn key={vehicle.id} delay={i * 80}>
+            <FadeSlideIn key={entry.key} delay={i * 60}>
               <Pressable
-                onPress={() => router.push(`/(app)/fleet/${vehicle.id}`)}
+                /*
+                  Only a class with a real row opens the vehicle detail. A
+                  display-only class has nothing to open and is not pressable —
+                  a control that leads nowhere is worse than no control.
+                */
+                onPress={bookable && row ? () => router.push(`/(app)/fleet/${row.id}`) : undefined}
+                disabled={!bookable}
                 style={styles.card}
-                accessibilityRole="button"
-                accessibilityLabel={`${displayName}, ${vehicle.capacity_passengers} passengers, ${vehicle.capacity_luggage} bags`}
+                accessibilityRole={bookable ? 'button' : 'text'}
+                accessibilityLabel={fleetAccessibilityLabel({ ...entry, passengers, luggage })}
               >
-                {image ? <AppImage source={image} style={styles.image} /> : null}
+                {entry.image ? (
+                  <AppImage source={entry.image} style={styles.image} contentFit="contain" />
+                ) : (
+                  /*
+                    ASSET REQUIRED. The supplied image for this class has
+                    malformed lettering and is deliberately not published. The
+                    CLASS still appears — a customer looking for a 40-seat coach
+                    should find one — and it is the photograph that is missing,
+                    which the card says rather than implies.
+                  */
+                  <View style={styles.imagePending}>
+                    <Car size={28} color={theme.content.tertiary} strokeWidth={1.5} />
+                    <AppText variant="captionSm" color={theme.content.tertiary} style={{ marginTop: space.xs }}>
+                      Photograph coming soon
+                    </AppText>
+                  </View>
+                )}
                 <View style={styles.body}>
                   <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                     <View style={{ flex: 1 }}>
-                      <AppText variant="subheading">{displayName}</AppText>
+                      <AppText variant="subheading">{entry.name}</AppText>
                       <AppText variant="caption" style={{ marginTop: 2 }}>
-                        {tagline}
+                        {entry.description}
                       </AppText>
                     </View>
-                    <ChevronRight size={18} color={theme.content.secondary} strokeWidth={1.5} />
+                    {bookable ? <ChevronRight size={18} color={theme.content.secondary} strokeWidth={1.5} /> : null}
                   </View>
 
                   <View style={styles.metaRow}>
                     <View style={styles.metaItem}>
                       <Users size={14} color={theme.content.secondary} strokeWidth={1.5} />
-                      <AppText variant="caption"> {vehicle.capacity_passengers} passengers</AppText>
+                      <AppText variant="caption"> {passengers} passengers</AppText>
                     </View>
-                    <View style={styles.metaItem}>
-                      <Briefcase size={14} color={theme.content.secondary} strokeWidth={1.5} />
-                      <AppText variant="caption"> {vehicle.capacity_luggage} bags</AppText>
-                    </View>
+                    {/* Luggage only where the business has confirmed it. */}
+                    {luggage !== null && luggage !== undefined ? (
+                      <View style={styles.metaItem}>
+                        <Briefcase size={14} color={theme.content.secondary} strokeWidth={1.5} />
+                        <AppText variant="caption"> {luggage} bags</AppText>
+                      </View>
+                    ) : null}
                   </View>
 
                   {/*
-                    The WEBSITE's published starting price, in every build, or
-                    NOTHING.
+                    THE PRICE ROW.
 
-                    It used to fall back to `From ${formatCurrency(base_rate)}`
-                    whenever no published label was available — which, because
-                    the label was gated on demo mode, meant every real build.
-                    Against a live API that printed "From $65.00" for a sedan
-                    that cannot be booked below $102.60, whose theoretical floor
-                    with gratuity and tax is $83.38, and which the company
-                    itself advertises at $95. Four numbers, and the app was
-                    inventing the only one nobody had published.
-
-                    A base rate is a component of a fare, not a price a customer
-                    can pay. So there is no fallback now: an unpublished class
-                    shows no figure at all, on the same null-driven rule as
-                    `servicePolicy`. The booking flow still quotes an exact
-                    all-in total — a floor is for browsing, a fare is for
-                    committing.
-
-                    The website and the backend still disagree; that is
-                    BACKEND_FOLLOWUPS.md §6 and is deliberately not settled here.
+                    A bookable class shows the WEBSITE's published starting
+                    label — never a base rate, which is a component of a fare
+                    and not a price anyone can pay. A quote-only class shows the
+                    label the business publishes for it, or the app's existing
+                    "Request Quote" wording, and says a person confirms it.
                   */}
-                  {publishedStartingLabel(vehicle.type) ? (
-                    <View style={styles.priceRow}>
-                      <AppText variant="subheading" color={theme.content.accent}>
-                        {publishedStartingLabel(vehicle.type)}
+                  <View style={styles.priceRow}>
+                    <AppText variant="subheading" color={theme.content.accent}>
+                      {entry.priceLabel}
+                    </AppText>
+                    {entry.pricingMode === 'request-quote' ? (
+                      <AppText variant="captionSm" color={theme.content.tertiary} style={{ marginTop: 2 }}>
+                        Our team confirms the fare for this class before you commit.
                       </AppText>
-                    </View>
-                  ) : null}
+                    ) : null}
+                  </View>
                 </View>
               </Pressable>
             </FadeSlideIn>
@@ -129,6 +148,14 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   image: { width: '100%', height: 180 },
+  /* The reserved box a held asset leaves — same height, so nothing shifts. */
+  imagePending: {
+    width: '100%',
+    height: 180,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: theme.background.inset,
+  },
   body: { padding: space.md },
   metaRow: { flexDirection: 'row', gap: space.md, marginTop: space.sm },
   metaItem: { flexDirection: 'row', alignItems: 'center' },

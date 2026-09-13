@@ -537,3 +537,39 @@ Neither is in the shipped set, but both should be regenerated before use:
   the two: it would put a misspelt brand mark on a customer-facing card.
 
 **Owner:** the business. The rates are the blocker; everything else is ready.
+
+### Update, 2026-09-13 — all seven classes now appear; four are Request Quote
+
+The catalogue split solved the earlier blocker without inventing a price.
+`src/config/fleetCatalogue.ts` is a **display layer**; the `vehicles` table is
+still the only source of a fare. All seven classes are on `/fleet`; only the
+four with a rate card can be selected in the booking picker, because the picker
+renders from the API and the catalogue is never imported there.
+
+| class | ID | bookable | price shown | source of that figure |
+|---|---|---|---|---|
+| Premium SUV | `suv` | **yes** | From $110 | `/fleet`, published |
+| Luxury SUV | — | no | From $130 | `/rates`, published — a LABEL, not a rate card |
+| First Class | `executive_sedan` | **yes** | From $95 | `/fleet`, published |
+| Executive Sprinter | `sprinter` | **yes** | Request Quote | published as quote-only |
+| Mini Bus | — | no | Request Quote | nothing published |
+| Mini Coach | — | no | Request Quote | published as quote-only |
+| Motor Coach | — | no | Request Quote | published as quote-only |
+
+**Two questions are now sharper, and both still need you.**
+
+1. **First Class is priced from the sedan's rate card.** `executive_sedan`
+   keeps its complete card ($65 / $3.25 / $100) and therefore its own published
+   label, **From $95**. The site separately publishes a *First Class Sedan* at
+   **$150/hour**. A customer now sees "First Class · From $95" while the website
+   says $150/hour. The complete rate card was deliberately not overwritten with
+   the incomplete label — but only you can say which class the client's list
+   meant. **This is the one with money attached.**
+2. **Premium SUV is now the app's name for the Escalade**, following your
+   message over the panel. The panel still calls its Escalade class *Luxury
+   SUV* and its Suburban class *Premium SUV*, so the two now agree on the words
+   and disagree on the vehicle.
+
+**Two photographs are still required** — the Suburban ("SUBURBIAY") and the
+Freightliner mini-coach ("EXECUTIVE TRANSPOR T5"). Their classes display with a
+"Photograph coming soon" panel rather than being hidden.

@@ -49,29 +49,37 @@ import type { VehicleType } from '../types/api';
  * carrying a QR code. `suv` therefore moves to the clean Escalade, which is
  * also the vehicle its own row has always named.
  *
- * ── Four of the seven supplied images are NOT here, deliberately ──────────
- * The same message asked for seven customer-facing classes. Four of them —
- * Luxury SUV, First Class, Mini Bus (27) and a Motor Coach split from Mini
- * Coach — **have no rate card**. `/rates` publishes "From $130" and
- * "$150/hour" as STARTING LABELS; the fare engine needs a base rate, a
- * per-mile rate and a per-hour rate, and the Mini Bus has nothing published at
- * all. Creating those classes would mean typing three numbers per class and
- * quoting real bookings from them.
+ * ── THIS MAP IS THE BOOKABLE CLASSES ONLY ─────────────────────────────────
+ * Four `VehicleType` values, four images, and it powers the booking picker.
+ * The **customer-facing catalogue of seven classes** lives in
+ * `src/config/fleetCatalogue.ts`, which carries the three display-only classes
+ * this map has no key for. Both files require from `assets/vehicles/`, and
+ * `tests/vehicleImages.test.ts` reads BOTH when it looks for an orphan — it
+ * read only this one at first, and reported two correctly-referenced files as
+ * unreferenced.
  *
- * Their images are preserved, unreferenced, in
- * `design/fleet-supplied-2026-09-10/` so nothing is lost while the rates are
- * asked for. They are deliberately NOT in `assets/vehicles/`, where
- * `tests/vehicleImages.test.ts` forbids an unreferenced file — an orphan
- * beside its siblings is an invitation to wire it up by accident.
+ * Two of the seven supplied images are still not in `assets/vehicles/`: the
+ * Suburban and the Freightliner mini-coach both have malformed lettering. They
+ * stay in `design/fleet-supplied-2026-09-10/`, and their catalogue entries
+ * carry `image: null` with the reason, so the CLASS appears and the photograph
+ * is the only thing missing.
  *
  * Metro requires static string literals for require(), so this is a literal map
  * rather than a computed path.
  */
 export const VEHICLE_IMAGES: Record<string, number> = {
-  // The client's own chauffeur-and-S-Class photograph. Kept: the studio
-  // Mercedes supplied on 2026-09-10 is mapped to FIRST CLASS, a class that
-  // does not exist yet — see the fleet note below.
-  executive_sedan: require('../../assets/vehicles/executive-sedan-chauffeur.jpg'),
+  /*
+   * The studio Mercedes the client supplied for FIRST CLASS, which is what
+   * this class is now called on the fleet page.
+   *
+   * It replaces their chauffeur-and-S-Class photograph, and the reason is
+   * consistency rather than preference: the booking picker reads this map and
+   * the fleet page reads the catalogue, so two photographs for one class would
+   * have put a different car on the two screens a customer compares. One
+   * class, one image. The photograph remains in git history and in the website
+   * repository it came from.
+   */
+  executive_sedan: require('../../assets/vehicles/first-class-sedan.jpg'),
   // Client-supplied 2026-09-10. Replaces the studio render that was held
   // pending the LuxLane question — that question is now resolved by supply.
   suv: require('../../assets/vehicles/premium-suv-escalade.jpg'),
@@ -117,10 +125,40 @@ export const VEHICLE_IMAGES: Record<string, number> = {
  * Which of the two published names the business wants — `OPEN_QUESTIONS.md` 2.
  * The question is now "which of these two", not "is the current one right".
  */
+/**
+ * ── ONE NAME PER CLASS, ENFORCED BY TEST RATHER THAN BY DERIVATION ────────
+ *
+ * These names and `FLEET_CATALOGUE`'s must agree, and `tests/fleetMapping.test.ts`
+ * asserts they do for every class the catalogue marks bookable.
+ *
+ * **Deriving them from the catalogue was tried first, and is the wrong trade.**
+ * Three existing tests PARSE this literal block out of the source text —
+ * they must, because Jest cannot import a module that `require()`s a .jpg —
+ * and replacing the literals with a function call broke all three for no
+ * behavioural gain. A test that fails on divergence gives the same guarantee
+ * and costs nothing to read.
+ *
+ * ── What changed on 2026-09-10, and what did not ──────────────────────────
+ * The client's fleet list renames two classes for customers. **No ID moved**,
+ * so every stored booking, dispatch record and rate card is untouched:
+ *
+ *   `executive_sedan` → "First Class"    (keeps its $65/$3.25/$100 rate card)
+ *   `suv`             → "Premium SUV"    (keeps its $85/$3.75/$120 rate card)
+ *
+ * `coach` has no catalogue entry carrying a `vehicleType` — both coach classes
+ * are display-only until they are priced — so it keeps a neutral fallback, and
+ * no vehicle row returns it today in any case.
+ */
 export const VEHICLE_DISPLAY_NAME: Record<VehicleType, string> = {
-  executive_sedan: 'Executive Sedan',
-  suv: 'Executive SUV',
-  // Both published pages and the client's 2026-09-10 list agree on this name.
+  // Client's 2026-09-10 fleet list. `executive_sedan` keeps its ID — and its
+  // complete rate card — while the customer-facing name becomes First Class.
+  executive_sedan: 'First Class',
+  // Same: the $110 class keeps its ID, and the client's mapping puts the
+  // Escalade under "Premium SUV". Their operations panel maps it the other
+  // way; see fleetCatalogue and OPEN_QUESTIONS #15.
+  suv: 'Premium SUV',
   sprinter: 'Executive Sprinter',
+  // No catalogue entry carries this type — both coach classes are display-only
+  // until they are priced — and no vehicle row returns it today.
   coach: 'Coach',
 };

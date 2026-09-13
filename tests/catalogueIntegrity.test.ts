@@ -135,20 +135,21 @@ describe('the two catalogues, as observed', () => {
     const unmatched = APP_TYPES.filter((t) => !panelNames.includes(appDisplayNames[t] ?? ''));
 
     /*
-     * THREE, not two — and the change is the rename, not the product.
+     * TWO since 2026-09-10, and the change is the rename again.
      *
-     * `suv` used to be called "Luxury SUV", which happened to match a panel
-     * class of that name. Renaming it to "Executive SUV" — the name
-     * `lctuniversal.com/fleet` publishes for the $110 class — means the app and
-     * the panel now share exactly ONE display name: Executive Sedan.
+     * The history in one line: `suv` was "Luxury SUV" (matched the panel by
+     * accident), became "Executive SUV" (matched nothing), and is now "Premium
+     * SUV" on the client's instruction — which matches the panel again. The
+     * sedan moved the other way: "Executive Sedan" matched, "First Class" also
+     * matches, because the panel has a class of each name.
      *
-     * That is the join getting weaker, not the catalogue getting worse. The
-     * join was always a guess: the panel exposes display names, not
-     * identifiers, and no mapping has been agreed. It is now a guess that
-     * matches less, which is more honest than one that matched on a name the
-     * site says belongs to a different class.
+     * **So the join is at its strongest and is worth the least.** It matches on
+     * display names because the panel exposes no identifiers, and a match now
+     * tells you two strings are equal, not that two classes are the same
+     * product — the panel's Premium SUV is a Suburban while this app's row is
+     * an Escalade. Recorded so the coincidence is never read as a mapping.
      */
-    expect(unmatched).toEqual(['suv', 'sprinter', 'coach']);
+    expect(unmatched).toEqual(['sprinter', 'coach']);
 
     /*
      * Unmatched BY NAME does not imply unpriced, and asserting that it did was
@@ -169,7 +170,19 @@ describe('the two catalogues, as observed', () => {
     // Four since the rename. Luxury SUV joins the list because the app no
     // longer uses that name for anything -- correctly: the app does not sell
     // the site's  class at all.
-    expect(panelOnly).toEqual(['Premium SUV', 'Luxury SUV', 'First Class', 'Large Group Transports']);
+    /*
+     * THREE since 2026-09-10, down from four, and the membership changed.
+     *
+     * "Premium SUV" and "First Class" left this list because the app adopted
+     * both names on the client's instruction. "Executive Sedan" joined it,
+     * because the app's sedan is now called First Class and nothing carries
+     * the old name.
+     *
+     * "Luxury SUV" stays: the site publishes it at From $130 and the app still
+     * cannot price it, so the class exists on the fleet page as Request Quote
+     * and has no rate card behind it.
+     */
+    expect(panelOnly).toEqual(['Executive Sedan', 'Luxury SUV', 'Large Group Transports']);
   });
 
   it('records that the two sources disagree on every class they share', () => {

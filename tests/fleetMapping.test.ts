@@ -6,20 +6,165 @@ import { PUBLISHED_NAMES_BY_PAGE } from '../src/config/publishedFleet';
 /**
  * THE FLEET, AFTER THE 2026-09-10 IMAGE SUPPLY.
  *
- * The client supplied seven images and asked for seven customer-facing classes.
- * **Four of those seven have no rate card**, so they are not created here — a
- * "From $130" starting label is not the base / per-mile / per-hour triple the
- * fare engine needs, and inventing one would price a real booking from a guess.
+ * All SEVEN classes are now on the fleet page. Only FOUR are bookable, because
+ * only four have a rate card — a "From $130" starting label is not the base /
+ * per-mile / per-hour triple the fare engine needs, and inventing one would
+ * price a real booking from a guess.
  *
- * What these assertions protect is the part that IS settled: which vehicle each
- * existing class shows, that no class shows another operator's livery, and that
- * the four class IDs did not move.
+ * These assertions protect the settled part: which vehicle each class shows,
+ * that no class shows another operator's livery, that the four class IDs did
+ * not move, and that an unpriced class cannot reach calculated checkout.
  */
 
 const read = (p: string) => readFileSync(join(__dirname, '..', p), 'utf8');
 const IMAGES = read('src/lib/vehicleImages.ts');
 const DEMO = read('src/dev/demoData.ts');
 const API = read('src/types/api.ts');
+const CATALOGUE = read('src/config/fleetCatalogue.ts');
+
+/** `key: 'value'` pairs out of a literal block, by name. */
+function literalBlock(src: string, marker: string): Record<string, string> {
+  const after = src.split(marker)[1] ?? '';
+  const block = after.split('};')[0] ?? '';
+  const out: Record<string, string> = {};
+  for (const m of block.matchAll(/^\s*(\w+):\s*'([^']+)'/gm)) out[m[1]!] = m[2]!;
+  return out;
+}
+
+describe('one name per class, across every screen', () => {
+  /**
+   * THE GUARANTEE THAT REPLACED A DERIVATION.
+   *
+   * `VEHICLE_DISPLAY_NAME` was briefly computed from the catalogue so the two
+   * could not diverge. That broke three suites which parse the literal block
+   * out of source — they must, because Jest cannot import a module that
+   * `require()`s a .jpg. The literals came back and this assertion took over
+   * the job: same guarantee, nothing else broken.
+   *
+   * The failure it prevents is concrete. The booking picker read the API's
+   * `vehicle.name` while /fleet read the catalogue, so one class showed as
+   * "Executive SUV" on the screen where you choose and "Premium SUV" on the
+   * screen where you browse.
+   */
+  it('gives every bookable class the same name in the catalogue and the display map', () => {
+    const display = literalBlock(IMAGES, 'VEHICLE_DISPLAY_NAME');
+    const entries = [...CATALOGUE.matchAll(/name: '([^']+)',[\s\S]{0,2000}?vehicleType: (?:'(\w+)'|null)/g)];
+    expect(entries.length).toBeGreaterThan(0);
+    for (const [, name, type] of entries) {
+      if (!type) continue; // display-only class: no VehicleType to agree with
+      expect(display[type]).toBe(name);
+    }
+  });
+
+  it('the booking picker renders the display name, not the raw API name', () => {
+    const picker = read('app/(app)/book/vehicle.tsx');
+    expect(picker).toContain('VEHICLE_DISPLAY_NAME[vehicle.type] ?? vehicle.name');
+  });
+});
+
+/** One parsed record per catalogue entry, in declaration order. */
+function catalogueEntries(): { key: string; name: string; type: string | null; image: boolean; passengers: number; luggage: string; mode: string }[] {
+  const body = CATALOGUE.split('FLEET_CATALOGUE: readonly FleetClass[] = [')[1] ?? '';
+  return [...body.matchAll(/key: '([^']+)',[\s\S]*?name: '([^']+)',[\s\S]*?vehicleType: (?:'(\w+)'|null),[\s\S]*?image: (require\([^)]*\)|null),[\s\S]*?passengers: (\d+),[\s\S]*?luggage: (\d+|null),[\s\S]*?pricingMode: '([^']+)'/g)].map((m) => ({
+    key: m[1]!,
+    name: m[2]!,
+    type: m[3] ?? null,
+    image: m[4] !== 'null',
+    passengers: Number(m[5]),
+    luggage: m[6]!,
+    mode: m[7]!,
+  }));
+}
+
+describe('the customer-facing catalogue', () => {
+  it('offers exactly the seven classes the client asked for, once each', () => {
+    const entries = catalogueEntries();
+    expect(entries.map((e) => e.name)).toEqual([
+      'Premium SUV',
+      'Luxury SUV',
+      'First Class',
+      'Executive Sprinter',
+      'Mini Bus',
+      'Mini Coach',
+      'Motor Coach',
+    ]);
+    // No duplicate Mini Coach — the client's own message listed it twice.
+    expect(new Set(entries.map((e) => e.key)).size).toBe(7);
+    expect(entries.filter((e) => e.name === 'Mini Coach')).toHaveLength(1);
+  });
+
+  it('carries the capacities the client supplied for the group classes', () => {
+    const by = Object.fromEntries(catalogueEntries().map((e) => [e.name, e]));
+    expect(by['Executive Sprinter']!.passengers).toBe(13);
+    expect(by['Mini Bus']!.passengers).toBe(27);
+    expect(by['Mini Coach']!.passengers).toBe(40);
+    expect(by['Motor Coach']!.passengers).toBe(56);
+  });
+
+  /*
+   * §11. Luggage is stated only where the business has confirmed it. A 56-seat
+   * coach does not carry 56 bags, and a null here is the honest answer rather
+   * than a number nobody published.
+   */
+  it('omits luggage for the group classes nobody has published a figure for', () => {
+    const by = Object.fromEntries(catalogueEntries().map((e) => [e.name, e]));
+    for (const name of ['Mini Bus', 'Mini Coach', 'Motor Coach']) {
+      expect(by[name]!.luggage).toBe('null');
+    }
+    // And states it where /rates does: Sprinter 14/10 — the 10 is the site's.
+    expect(by['Executive Sprinter']!.luggage).toBe('10');
+  });
+
+  /**
+   * THE ASSERTION THAT KEEPS AN INVENTED PRICE OUT OF CHECKOUT.
+   *
+   * A class with no rate card must not carry a `vehicleType`, because that is
+   * the only thing tying a catalogue entry to the fare engine. If one ever
+   * does, a customer could select it and be quoted from rates nobody supplied.
+   */
+  it('gives no unpriced class a route into the calculated fare', () => {
+    for (const entry of catalogueEntries()) {
+      if (entry.mode === 'request-quote') expect(entry.type).toBeNull();
+    }
+  });
+
+  it('and every bookable class does have one', () => {
+    for (const entry of catalogueEntries()) {
+      if (entry.mode === 'bookable') expect(entry.type).not.toBeNull();
+    }
+  });
+
+  /*
+   * The booking picker renders from the API, never from the catalogue, so a
+   * display-only class cannot appear there at all. This guards that boundary —
+   * importing the catalogue into the picker is how it would be crossed.
+   */
+  it('keeps the catalogue out of the booking picker entirely', () => {
+    expect(read('app/(app)/book/vehicle.tsx')).not.toContain('FLEET_CATALOGUE');
+  });
+
+  /**
+   * The two images with malformed lettering — "SUBURBIAY" on the Suburban and
+   * "EXECUTIVE TRANSPOR T5" inside LCT's own logo lockup on the Freightliner.
+   * Their classes appear; their photographs do not.
+   */
+  it('publishes no image for the two classes whose supplied asset is defective', () => {
+    const by = Object.fromEntries(catalogueEntries().map((e) => [e.name, e]));
+    expect(by['Luxury SUV']!.image).toBe(false);
+    expect(by['Mini Coach']!.image).toBe(false);
+    // And every other class does have one — so this is not vacuously true.
+    for (const name of ['Premium SUV', 'First Class', 'Executive Sprinter', 'Mini Bus', 'Motor Coach']) {
+      expect(by[name]!.image).toBe(true);
+    }
+  });
+
+  it('does not reference the held assets from anywhere in src', () => {
+    for (const held of ['luxury-suv-suburban', 'mini-coach-40-freightliner']) {
+      expect(CATALOGUE).not.toContain(held);
+      expect(IMAGES).not.toContain(held);
+    }
+  });
+});
 
 describe('class IDs are stable', () => {
   /*
